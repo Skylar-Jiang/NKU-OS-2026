@@ -1,116 +1,25 @@
-# AGENTS.md
+# OS 课程实验协作规范
 
-This workspace is used for operating-system coursework and RISC-V development.
-Follow the rules below when reading, modifying, building, or testing projects
-inside this workspace.
+## 分支与交付
 
-## Course repository layout
+- `main` 是课程公共分支：保留 README、AGENTS、允许公开的实验指导资料及公共说明。
+- 每次实验使用独立的 `labx` 分支，例如 `lab1`、`lab2`；新实验原则上从最新 `main` 创建，不从上一次实验分支继续派生。
+- 实验进行期间可暂时保留从 `main` 继承的 README、AGENTS、docs 等辅助资料，方便协作。
+- 实验完成、准备提交时清理对应 `labx` 分支，最终只保留：
+  - `code/`
+  - `report/report.md`
+  - `report/prompt.md`
+  - `report/images/`
 
-- Maintain one public repository for the course. Use one `labx` branch for
-  each experiment, for example `lab1`.
-- Each experiment branch uses `code/` for the experiment source and `report/`
-  for submission materials.
-- Place experiment source files in `code/`. Keep the original internal layout
-  of code supplied by the instructor or teaching assistants whenever possible.
-- Under `report/`, use `report.md` for the report, `prompt.md` for the prompts
-  used in the experiment, and `images/` for report screenshots.
-- Unless a task explicitly requires it, do not proactively refactor, delete,
-  rename, or batch-format experiment source files.
-- Keep modifications focused on the current explicit task.
-- Divide Git commits by feature or experiment stage, rather than making
-  arbitrary date-based commits.
+## 开发与 Git
 
-## 1. Scope and safety
+- 每次操作前先确认当前分支并运行 `git status`。
+- 优先保护老师或助教提供的源码；除非任务明确要求，不主动重构、删除、重命名、批量格式化，也不从旧 uCore 仓库复制代码。
+- 修改后必须执行实际适用的编译或测试，才可声称完成；无法测试时应明确说明原因。
+- 提交按明确功能或实验阶段划分，使用描述性提交信息；不用 `update`、`final` 等模糊名称。
+- 不使用 `git reset --hard`、rebase、force push 等方式改写公共历史，除非用户明确要求。
+- `*:Zone.Identifier`、临时文件和无关构建产物不得提交。
 
-- Work only inside the current project/workspace unless the user explicitly
-  asks otherwise.
-- Do not modify system files, shell configuration, global packages, WSL
-  settings, compiler installations, QEMU installations, or files outside the
-  project without explicit permission.
-- Do not run destructive commands without explicit confirmation.
-  This includes commands such as:
-  - rm -rf
-  - git reset --hard
-  - git clean -fd / -fdx
-  - forced checkout/restore that discards work
-  - deleting or overwriting project files
-- Never expose, print, store, or commit API keys, access tokens, passwords,
-  credentials, or other secrets.
+## 完成汇报
 
-## 2. Git discipline
-
-Before modifying code:
-
-1. Run `git status`.
-2. Inspect the current branch and existing uncommitted changes.
-3. Never overwrite or revert pre-existing user changes unless explicitly asked.
-
-During development:
-
-- Keep changes focused on the current task.
-- Avoid unrelated refactors, formatting changes, or large-scale rewrites.
-- Use `git diff` to inspect modifications.
-- Prefer small, logically isolated changes.
-- Do not create commits, push branches, merge, rebase, or alter Git history
-  unless the user explicitly asks for it.
-
-Before using `git restore`, `git checkout`, `git reset`, `git clean`, or similar
-commands, inspect the affected files and explain what would be discarded.
-
-## 3. Understand before modifying
-
-Before changing implementation code:
-
-- Read the relevant source files and surrounding code.
-- Identify the existing design and conventions.
-- Check relevant headers, build scripts, Makefiles, tests, and documentation.
-- Do not invent interfaces or assumptions when they can be verified from the
-  repository.
-- Prefer fixing the root cause rather than patching symptoms.
-
-For operating-system code, pay particular attention to architecture-specific
-behavior, memory management, page tables, traps/interrupts, privilege levels,
-linker scripts, boot flow, and hardware/emulator assumptions.
-
-## 4. Build and test
-
-A code change is not considered complete merely because it looks correct.
-
-After meaningful modifications:
-
-- Build the project using its documented build command.
-- Run the relevant tests.
-- For uCore-style projects, use commands such as `make`, `make qemu`, and
-  `make grade` when they are supported by the repository.
-- Read compiler errors, warnings, runtime output, and test failures carefully.
-- Fix problems based on evidence from the build/test output.
-
-Do not claim that a change works unless it has actually been tested, or clearly
-state when testing was not possible.
-
-## 5. Preserve the environment
-
-The current WSL environment may already contain working RISC-V toolchains,
-QEMU, OpenSBI, Git, and other development tools.
-
-- Do not reinstall, upgrade, downgrade, or replace toolchains automatically.
-- Do not change PATH, LD_LIBRARY_PATH, .bashrc, proxy settings, or other
-  environment configuration merely to solve a project-level problem.
-- If a build failure appears to be caused by toolchain or environment
-  compatibility, diagnose and explain it first before changing the environment.
-
-## 6. Communication
-
-When a task is non-trivial:
-
-- Briefly explain what files or components are relevant before making broad
-  changes.
-- After modification, summarize:
-  - what changed,
-  - why it changed,
-  - what commands/tests were run,
-  - whether they passed,
-  - any remaining uncertainty.
-
-If the requested change conflicts with the repository's documented behavior or
-would risk destroying existing work, stop and ask before proceeding.
+完成任务后简洁说明：当前分支、修改文件、验证结果、是否已 commit、是否已 push。
