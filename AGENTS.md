@@ -4,6 +4,22 @@ This workspace is used for operating-system coursework and RISC-V development.
 Follow the rules below when reading, modifying, building, or testing projects
 inside this workspace.
 
+## Course repository layout
+
+- Maintain one public repository for the course. Use one `labx` branch for
+  each experiment, for example `lab1`.
+- Each experiment branch uses `code/` for the experiment source and `report/`
+  for submission materials.
+- Place experiment source files in `code/`. Keep the original internal layout
+  of code supplied by the instructor or teaching assistants whenever possible.
+- Under `report/`, use `report.md` for the report, `prompt.md` for the prompts
+  used in the experiment, and `images/` for report screenshots.
+- Unless a task explicitly requires it, do not proactively refactor, delete,
+  rename, or batch-format experiment source files.
+- Keep modifications focused on the current explicit task.
+- Divide Git commits by feature or experiment stage, rather than making
+  arbitrary date-based commits.
+
 ## 1. Scope and safety
 
 - Work only inside the current project/workspace unless the user explicitly
