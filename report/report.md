@@ -76,7 +76,7 @@ tools/kernel.ld 规定内核的入口和各段在内存中的位置；kern/init/
 
 ### 3.3 关键原理：镜像装载、固件初始化与内核入口的分工
 
-**镜像装载与控制权移交是两个不同的操作。** 本实验的 Makefile 使用 `-bios default` 选择 QEMU 默认固件，并通过 `-device loader,file=bin/ucore.img,addr=0x80200000` 指定由 **QEMU loader** 把内核镜像放入物理地址 `0x80200000`。CPU 则先从 `0x1000` 的复位代码出发，跳到 `0x80000000` 执行 OpenSBI。OpenSBI 在固件阶段完成必要的平台初始化，再将控制权移交到已经放置好的内核入口。**因此，在本实验配置中，不能把 QEMU loader 的镜像装载工作说成是 OpenSBI 完成的。**
+**镜像装载与控制权移交是两个不同的操作。** 本实验的 Makefile 使用 `-bios default` 选择 QEMU 默认固件，并通过 `-device loader,file=bin/ucore.img,addr=0x80200000` 指定由 **QEMU loader** 把内核镜像放入物理地址 `0x80200000`。CPU 则先从 `0x1000` 的复位代码出发，跳到 `0x80000000` 执行 OpenSBI。OpenSBI 在固件阶段完成必要的平台初始化，再将控制权移交到已经放置好的内核入口。
 
 **ELF、二进制镜像与链接地址也需要区分。** `bin/kernel` 是链接产生的 ELF 文件，包含供调试使用的符号等信息；`bin/ucore.img` 是由 `objcopy` 导出的扁平二进制镜像，用于按指定地址放入内存。链接脚本 `tools/kernel.ld` 使用 `BASE_ADDRESS = 0x80200000` 安排内核内存布局，并通过 `ENTRY(kern_entry)` 指定程序入口。本实验中镜像的实际装载位置与链接安排相对应，CPU 跳转到 `0x80200000` 才能执行预期的入口指令。
 
