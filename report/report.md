@@ -74,6 +74,14 @@
 
 tools/kernel.ld 规定内核的入口和各段在内存中的位置；kern/init/entry.S 提供最开始执行的内核汇编代码，负责设置 SP 并转入 C 函数；kern/init/init.c 中的 kern_init 完成最小初始化并调用 cprintf；kern/libs/stdio.c、kern/driver/console.c 和 libs/sbi.c 组成字符输出路径，最底层通过 ecall 调用 SBI 服务。
 
+### 3.3 关键原理：镜像装载、固件初始化与内核入口的分工
+
+**镜像装载与控制权移交是两个不同的操作。** 本实验的 Makefile 使用 `-bios default` 选择 QEMU 默认固件，并通过 `-device loader,file=bin/ucore.img,addr=0x80200000` 指定由 **QEMU loader** 把内核镜像放入物理地址 `0x80200000`。CPU 则先从 `0x1000` 的复位代码出发，跳到 `0x80000000` 执行 OpenSBI。OpenSBI 在固件阶段完成必要的平台初始化，再将控制权移交到已经放置好的内核入口。**因此，在本实验配置中，不能把 QEMU loader 的镜像装载工作说成是 OpenSBI 完成的。**
+
+**ELF、二进制镜像与链接地址也需要区分。** `bin/kernel` 是链接产生的 ELF 文件，包含供调试使用的符号等信息；`bin/ucore.img` 是由 `objcopy` 导出的扁平二进制镜像，用于按指定地址放入内存。链接脚本 `tools/kernel.ld` 使用 `BASE_ADDRESS = 0x80200000` 安排内核内存布局，并通过 `ENTRY(kern_entry)` 指定程序入口。本实验中镜像的实际装载位置与链接安排相对应，CPU 跳转到 `0x80200000` 才能执行预期的入口指令。
+
+**从汇编入口过渡到 C 代码需要先建立内核栈。** OpenSBI 将控制权移交给内核，并不意味着已经为 `kern_init` 准备好可直接依赖的内核栈。`entry.S` 利用预留的 `bootstack` 空间将 `sp` 设置到 `bootstacktop`，再执行 `tail kern_init`；随后 C 函数可在这片栈空间中建立栈帧。另外，本实验内核没有依赖现成操作系统的用户态标准输出服务，字符输出通过 `cprintf → vcprintf/vprintfmt → cputch → cons_putc → sbi_console_putchar → ecall` 逐层实现，最终请求 SBI 控制台服务。
+
 ## 四、实验内容与实现
 
 ### 4.1 编译内核并查看运行结果
@@ -128,7 +136,7 @@ riscv64-unknown-elf-nm -n bin/kernel
 
 *图 4-3 Makefile 中的 QEMU 启动命令*
 
-如图 4-3，启动参数使用 -machine virt 模拟 RISC-V virt 平台，-nographic 把串口输出显示在当前终端，-bios default 使用 QEMU 默认固件，loader 把 bin/ucore.img 放到物理地址 0x80200000。这个地址与 kernel.ld 中的内核起始地址相同。
+如图 4-3，启动参数使用 -machine virt 模拟 RISC-V virt 平台，-nographic 把串口输出显示在当前终端，-bios default 使用 QEMU 默认固件，-device loader 将 bin/ucore.img 装载到物理地址 0x80200000。这个地址与 kernel.ld 中的内核起始地址相同。这里负责把镜像放入内存的是 QEMU loader；OpenSBI 的作用是完成固件阶段初始化，并把控制权移交给已经装载好的内核，而不是执行这条 loader 装载命令。
 
 执行 make qemu，按 Makefile 中的配置启动 QEMU 并运行内核镜像。
 
@@ -158,7 +166,7 @@ GDB 停在 kern_entry 后执行 x/6i $pc，反汇编当前地址附近的机器�
 
 *图 4-6 执行 la 前的 SP*
 
-如图 4-6，PC=0x80200000，SP=0x8001bd80。此时 CPU 已经到达 kern_entry，但还没有执行设置内核栈的指令。这时候的SP值依然是硬件残留值。
+如图 4-6，PC=0x80200000，SP=0x8001bd80。此时 CPU 已经到达 kern_entry，但还没有执行设置内核栈的指令。此时 SP 仍保留内核入口之前启动阶段的值，尚未被设置为本内核的栈顶。
 
 执行一次 si，再次查看 PC 和 SP，记录 la 第一条实际指令执行后的变化。
 
@@ -189,6 +197,18 @@ entry.S 通过 .space KSTACKSIZE 预留 0x80201000～0x80203000 这一段空间�
 如图 4-9，PC=0x8020000a，当前函数为 kern_init，SP 仍为 0x80203000。tail 在本次程序中使用直接跳转，不为 entry.S 保存新的返回地址。
 
 练习 1 中，la sp, bootstacktop 把内核栈顶地址写入 SP，为 C 函数准备栈空间；tail kern_init 把 PC 改到 kern_init 的入口。kern_init 被声明为 noreturn，正常执行不会回到 entry.S。
+
+#### 4.2.3 练习 1：题目要求与直接解答
+
+**题目：** 阅读 `kern/init/entry.S`，结合内核启动流程，分别说明 `la sp, bootstacktop` 和 `tail kern_init` 完成了什么操作，以及为什么需要这些操作。
+
+**（1）`la sp, bootstacktop` 完成什么操作？目的是什么？**
+
+它将链接符号 `bootstacktop` 的地址装入栈指针寄存器 `sp`。本次实验中，`bootstacktop=0x80203000`，对应预留的 8 KiB 启动栈的高地址边界。其目的是让内核不再依赖进入内核前保留的 SP 值，为后续 C 函数调用、局部变量和寄存器保存建立可用的内核栈。图 4-6 至图 4-8 的寄存器及符号查询显示，SP 从 `0x8001bd80` 变为 `0x80203000`，与这一解释一致。
+
+**（2）`tail kern_init` 完成什么操作？目的是什么？**
+
+它执行尾跳转，将控制流直接转移到 C 函数 `kern_init`，不为这次跳转写入新的返回地址 `ra`。目的是在完成最基本的栈初始化后，将内核初始化与字符输出工作交给 C 代码，而不再为汇编入口额外建立返回路径。本次反汇编对应 `0x80200008` 处的 `j`，单步后 PC 到达 `0x8020000a`；`kern_init` 被声明为 `noreturn` 并最终停在 `while (1)`，与这一启动设计一致。
 
 ### 4.3 练习 2：使用 GDB 验证启动流程
 
@@ -289,6 +309,26 @@ entry.S 通过 .space KSTACKSIZE 预留 0x80201000～0x80203000 这一段空间�
 如图 4-18，前四个字节为 d0 0d fe ed，这是 FDT 的魔数。a1 此时保存的是设备树地址。
 
 练习 2 记录到的主要执行地址为 0x1000、0x80000000 和 0x80200000，分别是复位代码、OpenSBI 和 kern_entry 的位置。
+
+#### 4.3.5 练习 2：题目要求与直接解答
+
+**题目：** 使用 GDB 从 QEMU 模拟的 RISC-V 处理器加电开始跟踪，直到执行内核第一条指令；回答处理器最初执行的几条指令位于哪里、分别发挥什么作用。
+
+**（1）最初的指令位于什么地址？**
+
+在本次使用的 QEMU 4.1.1 `virt` 平台配置下，GDB 连接后首先观察到 `PC=0x1000`，因此最初执行的是 `0x1000` 附近的复位代码，而不是直接从 OpenSBI 的 `0x80000000` 或内核的 `0x80200000` 开始。图 4-12 显示，`0x1000` 至 `0x1010` 有五条实际执行的启动指令。
+
+**（2）这五条指令主要完成了什么功能？**
+
+- `0x1000: auipc t0,0`：将当前 PC 相对基址 `0x1000` 放入 `t0`，为后续计算地址做准备。
+- `0x1004: addi a1,t0,32`：计算得到 `a1=0x1020`，将启动阶段的设备树（FDT）地址作为参数传递。
+- `0x1008: csrr a0,mhartid`：读取当前硬件线程（Hart）编号到 `a0`；本次观察值为 0。
+- `0x100c: ld t0,24(t0)`：从 `0x1018` 读取下一阶段入口地址，得到 `t0=0x80000000`。
+- `0x1010: jr t0`：按 `t0` 的值跳转，将控制权交给 OpenSBI。
+
+**（3）如何验证后续确实进入了内核？**
+
+图 4-14 与图 4-15 证明 `jr t0` 使 PC 从 `0x1010` 到达 `0x80000000`；随后在 `0x80200000` 设置的断点命中 `kern_entry`（图 4-16），说明固件阶段已将控制权交给内核。图 4-17、图 4-18 还记录了内核入口的寄存器与设备树魔数。由此验证完整路径为 **复位代码 `0x1000` → OpenSBI `0x80000000` → 内核入口 `0x80200000`**。这个路径描述的是 CPU 控制流，内核镜像的装载由前述 QEMU loader 参数独立完成。
 
 ### 4.4 查看 kern_init 的执行
 
