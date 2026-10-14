@@ -46,10 +46,8 @@ static void init_pmm_manager(void) {
 #elif defined(LAB2_PAGE_INIT_TEST)
     pmm_manager = &default_pmm_manager;
 #else
-    /* Team integration switches only this standard-build choice to Best-Fit
-     * after its implementation arrives; the A-only profiles stay independent.
-     */
-    pmm_manager = &default_pmm_manager;
+    /* 标准 Lab 2 配置使用 Best-Fit；Buddy 保持独立测试配置。 */
+    pmm_manager = &best_fit_pmm_manager;
 #endif
     cprintf("memory management: %s\n", pmm_manager->name);
     pmm_manager->init();
