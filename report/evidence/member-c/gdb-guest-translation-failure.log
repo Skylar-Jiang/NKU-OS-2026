@@ -1,0 +1,10 @@
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc020109a: file kern/mm/page_init_test.c, line 11.
+
+Breakpoint 1, page_init_test () at kern/mm/page_init_test.c:11
+11	    uint64_t reported_end = get_memory_base() + get_memory_size();
+GUEST_PC=0x/tmp/lab2-guest-gdb-b5wi70px/commands.gdb:8: Error in sourced command file:
+long long not supported in printf
+[Inferior 1 (process 1) detached]
+
+GDB_EXIT=1
