@@ -1,0 +1,13 @@
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc020130a: file kern/mm/pmm.c, line 47.
+
+Breakpoint 1, pmm_init () at kern/mm/pmm.c:137
+137	    init_pmm_manager();
+Hardware assisted breakpoint 2 at 0xffffffffc0200646: file libs/list.h, line 123.
+
+Breakpoint 2, default_check () at libs/list.h:123
+123	    return listelm->next;
+NO_FREE_NPAGE=524813 NO_FREE_COUNT=0
+[GDB page_init] no full free page: PASS (stopped before allocator self-test)
+
+GDB_EXIT=0

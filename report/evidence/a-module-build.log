@@ -1,0 +1,7 @@
+$ make -j2 obj/kern/mm/pmm.o obj/kern/mm/buddy_pmm.o obj/kern/mm/buddy_test.o obj/kern/mm/page_init_test.o
+make: 'obj/kern/mm/buddy_pmm.o' is up to date.
+make: 'obj/kern/mm/buddy_test.o' is up to date.
+make: 'obj/kern/mm/page_init_test.o' is up to date.
++ cc kern/mm/pmm.c
+
+BUILD_EXIT=0

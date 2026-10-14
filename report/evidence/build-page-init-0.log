@@ -1,0 +1,6 @@
+$ make -j2 LAB2_PROFILE=page-init LAB2_BUDDY_NEGATIVE=0
++ cc kern/mm/pmm.c
++ ld bin/page-init/0/kernel
+riscv64-unknown-elf-objcopy bin/page-init/0/kernel --strip-all -O binary bin/page-init/0/ucore.img
+
+BUILD_EXIT=0

@@ -1,0 +1,65 @@
+## Worktree
+$ git worktree list
+/home/jianglinjing/oslab       3900390 [lab1]
+/home/jianglinjing/oslab-lab2  9e72520 [lab2]
+
+## GCC
+$ riscv64-unknown-elf-gcc --version
+riscv64-unknown-elf-gcc (g1b306039ac4) 15.1.0
+Copyright (C) 2025 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+## RISC-V GDB
+$ riscv64-unknown-elf-gdb --version
+GNU gdb (GDB) 16.3.90.20250610-git
+Copyright (C) 2024 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+## QEMU 4.1.1
+$ /home/jianglinjing/opt/qemu-4.1.1/bin/qemu-system-riscv64 --version
+QEMU emulator version 4.1.1
+Copyright (c) 2003-2019 Fabrice Bellard and the QEMU Project developers
+
+## QEMU 7.0.0
+$ /opt/qemu/bin/qemu-system-riscv64 --version
+QEMU emulator version 7.0.0
+Copyright (c) 2003-2022 Fabrice Bellard and the QEMU Project developers
+
+## QEMU 4 file
+$ file /home/jianglinjing/opt/qemu-4.1.1/bin/qemu-system-riscv64
+/home/jianglinjing/opt/qemu-4.1.1/bin/qemu-system-riscv64: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=26128693196b5cf855dada251d6f05036f64d6fb, for GNU/Linux 3.2.0, stripped
+
+## QEMU 7 file
+$ file /opt/qemu/bin/qemu-system-riscv64
+/opt/qemu/bin/qemu-system-riscv64: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=f2494d8d26cee1fa4bd957625585177ea2e2b2c0, for GNU/Linux 3.2.0, with debug_info, not stripped
+
+## GDB targets
+$ riscv64-unknown-elf-gdb --batch -ex help target
+Connect to a target machine or process.
+The first argument is the type or protocol of the target machine.
+Remaining arguments are interpreted by the target protocol.  For more
+information on the arguments for a particular protocol, type
+`help target ' followed by the protocol name.
+
+List of target subcommands:
+
+target core -- Use a core file as a target.
+target exec -- Use an executable file as a target.
+target extended-remote -- Use a remote computer via a serial line, using a gdb-specific protocol.
+target record-btrace -- Collect control-flow trace and provide the execution history.
+target record-core -- Log program while executing and replay execution from log.
+target record-full -- Log program while executing and replay execution from log.
+target remote -- Use a remote computer via a serial line, using a gdb-specific protocol.
+target sim -- Use the compiled-in simulator.
+target tfile -- Use a trace file as a target.
+
+Type "help target" followed by target subcommand name for full documentation.
+Type "apropos word" to search for commands related to "word".
+Type "apropos -v word" for full documentation of commands related to "word".
+Command name abbreviations are allowed if unambiguous.
+
+Native host GDB: no gdb/gdb-multiarch executable found in PATH or searched local tool directories.

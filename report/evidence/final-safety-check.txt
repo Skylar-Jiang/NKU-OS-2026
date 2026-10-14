@@ -1,0 +1,17 @@
+Final safety verification (actual checks, 2026-10-14)
+Worktree=/home/jianglinjing/oslab-lab2
+Branch=lab2
+HEAD=9e725207f870e1ed2faba0ab0d9399f9f7747b56
+Original files SHA-256 checked=194; altered/missing=0
+Original worktree status and index byte-for-byte unchanged
+Existing refs unchanged; only new ref is refs/heads/lab2 at main
+No commits, pushes, merges, rebases, resets or clean operations
+Root entries=.git (worktree metadata), code/, report/
+Modified original source files=Makefile, kern/mm/pmm.c
+New source/helper files=kern/mm/buddy_pmm.c, kern/mm/buddy_pmm.h, kern/mm/buddy_test.c, kern/mm/buddy_test.h, kern/mm/page_init_test.c, kern/mm/page_init_test.h, tools/check_a.py, tools/debug_a.py
+All teammate source files and official grading files byte-for-byte unchanged
+Prompt template unchanged since creation; SHA-256=1ade38bba538afba20252b8848f5059cbc0fbef5c20b0ae6f07fd5093a35ec06
+Images directory contains only empty .gitkeep; no screenshots fabricated
+git diff --check and original/new source whitespace checks: PASS
+No build/cache/Zone.Identifier among untracked submission candidates
+New worktree status: 59 inherited tracked deletions (archived), code/ and report/ untracked

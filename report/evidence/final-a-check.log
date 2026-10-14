@@ -1,0 +1,15 @@
+$ python3 tools/check_a.py
+page-init-64M: PASS
+page-init-128M: PASS
+page-init-256M: PASS
+buddy-64M: PASS
+buddy-128M: PASS
+buddy-256M: PASS
+buddy-negative-1: EXPECTED PANIC OBSERVED
+buddy-negative-2: EXPECTED PANIC OBSERVED
+buddy-negative-3: EXPECTED PANIC OBSERVED
+buddy-negative-4: EXPECTED PANIC OBSERVED
+buddy-negative-5: EXPECTED PANIC OBSERVED
+Raw build/boot evidence: /home/jianglinjing/oslab-lab2/report/evidence
+
+EXIT=0

@@ -1,0 +1,11 @@
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc0201092: file kern/mm/page_init_test.c, line 11.
+
+Breakpoint 1, page_init_test () at kern/mm/page_init_test.c:11
+11	    uint64_t reported_end = get_memory_base() + get_memory_size();
+GUEST_PC=0xffffffffc0201092 SATP=0x8000000000080205 OFFSET=0xffffffff40000000
+ROOT_PA=0x80205000 VPN2=511 LEAF_PTE=0x200000cf
+TRANSLATED_PA=0x80201092 OFFSET_PA=0x80201092
+[Inferior 1 (process 1) detached]
+
+GDB_EXIT=1

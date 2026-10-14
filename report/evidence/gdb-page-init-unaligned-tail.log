@@ -1,0 +1,14 @@
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc020130a: file kern/mm/pmm.c, line 47.
+
+Breakpoint 1, pmm_init () at kern/mm/pmm.c:137
+137	    init_pmm_manager();
+Hardware assisted breakpoint 2 at 0xffffffffc0201092: file kern/mm/page_init_test.c, line 11.
+
+Breakpoint 2, page_init_test () at kern/mm/page_init_test.c:11
+11	    uint64_t reported_end = get_memory_base() + get_memory_size();
+UNALIGNED_SIZE=0x3ffffef NPAGE=540671
+[GDB page_init] incomplete tail page excluded: PASS
+[Inferior 1 (process 1) detached]
+
+GDB_EXIT=0

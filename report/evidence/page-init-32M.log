@@ -1,0 +1,4 @@
+$ /home/jianglinjing/opt/qemu-4.1.1/bin/qemu-system-riscv64 -machine virt -m 32M -nographic -bios default -device loader,file=/home/jianglinjing/oslab-lab2/code/bin/page-init/0/ucore.img,addr=0x80200000
+qemu-system-riscv64: terminating on signal 15 from pid 8877 (python3)
+
+QEMU_EXIT=0 (terminated after marker/deadline)

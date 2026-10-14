@@ -1,0 +1,6 @@
+$ make -j2 LAB2_PROFILE=buddy LAB2_BUDDY_NEGATIVE=3
++ cc kern/mm/pmm.c
++ ld bin/buddy/3/kernel
+riscv64-unknown-elf-objcopy bin/buddy/3/kernel --strip-all -O binary bin/buddy/3/ucore.img
+
+BUILD_EXIT=0
