@@ -1,0 +1,1 @@
+branch: lab2 commit: 0d468f5bb8a07ce4da2404d3dcd63115e9507682 date: 2026-10-15T19:49:48+08:00 qemu: ~/opt/qemu-4.1.1/bin/qemu-system-riscv64 (QEMU emulator version 4.1.1)

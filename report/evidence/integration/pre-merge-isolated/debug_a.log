@@ -1,0 +1,11 @@
+$ python3 tools/debug_a.py --qemu ~/opt/qemu-4.1.1/bin/qemu-system-riscv64 --logs ~/oslab-lab2-integ/report/evidence/integration/debug_a
+make: Nothing to be done for 'TARGETS'.
+guest Sv39 translation: PASS
+page-init injection zero-size: EXPECTED PANIC OBSERVED
+page-init injection bad-base: EXPECTED PANIC OBSERVED
+page-init injection overflow: EXPECTED PANIC OBSERVED
+page-init injection kernel-outside: EXPECTED PANIC OBSERVED
+page-init injection metadata-outside: EXPECTED PANIC OBSERVED
+page-init injection incomplete tail page: PASS
+page-init injection no full free page: PASS
+DEBUG_A_EXIT=0

@@ -1,0 +1,18 @@
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc020128e: file kern/mm/slub.c, line 116.
+
+Breakpoint 1, slub_init () at kern/mm/slub.c:116
+116	    if (slub_ready) {
+[after pmm_init / before SLUB]
+  block head=0xffffffffc020f318 idx=839 property=31929 flags=0x2
+  BLOCKS=1 SUM_PROPERTY=31929 NR_FREE=31929
+Hardware assisted breakpoint 2 at 0xffffffffc0200116: file kern/init/init.c, line 46.
+
+Breakpoint 2, kern_init () at kern/init/init.c:46
+46	    while (1)
+[after slub_test, kernel idle loop]
+  block head=0xffffffffc020f318 idx=839 property=31929 flags=0x2
+  BLOCKS=1 SUM_PROPERTY=31929 NR_FREE=31929
+[GDB standard] Best-Fit free list single block and nr_free restored after SLUB: PASS
+[Inferior 1 (process 1) detached]
+GDB_EXIT=0
