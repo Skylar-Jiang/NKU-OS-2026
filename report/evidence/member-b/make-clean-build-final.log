@@ -1,0 +1,25 @@
+$ PATH=/home/lenovo/riscv-elf-toolchains/bin:$PATH make clean && make
+PATH=/home/lenovo/riscv-elf-toolchains/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Users/lenovo/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell:/mnt/c/Users/lenovo/.codex/tmp/arg0/codex-arg0DbCS5x:/mnt/c/Users/lenovo/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/libheif/libheif/bin:/mnt/c/Users/lenovo/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/jxrlib/jxrlib/bin:/mnt/c/Users/lenovo/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/poppler/Library/bin:/mnt/c/Users/lenovo/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/mnt/c/Program Files/Eclipse Adoptium/jdk-21.0.11.10-hotspot/bin:/mnt/c/Program Files (x86)/VMware/VMware Workstation/bin/:/mnt/c/Program Files/Eclipse Adoptium/jdk-25.0.1.8-hotspot/bin:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/:/mnt/c/WINDOWS/System32/OpenSSH/:/mnt/c/Qt/6.8.2/mingw_64:/mnt/c/Qt/6.8.2/mingw_64/bin:/mnt/c/Program Files/dotnet/:/mnt/d/010 Editor:/mnt/c/Users/lenovo/AppData/Local/Muse Hub/lib:/mnt/c/Program Files/nodejs/:/mnt/c/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/:/mnt/c/Program Files/TortoiseGit/bin:/mnt/c/ffmpeg/bin:/mnt/d/Git/cmd:/mnt/c/Users/lenovo/AppData/Local/Programs/CC Switch:/mnt/d/web-pm/npm/global:/mnt/c/Users/lenovo/.local/bin:/mnt/d/Documents/Downloads:/mnt/c/Users/lenovo/AppData/Local/Programs/Python/Python311/Scripts/:/mnt/c/Users/lenovo/AppData/Local/Programs/Python/Python311/:/mnt/c/Users/lenovo/AppData/Local/Programs/Eclipse Adoptium/jdk-8.0.482.8-hotspot/bin:/mnt/c/Program Files/MySQL/MySQL Shell 8.0/bin/:/mnt/c/Users/lenovo/AppData/Local/Programs/Python/Launcher/:/mnt/c/Users/lenovo/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell:/mnt/c/Users/lenovo/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/lenovo/AppData/Local/Programs/Microsoft VS Code/bin:/mnt/d/PyCharm 2025.2.1.1/bin:/mnt/d/IntelliJ IDEA 2025.2.1/bin:/mnt/c/Program Files/Java/jdk1.7.0_80/bin:/mnt/c/Users/lenovo/AppData/Local/Python/bin:/mnt/c/Users/lenovo/AppData/Local/Microsoft/WinGet/Packages/Anthropic.ClaudeCode_Microsoft.Winget.Source_8wekyb3d8bbwe:/mnt/c/Users/lenovo/AppData/Roaming/npm:/mnt/c/Users/lenovo/.local/bin:/mnt/c/Users/lenovo/AppData/Local/Programs/Ollama:/mnt/c/Users/lenovo/AppData/Local/Microsoft/WinGet/Packages/PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe:/mnt/c/Users/lenovo/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/mnt/c/Users/lenovo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:/mnt/c/Users/lenovo/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/git/cmd:/mnt/c/Users/lenovo/AppData/Local/OpenAI/Codex/bin/77fbd4d52e601e0a:/mnt/c/Users/lenovo/AppData/Local/OpenAI/Codex/bin/9614f1d9b40d9c4f
+rm -f -r obj bin
++ cc kern/init/entry.S
++ cc kern/init/init.c
++ cc kern/libs/stdio.c
++ cc kern/debug/panic.c
++ cc kern/driver/console.c
++ cc kern/driver/dtb.c
++ cc kern/mm/best_fit_pmm.c
++ cc kern/mm/buddy_pmm.c
++ cc kern/mm/buddy_test.c
++ cc kern/mm/default_pmm.c
++ cc kern/mm/page_init_test.c
++ cc kern/mm/pmm.c
++ cc kern/mm/slub.c
++ cc kern/mm/slub_test.c
++ cc libs/printfmt.c
++ cc libs/readline.c
++ cc libs/sbi.c
++ cc libs/string.c
++ ld bin/kernel
+riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img
+
+COMMAND_EXIT=0
