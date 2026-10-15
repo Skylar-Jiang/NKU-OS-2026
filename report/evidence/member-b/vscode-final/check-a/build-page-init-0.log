@@ -1,0 +1,21 @@
+$ make -j2 LAB2_PROFILE=page-init LAB2_BUDDY_NEGATIVE=0
+make: Warning: File 'obj/page-init/0/kern/mm/buddy_pmm.d' has modification time 0.028 s in the future
++ cc kern/init/entry.S
++ cc kern/init/init.c
++ cc kern/libs/stdio.c
++ cc kern/debug/panic.c
++ cc kern/driver/console.c
++ cc kern/driver/dtb.c
++ cc kern/mm/buddy_pmm.c
++ cc kern/mm/buddy_test.c
++ cc kern/mm/default_pmm.c
++ cc kern/mm/page_init_test.c
++ cc kern/mm/pmm.c
++ cc kern/mm/slub.c
++ cc kern/mm/slub_test.c
++ cc tools/test_lab2.c
++ ld bin/page-init/0/kernel
+riscv64-unknown-elf-objcopy bin/page-init/0/kernel --strip-all -O binary bin/page-init/0/ucore.img
+make: warning:  Clock skew detected.  Your build may be incomplete.
+
+BUILD_EXIT=0

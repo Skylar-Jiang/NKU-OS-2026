@@ -19,3 +19,7 @@
 | `tlb-pte-physical-read.png` | `image14.png` | 源报告中对应的终端或 GDB 画面 |
 | `tlb-set-page-arguments.png` | `image15.png` | 源报告中对应的终端或 GDB 画面 |
 | `tlb-fill-return-true.png` | `image16.png` | 源报告中对应的终端或 GDB 画面 |
+
+## 2026-10-16 补齐的 VS Code 截图
+
+六张新截图及实际可见证据见 [本轮截图清单](本轮截图清单.md)。这些截图来自当前工程实际 VS Code 窗口的 CopyFromScreen，不是从日志生成的图片。完整构建、正式评分、QEMU、Best-Fit GDB、SLUB GDB、check_a.py 已在 VS Code 集成终端实际执行。原始日志在 `report/evidence/member-b/vscode-final/`。前文关于当前会话无法操作原生窗口的描述只适用于此前尝试，本轮已解决 DPI 坐标和焦点问题并取得有效截图。

@@ -1,0 +1,25 @@
+0x0000000000001000 in ?? ()
+Breakpoint 1 at 0xffffffffc0200592: file kern/mm/best_fit_pmm.c, line 54.
+
+Breakpoint 1, best_fit_alloc_pages (n=1) at kern/mm/best_fit_pmm.c:54
+54	    assert(n > 0);
+n = 1
+#0  best_fit_alloc_pages (n=1) at kern/mm/best_fit_pmm.c:54
+#1  0xffffffffc02006ce in basic_check () at kern/mm/best_fit_pmm.c:159
+#2  best_fit_check () at kern/mm/best_fit_pmm.c:218
+#3  0xffffffffc020116a in check_alloc_page () at kern/mm/pmm.c:157
+#4  pmm_init () at kern/mm/pmm.c:142
+#5  0xffffffffc020010e in kern_init () at kern/init/init.c:41
+49	    }
+50	}
+51
+52	static struct Page *
+53	best_fit_alloc_pages(size_t n) {
+54	    assert(n > 0);
+55	    if (n > nr_free) {
+56	        return NULL;
+57	    }
+58
+[Inferior 1 (process 1) detached]
+
+GDB_EXIT=0
