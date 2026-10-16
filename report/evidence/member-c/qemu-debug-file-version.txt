@@ -1,0 +1,6 @@
+QEMU emulator version 4.1.1
+Copyright (c) 2003-2019 Fabrice Bellard and the QEMU Project developers
+/home/mcz/riscv/qemu-4.1.1-lab2-debug-build/riscv64-softmmu/qemu-system-riscv64: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=9eecf2fb26d76dc42202f349e67de0399d5f959d, for GNU/Linux 3.2.0, with debug_info, not stripped
+  [31] .debug_info       PROGBITS         0000000000000000  00edcc65
+  [33] .debug_line       PROGBITS         0000000000000000  019e60b5
+  [35] .debug_line_str   PROGBITS         0000000000000000  01d0be9b

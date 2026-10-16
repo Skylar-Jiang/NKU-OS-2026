@@ -1,0 +1,32 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff79ff640 (LWP 420)]
+
+Thread 1 "qemu-system-ris" received signal SIGSEGV, Segmentation fault.
+0x0000555555cc7a05 in notifier_list_add (list=0x5555563de450 <machine_init_done_notifiers>, notifier=0x555556458318) at util/notify.c:26
+26	    QLIST_INSERT_HEAD(&list->notifiers, notifier, node);
+
+Thread 2 (Thread 0x7ffff79ff640 (LWP 420) "qemu-system-ris"):
+#0  0x00007ffff7ae57b8 in __GI___clock_nanosleep (clock_id=clock_id@entry=0, flags=flags@entry=0, req=0x7ffff79fe950, rem=0x7ffff79fe940) at ../sysdeps/unix/sysv/linux/clock_nanosleep.c:78
+#1  0x00007ffff7aea637 in __GI___nanosleep (req=<optimized out>, rem=<optimized out>) at ../sysdeps/unix/sysv/linux/nanosleep.c:25
+#2  0x00007ffff7e310e7 in g_usleep () from /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#3  0x0000555555ccf9e8 in call_rcu_thread (opaque=0x0) at util/rcu.c:252
+#4  0x0000555555cb53dc in qemu_thread_start (args=0x5555563f15c0) at util/qemu-thread-posix.c:502
+#5  0x00007ffff7a94a83 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:442
+#6  0x00007ffff7b268e0 in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:81
+
+Thread 1 (Thread 0x7ffff7c2fb00 (LWP 417) "qemu-system-ris"):
+#0  0x0000555555cc7a05 in notifier_list_add (list=0x5555563de450 <machine_init_done_notifiers>, notifier=0x555556458318) at util/notify.c:26
+#1  0x0000555555939c67 in qemu_add_machine_init_done_notifier (notify=0x555556458318) at vl.c:2511
+#2  0x000055555598edca in machine_initfn (obj=0x5555564582f0) at hw/core/machine.c:959
+#3  0x0000555555b6847d in object_init_with_type (obj=0x5555564582f0, ti=0x555556406800) at qom/object.c:359
+#4  0x0000555555b6845f in object_init_with_type (obj=0x5555564582f0, ti=0x5555563ff3b0) at qom/object.c:355
+#5  0x0000555555b6889a in object_initialize_with_type (data=0x5555564582f0, size=256, type=0x5555563ff3b0) at qom/object.c:466
+#6  0x0000555555b68f59 in object_new_with_type (type=0x5555563ff3b0) at qom/object.c:635
+#7  0x0000555555b68f9a in object_new (typename=0x5555563ff530 "virt-machine") at qom/object.c:645
+A debugging session is active.
+
+	Inferior 1 [process 417] will be killed.
+
+Quit anyway? (y or n) [answered Y; input not from terminal]
+GDB_DEBUG_QEMU_EXIT=0

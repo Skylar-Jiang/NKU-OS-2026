@@ -1,0 +1,45 @@
+Breakpoint 1 at 0x310d01: file /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c, line 1030.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff79ff640 (LWP 633)]
+[New Thread 0x7ffff517d640 (LWP 634)]
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+[Switching to Thread 0x7ffff517d640 (LWP 634)]
+
+Thread 3 "qemu-system-ris" hit Breakpoint 1, get_page_addr_code (env=0x555556523230, addr=18446744072637907160) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:1030
+1030	    if (unlikely(!tlb_hit(entry->addr_code, addr))) {
+
+[main TLB lookup #1 before tlb_hit] addr=0xffffffffc02000d8 addr_code=0xffffffffffffffff
+1031	        if (!VICTIM_TLB_HIT(addr_code, addr)) {
+[after condition #1] => 0x555555864d27 <get_page_addr_code+136>:	mov    -0x40(%rbp),%rax
+
+Thread 3 "qemu-system-ris" hit Breakpoint 1, get_page_addr_code (env=0x555556523230, addr=18446744072637907160) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:1030
+1030	    if (unlikely(!tlb_hit(entry->addr_code, addr))) {
+
+[main TLB lookup #2 before tlb_hit] addr=0xffffffffc02000d8 addr_code=0xffffffffc0200000
+1039	    if (unlikely(entry->addr_code & (TLB_RECHECK | TLB_MMIO))) {
+[after condition #2] => 0x555555864e04 <get_page_addr_code+357>:	mov    -0x30(%rbp),%rax
+#0  get_page_addr_code (env=0x555556523230, addr=18446744072637907160) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:1039
+#1  0x0000555555889851 in tb_htable_lookup (cpu=0x55555651a820, pc=18446744072637907160, cs_base=0, flags=24577, cf_mask=4278714368) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cpu-exec.c:339
+#2  0x0000555555888d8a in tb_lookup__cpu_state (cpu=0x55555651a820, pc=0x7ffff517c8b8, cs_base=0x7ffff517c8b0, flags=0x7ffff517c8ac, cf_mask=4278714368) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/include/exec/tb-lookup.h:43
+#3  0x0000555555889b24 in tb_find (cpu=0x55555651a820, last_tb=0x0, tb_exit=0, cf_mask=524288) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cpu-exec.c:406

@@ -1,9 +1,10 @@
-# 丙负责部分
-
-这里整理 Lab2 的 First-Fit 源码分析，以及课程 QEMU 4.1.1 下的 First-Fit 和 Sv39/GDB 实测记录。
+# Lab2 丙负责部分
 
 - [First-Fit 源码分析](First-Fit源码分析.md)
-- [First-Fit 与 QEMU/GDB 实测](First-Fit与QEMU-GDB实测.md)
-- 对应原始日志位于 [`report/evidence/member-c/`](../evidence/member-c/)。
+- [First-Fit 与 QEMU/GDB 实测（旧记录）](First-Fit与QEMU-GDB实测.md)
+- [丙工作完成记录：TLB、MMU、QEMU 调试构建、思考题和集成验收](丙工作完成记录.md)
+- 原始 QEMU/GDB 日志与可复现断点脚本：[`report/evidence/member-c/`](../evidence/member-c/)
 
-报告和日志只补充丙负责的分析与验证，不替代乙的 Best-Fit/SLUB 实现、团队标准构建或 `make grade` 验收。
+截至 2026-10-16，新的完成记录补充并覆盖旧记录中“宿主 GDB/TLB 路径未完成”和“Best-Fit 尚未集成”的历史状态。
+
+GDB 脚本中的 QEMU 源码、build 目录和内核镜像路径来自实际运行环境；在其他环境复现时，应先按本机路径调整脚本。

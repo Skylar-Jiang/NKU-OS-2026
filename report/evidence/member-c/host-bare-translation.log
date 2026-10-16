@@ -1,0 +1,11 @@
+Breakpoint 1 at 0x3ca48f: file /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c, line 459.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff79ff640 (LWP 447)]
+[New Thread 0x7ffff517d640 (LWP 448)]
+[Switching to Thread 0x7ffff517d640 (LWP 448)]
+
+Thread 3 "qemu-system-ris" hit Breakpoint 1, riscv_cpu_tlb_fill (cs=0x55555651a820, address=2147522064, size=4, access_type=MMU_DATA_LOAD, mmu_idx=3, probe=false, retaddr=140737305375339) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c:459
+459	    qemu_log_mask(CPU_LOG_MMU,
+
+[BARE M-mode translation result] VA=0x80009610 PA=0x80009610 ret=0 mmu_idx=3 access_type=0

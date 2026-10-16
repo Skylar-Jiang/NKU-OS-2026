@@ -1,0 +1,45 @@
+Breakpoint 1 at 0x3c9c68: file /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c, line 252.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff79ff640 (LWP 486)]
+[New Thread 0x7ffff517d640 (LWP 487)]
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+DTB Init
+HartID: [Switching to Thread 0x7ffff517d640 (LWP 487)]
+
+Thread 3 "qemu-system-ris" hit Breakpoint 1, get_physical_address (env=0x555556523230, physical=0x7ffff517c200, prot=0x7ffff517c1f4, addr=18446744072637917592, access_type=0, mmu_idx=1) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c:252
+252	        target_ulong pte = ldq_phys(cs->as, pte_addr);
+
+[SV39 page walk for kernel load] addr=0xffffffffc0202998 access=0 mode=1 satp=0x8000000000080205 base=0x80205000 levels=3
+[root PTE lookup] i=0 ptshift=18 idx=0x1ff pte_addr=0x80205ff8
+254	        target_ulong ppn = pte >> PTE_PPN_SHIFT;
+256	        if (!(pte & PTE_V)) {
+[PTE value] pte=0x200000cf ppn=0x80000
+Breakpoint 2 at 0x55555591ded9: file /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c, line 334.
+
+Thread 3 "qemu-system-ris" hit Breakpoint 2, get_physical_address (env=0x555556523230, physical=0x7ffff517c200, prot=0x7ffff517c1f4, addr=18446744072637917592, access_type=0, mmu_idx=1) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c:334
+334	            *physical = (ppn | (vpn & ((1L << ptshift) - 1))) << PGSHIFT;
+337	            if ((pte & PTE_R) || ((pte & PTE_X) && mxr)) {
+338	                *prot |= PAGE_READ;
+[translated PA page] physical=0x80202000
+[VA offset] 0x998; final PA=0x80202998
