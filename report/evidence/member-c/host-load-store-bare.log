@@ -1,0 +1,51 @@
+Breakpoint 1 at 0x3ca38a: file /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c, line 438.
+Breakpoint 2 at 0x3ca38a: file /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c, line 438.
+Breakpoint 3 at 0x3ca38a: file /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c, line 438.
+Breakpoint 4 at 0x3ca38a: file /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c, line 438.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff79ff640 (LWP 420)]
+[New Thread 0x7ffff517d640 (LWP 421)]
+[Switching to Thread 0x7ffff517d640 (LWP 421)]
+
+[BARE M-mode LOAD] va=0x80009610 mmu_idx=3 access_type=0
+#0  riscv_cpu_tlb_fill (cs=0x55555651a820, address=2147522064, size=4, access_type=MMU_DATA_LOAD, mmu_idx=3, probe=false, retaddr=140737305375339) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c:438
+#1  0x00005555558646cf in tlb_fill (cpu=0x55555651a820, addr=2147522064, size=4, access_type=MMU_DATA_LOAD, mmu_idx=3, retaddr=140737305375339) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:878
+#2  0x0000555555866c10 in load_helper (full_load=0x5555558669da <full_le_ldul_mmu>, code_read=false, big_endian=false, size=4, retaddr=140737305375339, oi=35, addr=2147522064, env=0x555556523230) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:1274
+
+[BARE M-mode STORE] va=0x8001be00 mmu_idx=3 access_type=1
+#0  riscv_cpu_tlb_fill (cs=0x55555651a820, address=2147597824, size=8, access_type=MMU_DATA_STORE, mmu_idx=3, probe=false, retaddr=140737305375535) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c:438
+#1  0x00005555558646cf in tlb_fill (cpu=0x55555651a820, addr=2147597824, size=8, access_type=MMU_DATA_STORE, mmu_idx=3, retaddr=140737305375535) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:878
+#2  0x000055555586abde in store_helper (big_endian=false, size=8, retaddr=140737305375535, oi=51, val=2147483648, addr=2147597824, env=0x555556523230) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:1522
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+
+[SV39 S-mode STORE] va=0x80206000 mmu_idx=1 access_type=1
+#0  riscv_cpu_tlb_fill (cs=0x55555651a820, address=2149605376, size=8, access_type=MMU_DATA_STORE, mmu_idx=1, probe=false, retaddr=140737305701318) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c:438
+#1  0x00005555558646cf in tlb_fill (cpu=0x55555651a820, addr=2149605376, size=8, access_type=MMU_DATA_STORE, mmu_idx=1, retaddr=140737305701318) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:878
+#2  0x000055555586abde in store_helper (big_endian=false, size=8, retaddr=140737305701318, oi=49, val=0, addr=2149605376, env=0x555556523230) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:1522
+DTB Init
+HartID: 
+[SV39 S-mode LOAD] va=0xffffffffc0202998 mmu_idx=1 access_type=0
+#0  riscv_cpu_tlb_fill (cs=0x55555651a820, address=18446744072637917592, size=4, access_type=MMU_DATA_LOAD, mmu_idx=1, probe=false, retaddr=140737305734030) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c:438
+#1  0x00005555558646cf in tlb_fill (cpu=0x55555651a820, addr=18446744072637917592, size=4, access_type=MMU_DATA_LOAD, mmu_idx=1, retaddr=140737305734030) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:878
+#2  0x0000555555866c10 in load_helper (full_load=0x5555558669da <full_le_ldul_mmu>, code_read=false, big_endian=false, size=4, retaddr=140737305734030, oi=97, addr=18446744072637917592, env=0x555556523230) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:1274

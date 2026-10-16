@@ -1,0 +1,17 @@
+Breakpoint 1 at 0x310b19: file /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c, line 994.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff79ff640 (LWP 680)]
+[New Thread 0x7ffff517d640 (LWP 681)]
+[Switching to Thread 0x7ffff517d640 (LWP 681)]
+
+Thread 3 "qemu-system-ris" hit Breakpoint 1, victim_tlb_hit (env=0x555556523230, mmu_idx=3, index=0, elt_ofs=16, page=2147483648) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:994
+994	        if (cmp == page) {
+
+[REAL VICTIM TLB HIT] page=0x80000000 vidx=0 index=0 mmu_idx=3 cmp=0x80000000
+#0  victim_tlb_hit (env=0x555556523230, mmu_idx=3, index=0, elt_ofs=16, page=2147483648) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:994
+#1  0x0000555555864d50 in get_page_addr_code (env=0x555556523230, addr=2147484530) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cputlb.c:1031
+#2  0x0000555555889851 in tb_htable_lookup (cpu=0x55555651a820, pc=2147484530, cs_base=0, flags=3, cf_mask=4278714368) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/accel/tcg/cpu-exec.c:339
+#3  0x0000555555888d8a in tb_lookup__cpu_state (cpu=0x55555651a820, pc=0x7ffff517c8b8, cs_base=0x7ffff517c8b0, flags=0x7ffff517c8ac, cf_mask=4278714368) at /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/include/exec/tb-lookup.h:43
+996	            CPUTLBEntry tmptlb, *tlb = &env_tlb(env)->f[mmu_idx].table[index];
+[after victim entry match/swap path] => 0x555555864b2a <victim_tlb_hit+161>:	mov    -0x78(%rbp),%rax

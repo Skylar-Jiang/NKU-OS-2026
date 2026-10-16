@@ -1,0 +1,25 @@
+warning: File "/home/mcz/riscv/qemu-4.1.1-lab2-debug-src/.gdbinit" auto-loading has been declined by your `auto-load safe-path' set to "$debugdir:$datadir/auto-load".
+To enable execution of this file add
+	add-auto-load-safe-path /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/.gdbinit
+line to your configuration file "/home/mcz/.config/gdb/gdbinit".
+To completely disable this security protection add
+	set auto-load safe-path /
+line to your configuration file "/home/mcz/.config/gdb/gdbinit".
+For more information about this security protection see the
+"Auto-loading safe path" section in the GDB manual.  E.g., run from the shell:
+	info "(gdb)Auto-loading safe path"
+433	#endif
+434	
+435	bool riscv_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
+436	                        MMUAccessType access_type, int mmu_idx,
+437	                        bool probe, uintptr_t retaddr)
+438	{
+439	#ifndef CONFIG_USER_ONLY
+440	    RISCVCPU *cpu = RISCV_CPU(cs);
+441	    CPURISCVState *env = &cpu->env;
+442	    hwaddr pa = 0;
+Line 438 of "/home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c" starts at address 0x3ca366 <riscv_cpu_tlb_fill> and ends at 0x3ca38a <riscv_cpu_tlb_fill+36>.
+All functions matching regular expression "riscv_cpu_tlb_fill":
+
+File /home/mcz/riscv/qemu-4.1.1-lab2-debug-src/target/riscv/cpu_helper.c:
+435:	_Bool riscv_cpu_tlb_fill(CPUState *, vaddr, int, MMUAccessType, int, _Bool, uintptr_t);
