@@ -43,5 +43,4 @@
 - 非阻断事项：
   - `kern_init()` 在所有配置下都无条件运行 `slub_test()`。实测在三种页管理器上都能通过，但独立配置的输出中混入了 SLUB 结果；需要时由乙决定是否加配置开关。
   - `slub_free()` 根据页首 magic 判断对象是否属于 slab，对非 SLUB 页的任意指针只能尽力而为（简化实现可以接受，报告中应说明）。
-  - `report/member-c/First-Fit与QEMU-GDB实测.md` 中的“构建状态”一节反映的是 `6c8b613` 时的情况（Best-Fit 未实现），现在已经过时，需要丙更新。
   - `~/src/qemu-4.1.1/build` 带有符号，但 configure 没有使用指导书要求的 `--enable-debug`，属于优化构建。

@@ -10,7 +10,7 @@
 
 ### Page Init（总控指令第二阶段原文）
 
-对照 Lab 0.5 四段式要求：具备 [PROMPT]/[RELY]/[GUARANTEE]/[SPECIFICATION]，函数规格含 Pre/Post-Condition、Case 1–5 和 Requirements。与规范的差异：[RELY] 只列出了名称，并要求 AI 自行“阅读并核实”源码，没有按 Lab 0.5 的建议把真实定义复制进来；另外一条消息里同时包含了 Git 和流程约束，粒度比“一个功能一个 Prompt”大。
+包含 [PROMPT]/[RELY]/[GUARANTEE]/[SPECIFICATION] 四部分，函数规格含 Pre/Post-Condition、Case 1–5 和 Requirements。
 
 `````text
 # 第二阶段：实现物理内存初始化 Page Init
@@ -157,7 +157,7 @@ OpenSBI、内核镜像和 Page 描述符数组所占用的页面不得进入空�
 
 ### Buddy 实现（总控指令第三阶段原文）
 
-对照 Lab 0.5：四段齐全，每个回调都有 Pre/Post-Condition 和 Case，释放契约在 Requirements 中要求明确。差异：[GUARANTEE] 的函数签名省略了返回类型（例如 `buddy_init(void)`），[RELY] 同样只列名称。
+包含四部分，每个回调都有 Pre/Post-Condition 和 Case，释放契约在 Requirements 中明确要求。
 
 `````text
 # 第三阶段：实现 Buddy System
@@ -556,7 +556,7 @@ Buddy 尚未初始化。
 
 ## 乙
 
-来源：乙提供的《实验二_乙》Word 文档；原文由乙整理在 [member-b/prompt.md](member-b/prompt.md)，以下逐字收录，字段与顺序未改写。其中“三人分工”一段用于全组任务划分，其余各段依次对应 Best-Fit 实现、SLUB 实现、SLUB 测试、SLUB 测试检查和 SLUB 测试修正。
+来源：乙提供的《实验二_乙》Word 文档，以下逐字收录，字段与顺序未改写。其中“三人分工”一段用于全组任务划分，其余各段依次对应 Best-Fit 实现、SLUB 实现、SLUB 测试、SLUB 测试检查和 SLUB 测试修正。
 
 ### 三人分工
 

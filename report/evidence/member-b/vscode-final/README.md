@@ -7,4 +7,4 @@
 - check-a.log、check-a/：6 个正常场景 PASS、5 个预期 panic，退出码 0。
 - qemu-no-output.log、qemu-job-control-stop.log：最初交互式 timeout 的作业控制问题，不能视为内核断言失败，也不作为成功证据。
 
-截图见 [本轮截图清单](../../../images/member-b/本轮截图清单.md)。构建中原有的时钟偏差警告保留，没有隐藏或改写输出。
+截图见 `report/images/member-b/vscode-*-final.png`。构建中原有的时钟偏差警告保留，没有隐藏或改写输出。

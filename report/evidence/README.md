@@ -21,4 +21,4 @@
 
 ## 丙负责部分
 
-First-Fit 动态调试、Page Init/First-Fit 多内存容量启动检查、QEMU 4.1.1 宿主 GDB Sv39 跟踪，以及本机旧版 RISC-V GDB 格式兼容失败记录见 [`member-c/`](member-c/)。对应分析报告在 [`report/member-c/`](../member-c/)。日志中的本机目录路径已规范化。
+First-Fit 动态调试、宿主 QEMU/GDB 调试（Bare 模式访存、Sv39 load、TLB 与 victim TLB 命中）、调试版 QEMU 构建与集成验收的原始日志见 [`member-c/`](member-c/)，分析已整合进 `report.md`。日志中的本机目录路径已规范化。
