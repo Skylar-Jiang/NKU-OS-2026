@@ -1,0 +1,32 @@
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0x80200000
+
+Breakpoint 1, 0x0000000080200000 in ?? ()
+
+[GUEST] kern_entry before paging: pc=0x80200000 satp=0x0 (MODE=0)
+=> 0x80200000:	auipc	t0,0x6
+   0x80200004:	mv	t0,t0
+   0x80200008:	sd	a0,0(t0)
+   0x8020000c:	auipc	t0,0x6
+Hardware assisted breakpoint 2 at 0xffffffffc02000d6: file kern/init/init.c, line 31.
+
+Breakpoint 2, kern_init () at kern/init/init.c:31
+31	    memset(edata, 0, end - edata);
+
+[GUEST] kern_init after paging: pc=0xffffffffc02000d6 satp=0x8000000000080205 (MODE=8) root PPN=0x80205
+=> 0xffffffffc02000d6 <kern_init>:	auipc	a0,0x6
+   0xffffffffc02000da <kern_init+4>:	addi	a0,a0,-190
+[GUEST] instruction bytes at VA pc:
+0xffffffffc02000d6 <kern_init>:	0x17	0x65	0x00	0x00
+Hardware assisted breakpoint 3 at 0xffffffffc02000ec: file kern/init/init.c, line 29.
+
+Breakpoint 3, 0xffffffffc02000ec in kern_init () at kern/init/init.c:29
+29	int kern_init(void) {
+
+[GUEST] store instruction: pc=0xffffffffc02000ec sp=0xffffffffc0204ff0 -> store VA=0xffffffffc0204ff8
+=> 0xffffffffc02000ec <kern_init+22>:	sd	ra,8(sp)
+0xffffffffc02000ee	31	    memset(edata, 0, end - edata);
+[GUEST] after stepi, value at VA 0xffffffffc0204ff8 = 0x80000a02 (ra=0x80000a02)
+[Inferior 1 (process 1) detached]
+GUEST_GDB_EXIT=0

@@ -1,0 +1,9 @@
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc020128e: file kern/mm/slub.c, line 116.
+
+Breakpoint 1, slub_init () at kern/mm/slub.c:116
+116	    if (slub_ready) {
+[GUEST] reached slub_init after pmm_init
+[Inferior 1 (process 1) detached]
+GUEST_GDB_EXIT=0

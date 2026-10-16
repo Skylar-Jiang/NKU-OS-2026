@@ -1,0 +1,263 @@
+Breakpoint 1 at 0x3140e3: store_helper. (7 locations)
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff7989640 (LWP 25376)]
+[New Thread 0x7ffff5107640 (LWP 25377)]
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+[Switching to Thread 0x7ffff5107640 (LWP 25377)]
+
+===== [C] store_helper: sd ra,8(sp) VA 0xffffffffc0204ff8, first access to the stack page (expected TLB miss) =====
+#0  store_helper (big_endian=false, size=8, retaddr=140737304887554, oi=49, val=2147486210, addr=18446744072637927416, env=0x555556531ae0) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1504
+#1  helper_le_stq_mmu (env=0x555556531ae0, addr=18446744072637927416, val=2147486210, oi=49, retaddr=140737304887554) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1672
+#2  0x0000555555820e94 in tcg_qemu_tb_exec (env=0x555556531ae0, tb_ptr=0x7ffff5108102 "@\v") at ~/src/qemu-4.1.1/tcg/tci.c:1233
+#3  0x0000555555888b95 in cpu_tb_exec (cpu=0x5555565290d0, itb=0x7ffff5108000) at ~/src/qemu-4.1.1/accel/tcg/cpu-exec.c:173
+Breakpoint 2 at 0x55555591cf5a: file ~/src/qemu-4.1.1/target/riscv/cpu_helper.c, line 158.
+[000] store_helper cputlb.c:1504  uintptr_t mmu_idx = get_mmuidx(oi);
+        addr = 0xffffffffc0204ff8 (18446744072637927416)
+        val = 0x80000a02 (2147486210)
+        mmu_idx = 0x0 (0)
+[001] store_helper cputlb.c:1505  uintptr_t index = tlb_index(env, mmu_idx, addr);
+        mmu_idx = 0x1 (1)
+[002] store_helper cputlb.c:1506  CPUTLBEntry *entry = tlb_entry(env, mmu_idx, addr);
+        index = 0x4 (4)
+[003] store_helper cputlb.c:1507  target_ulong tlb_addr = tlb_addr_write(entry);
+        entry->addr_write = 0xffffffffffffffff (18446744073709551615)
+        entry->addend = 0xffffffffffffffff (18446744073709551615)
+[004] store_helper cputlb.c:1508  const size_t tlb_off = offsetof(CPUTLBEntry, addr_write);
+        tlb_addr = 0xffffffffffffffff (18446744073709551615)
+[005] store_helper cputlb.c:1509  unsigned a_bits = get_alignment_bits(get_memop(oi));
+[006] store_helper cputlb.c:1513  if (addr & ((1 << a_bits) - 1)) {
+[007] store_helper cputlb.c:1519  if (!tlb_hit(tlb_addr, addr)) {
+[008] store_helper cputlb.c:1520  if (!victim_tlb_hit(env, mmu_idx, index, tlb_off,
+[009] store_helper cputlb.c:1522  tlb_fill(env_cpu(env), addr, size, MMU_DATA_STORE,
+[010]       get_physical_address cpu_helper.c:158  {
+              addr = 0xffffffffc0204ff8 (18446744072637927416)
+              access_type = 0x1 (1)
+              mmu_idx = 0x1 (1)
+              env->satp = 0x8000000000080205 (9223372036855300613)
+[011]       get_physical_address cpu_helper.c:163  int mode = mmu_idx;
+[012]       get_physical_address cpu_helper.c:165  if (mode == PRV_M && access_type != MMU_INST_FETCH) {
+              mode = 0x1 (1)
+[013]       get_physical_address cpu_helper.c:171  if (mode == PRV_M || !riscv_feature(env, RISCV_FEATURE_MMU)) {
+[014]       get_physical_address cpu_helper.c:177  *prot = 0;
+[015]       get_physical_address cpu_helper.c:181  int mxr = get_field(env->mstatus, MSTATUS_MXR);
+[016]       get_physical_address cpu_helper.c:183  if (env->priv_ver >= PRIV_VERSION_1_10_0) {
+[017]       get_physical_address cpu_helper.c:184  base = get_field(env->satp, SATP_PPN) << PGSHIFT;
+[018]       get_physical_address cpu_helper.c:185  sum = get_field(env->mstatus, MSTATUS_SUM);
+              base = 0x80205000 (2149601280)
+[019]       get_physical_address cpu_helper.c:186  vm = get_field(env->satp, SATP_MODE);
+[020]       get_physical_address cpu_helper.c:187  switch (vm) {
+              vm = 0x8 (8)
+[021]       get_physical_address cpu_helper.c:191  levels = 3; ptidxbits = 9; ptesize = 8; break;
+[022]       get_physical_address cpu_helper.c:223  CPUState *cs = env_cpu(env);
+              levels = 0x3 (3)
+              ptidxbits = 0x9 (9)
+              ptesize = 0x8 (8)
+[023]       get_physical_address cpu_helper.c:224  int va_bits = PGSHIFT + levels * ptidxbits;
+[024]       get_physical_address cpu_helper.c:225  target_ulong mask = (1L << (TARGET_LONG_BITS - (va_bits - 1))) - 1;
+              va_bits = 0x27 (39)
+[025]       get_physical_address cpu_helper.c:226  target_ulong masked_msbs = (addr >> (va_bits - 1)) & mask;
+              mask = 0x3ffffff (67108863)
+[026]       get_physical_address cpu_helper.c:227  if (masked_msbs != 0 && masked_msbs != mask) {
+              masked_msbs = 0x3ffffff (67108863)
+[027]       get_physical_address cpu_helper.c:231  int ptshift = (levels - 1) * ptidxbits;
+[028]       get_physical_address cpu_helper.c:237  for (i = 0; i < levels; i++, ptshift -= ptidxbits) {
+              ptshift = 0x12 (18)
+[029]       get_physical_address cpu_helper.c:238  target_ulong idx = (addr >> (PGSHIFT + ptshift)) &
+              i = 0x0 (0)
+[030]       get_physical_address cpu_helper.c:239  ((1 << ptidxbits) - 1);
+[031]       get_physical_address cpu_helper.c:238  target_ulong idx = (addr >> (PGSHIFT + ptshift)) &
+[032]       get_physical_address cpu_helper.c:242  target_ulong pte_addr = base + idx * ptesize;
+              idx = 0x1ff (511)
+[033]       get_physical_address cpu_helper.c:244  if (riscv_feature(env, RISCV_FEATURE_PMP) &&
+              pte_addr = 0x80205ff8 (2149605368)
+[034]       get_physical_address cpu_helper.c:245  !pmp_hart_has_privs(env, pte_addr, sizeof(target_ulong),
+[035]       get_physical_address cpu_helper.c:244  if (riscv_feature(env, RISCV_FEATURE_PMP) &&
+[036]       get_physical_address cpu_helper.c:252  target_ulong pte = ldq_phys(cs->as, pte_addr);
+[037]       get_physical_address cpu_helper.c:254  target_ulong ppn = pte >> PTE_PPN_SHIFT;
+              pte = 0x200000cf (536871119)
+[038]       get_physical_address cpu_helper.c:256  if (!(pte & PTE_V)) {
+              ppn = 0x80000 (524288)
+[039]       get_physical_address cpu_helper.c:259  } else if (!(pte & (PTE_R | PTE_W | PTE_X))) {
+[040]       get_physical_address cpu_helper.c:262  } else if ((pte & (PTE_R | PTE_W | PTE_X)) == PTE_W) {
+[041]       get_physical_address cpu_helper.c:265  } else if ((pte & (PTE_R | PTE_W | PTE_X)) == (PTE_W | PTE_X)) {
+[042]       get_physical_address cpu_helper.c:268  } else if ((pte & PTE_U) && ((mode != PRV_U) &&
+[043]       get_physical_address cpu_helper.c:273  } else if (!(pte & PTE_U) && (mode != PRV_S)) {
+[044]       get_physical_address cpu_helper.c:276  } else if (ppn & ((1ULL << ptshift) - 1)) {
+[045]       get_physical_address cpu_helper.c:279  } else if (access_type == MMU_DATA_LOAD && !((pte & PTE_R) ||
+[046]       get_physical_address cpu_helper.c:283  } else if (access_type == MMU_DATA_STORE && !(pte & PTE_W)) {
+[047]       get_physical_address cpu_helper.c:286  } else if (access_type == MMU_INST_FETCH && !(pte & PTE_X)) {
+[048]       get_physical_address cpu_helper.c:292  (access_type == MMU_DATA_STORE ? PTE_D : 0);
+[049]       get_physical_address cpu_helper.c:291  target_ulong updated_pte = pte | PTE_A |
+[050]       get_physical_address cpu_helper.c:295  if (updated_pte != pte) {
+[051]       get_physical_address cpu_helper.c:333  target_ulong vpn = addr >> PGSHIFT;
+[052]       get_physical_address cpu_helper.c:334  *physical = (ppn | (vpn & ((1L << ptshift) - 1))) << PGSHIFT;
+              vpn = 0xffffffffc0204 (4503599627108868)
+[053]       get_physical_address cpu_helper.c:337  if ((pte & PTE_R) || ((pte & PTE_X) && mxr)) {
+              *physical = 0x80204000 (2149597184)
+[054]       get_physical_address cpu_helper.c:338  *prot |= PAGE_READ;
+[055]       get_physical_address cpu_helper.c:340  if ((pte & PTE_X)) {
+              *prot = 0x1 (1)
+[056]       get_physical_address cpu_helper.c:341  *prot |= PAGE_EXEC;
+[057]       get_physical_address cpu_helper.c:345  if ((pte & PTE_W) &&
+              *prot = 0x5 (5)
+[058]       get_physical_address cpu_helper.c:347  *prot |= PAGE_WRITE;
+[059]       get_physical_address cpu_helper.c:349  return TRANSLATE_SUCCESS;
+              *prot = 0x7 (7)
+[060]       get_physical_address cpu_helper.c:353  }
+[061]     riscv_cpu_tlb_fill cpu_helper.c:453  if (mode == PRV_M && access_type != MMU_INST_FETCH) {
+            address = 0xffffffffc0204ff8 (18446744072637927416)
+            access_type = MMU_DATA_STORE
+            mmu_idx = 0x1 (1)
+[062]     riscv_cpu_tlb_fill cpu_helper.c:459  qemu_log_mask(CPU_LOG_MMU,
+[063]     riscv_cpu_tlb_fill cpu_helper.c:463  if (riscv_feature(env, RISCV_FEATURE_PMP) &&
+[064]     riscv_cpu_tlb_fill cpu_helper.c:465  !pmp_hart_has_privs(env, pa, size, 1 << access_type, mode)) {
+[065]     riscv_cpu_tlb_fill cpu_helper.c:464  (ret == TRANSLATE_SUCCESS) &&
+[066]     riscv_cpu_tlb_fill cpu_helper.c:468  if (ret == TRANSLATE_PMP_FAIL) {
+[067]     riscv_cpu_tlb_fill cpu_helper.c:471  if (ret == TRANSLATE_SUCCESS) {
+[068]     riscv_cpu_tlb_fill cpu_helper.c:472  tlb_set_page(cs, address & TARGET_PAGE_MASK, pa & TARGET_PAGE_MASK,
+[069]     riscv_cpu_tlb_fill cpu_helper.c:474  return true;
+[070]     riscv_cpu_tlb_fill cpu_helper.c:495  }
+[071]   tlb_fill cputlb.c:879  assert(ok);
+          addr = 0xffffffffc0204ff8 (18446744072637927416)
+          access_type = MMU_DATA_STORE
+          mmu_idx = 0x1 (1)
+[072]   tlb_fill cputlb.c:880  }
+[073] store_helper cputlb.c:1524  index = tlb_index(env, mmu_idx, addr);
+        entry->addr_write = 0xffffffffc0204000 (18446744072637923328)
+        entry->addend = 0x80001fe00000 (140738023129088)
+[074] store_helper cputlb.c:1525  entry = tlb_entry(env, mmu_idx, addr);
+[075] store_helper cputlb.c:1527  tlb_addr = tlb_addr_write(entry) & ~TLB_INVALID_MASK;
+[076] store_helper cputlb.c:1531  if (unlikely(tlb_addr & ~TARGET_PAGE_MASK)) {
+        tlb_addr = 0xffffffffc0204000 (18446744072637923328)
+        (tlb_addr & ~0x7ffUL) == (addr & ~0xfffUL) = 0x1 (1)
+[077] store_helper cputlb.c:1563  if (size > 1
+[078] store_helper cputlb.c:1564  && unlikely((addr & ~TARGET_PAGE_MASK) + size - 1
+[079] store_helper cputlb.c:1606  do_aligned_access:
+[080] store_helper cputlb.c:1607  haddr = (void *)((uintptr_t)addr + entry->addend);
+[081] store_helper cputlb.c:1608  switch (size) {
+        haddr = 0x7fffe0004ff8
+[082] store_helper cputlb.c:1627  if (big_endian) {
+[083] store_helper cputlb.c:1630  stq_le_p(haddr, val);
+[084] store_helper cputlb.c:1632  break;
+[TRACE end] returned to helper_le_stq_mmu cputlb.c:1673
+Breakpoint 3 at 0x5555558680e3: store_helper. (7 locations)
+
+===== [D] store_helper: sd ra,40(sp) VA 0xffffffffc0204fe8, same stack page (expected TLB hit) =====
+#0  store_helper (big_endian=false, size=8, retaddr=140737304887554, oi=49, val=18446744072637907190, addr=18446744072637927400, env=0x555556531ae0) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1504
+#1  helper_le_stq_mmu (env=0x555556531ae0, addr=18446744072637927400, val=18446744072637907190, oi=49, retaddr=140737304887554) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1672
+#2  0x0000555555820e94 in tcg_qemu_tb_exec (env=0x555556531ae0, tb_ptr=0x7ffff5108102 "@\v") at ~/src/qemu-4.1.1/tcg/tci.c:1233
+#3  0x0000555555888b95 in cpu_tb_exec (cpu=0x5555565290d0, itb=0x7ffff5108000) at ~/src/qemu-4.1.1/accel/tcg/cpu-exec.c:173
+[000] store_helper cputlb.c:1504  uintptr_t mmu_idx = get_mmuidx(oi);
+        addr = 0xffffffffc0204fe8 (18446744072637927400)
+        val = 0xffffffffc02000f6 (18446744072637907190)
+        mmu_idx = 0x0 (0)
+[001] store_helper cputlb.c:1505  uintptr_t index = tlb_index(env, mmu_idx, addr);
+        mmu_idx = 0x1 (1)
+[002] store_helper cputlb.c:1506  CPUTLBEntry *entry = tlb_entry(env, mmu_idx, addr);
+        index = 0x4 (4)
+[003] store_helper cputlb.c:1507  target_ulong tlb_addr = tlb_addr_write(entry);
+        entry->addr_write = 0xffffffffc0204000 (18446744072637923328)
+        entry->addend = 0x80001fe00000 (140738023129088)
+[004] store_helper cputlb.c:1508  const size_t tlb_off = offsetof(CPUTLBEntry, addr_write);
+        tlb_addr = 0xffffffffc0204000 (18446744072637923328)
+        (tlb_addr & ~0x7ffUL) == (addr & ~0xfffUL) = 0x1 (1)
+[005] store_helper cputlb.c:1509  unsigned a_bits = get_alignment_bits(get_memop(oi));
+[006] store_helper cputlb.c:1513  if (addr & ((1 << a_bits) - 1)) {
+[007] store_helper cputlb.c:1519  if (!tlb_hit(tlb_addr, addr)) {
+[008] store_helper cputlb.c:1531  if (unlikely(tlb_addr & ~TARGET_PAGE_MASK)) {
+[009] store_helper cputlb.c:1563  if (size > 1
+[010] store_helper cputlb.c:1564  && unlikely((addr & ~TARGET_PAGE_MASK) + size - 1
+[011] store_helper cputlb.c:1606  do_aligned_access:
+[012] store_helper cputlb.c:1607  haddr = (void *)((uintptr_t)addr + entry->addend);
+[013] store_helper cputlb.c:1608  switch (size) {
+        haddr = 0x7fffe0004fe8
+[014] store_helper cputlb.c:1627  if (big_endian) {
+[015] store_helper cputlb.c:1630  stq_le_p(haddr, val);
+[016] store_helper cputlb.c:1632  break;
+[TRACE end] returned to helper_le_stq_mmu cputlb.c:1673
+Breakpoint 4 at 0x555555864fbd: load_helper. (14 locations)
+DTB Init
+
+===== [E] load_helper: ld a1 <- boot_hartid VA 0xffffffffc0206000, page filled earlier by a store (expected TLB hit) =====
+#0  load_helper (full_load=0x5555558671d8 <helper_le_ldq_mmu>, code_read=false, big_endian=false, size=8, retaddr=140737304887546, oi=49, addr=18446744072637931520, env=0x555556531ae0) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1252
+#1  helper_le_ldq_mmu (env=0x555556531ae0, addr=18446744072637931520, oi=49, retaddr=140737304887546) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1449
+#2  0x00005555558209f6 in tcg_qemu_tb_exec (env=0x555556531ae0, tb_ptr=0x7ffff51080fa "M\b") at ~/src/qemu-4.1.1/tcg/tci.c:1169
+#3  0x0000555555888b95 in cpu_tb_exec (cpu=0x5555565290d0, itb=0x7ffff5108000) at ~/src/qemu-4.1.1/accel/tcg/cpu-exec.c:173
+[000] load_helper cputlb.c:1252  uintptr_t mmu_idx = get_mmuidx(oi);
+        addr = 0xffffffffc0206000 (18446744072637931520)
+        mmu_idx = 0x7ffff5106390 (140737304880016)
+[001] load_helper cputlb.c:1253  uintptr_t index = tlb_index(env, mmu_idx, addr);
+        mmu_idx = 0x1 (1)
+[002] load_helper cputlb.c:1254  CPUTLBEntry *entry = tlb_entry(env, mmu_idx, addr);
+        index = 0x6 (6)
+[003] load_helper cputlb.c:1255  target_ulong tlb_addr = code_read ? entry->addr_code : entry->addr_read;
+        entry->addr_read = 0xffffffffc0206000 (18446744072637931520)
+        entry->addend = 0x80001fe00000 (140738023129088)
+[004] load_helper cputlb.c:1257  offsetof(CPUTLBEntry, addr_code) : offsetof(CPUTLBEntry, addr_read);
+        tlb_addr = 0xffffffffc0206000 (18446744072637931520)
+        (tlb_addr & ~0x7ffUL) == (addr & ~0xfffUL) = 0x1 (1)
+[005] load_helper cputlb.c:1256  const size_t tlb_off = code_read ?
+[006] load_helper cputlb.c:1259  code_read ? MMU_INST_FETCH : MMU_DATA_LOAD;
+[007] load_helper cputlb.c:1258  const MMUAccessType access_type =
+[008] load_helper cputlb.c:1260  unsigned a_bits = get_alignment_bits(get_memop(oi));
+[009] load_helper cputlb.c:1265  if (addr & ((1 << a_bits) - 1)) {
+[010] load_helper cputlb.c:1271  if (!tlb_hit(tlb_addr, addr)) {
+[011] load_helper cputlb.c:1283  if (unlikely(tlb_addr & ~TARGET_PAGE_MASK)) {
+[012] load_helper cputlb.c:1314  if (size > 1
+[013] load_helper cputlb.c:1315  && unlikely((addr & ~TARGET_PAGE_MASK) + size - 1
+[014] load_helper cputlb.c:1337  do_aligned_access:
+[015] load_helper cputlb.c:1338  haddr = (void *)((uintptr_t)addr + entry->addend);
+[016] load_helper cputlb.c:1339  switch (size) {
+        haddr = 0x7fffe0006000
+[017] load_helper cputlb.c:1358  if (big_endian) {
+[018] load_helper cputlb.c:1361  res = ldq_le_p(haddr);
+[019] load_helper cputlb.c:1363  break;
+        res = 0x0 (0)
+[020] load_helper cputlb.c:1368  return res;
+[TRACE end] returned to helper_le_ldq_mmu cputlb.c:1451
+HartID: 0
+DTB Address: 0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000008000000 (128 MB)
+  End:  0x0000000087ffffff
+DTB init completed
+(THU.CST) os is loading ...
+Special kernel symbols:
+  entry  0xffffffffc02000d6 (virtual)
+  etext  0xffffffffc0201e0e (virtual)
+  edata  0xffffffffc0206018 (virtual)
+  end    0xffffffffc02060ec (virtual)
+Kernel executable memory footprint: 25KB
+memory management: best_fit_pmm_manager
+PMM: DTB [0x0000000080000000, 0x0000000088000000), managed end 0x0000000088000000
+PMM: descriptors [0x0000000080207000, 0x0000000080347000), free [0x0000000080347000, 0x0000000088000000)
+check_alloc_page() succeeded!
+satp virtual address: 0xffffffffc0205000
+satp physical address: 0x0000000080205000
+slub_check() succeeded!
+
+Thread 1 "qemu-system-ris" received signal SIGTERM, Terminated.
+[Switching to Thread 0x7ffff7c2ab00 (LWP 25367)]
+HOST_GDB_EXIT=0

@@ -262,6 +262,8 @@ static void negative(void) {
     free_pages(pages, 1);        /* OpenSBI descriptor remains reserved. */
 #elif LAB2_BUDDY_NEGATIVE == 5
     free_pages((struct Page *)((uintptr_t)p + 1), 3); /* Misaligned descriptor. */
+#elif LAB2_BUDDY_NEGATIVE == 6
+    buddy_pmm_manager.init_memmap(p + 3, 1); /* Re-register a page Buddy already owns. */
 #else
 #error Unknown LAB2_BUDDY_NEGATIVE
 #endif

@@ -1,0 +1,19 @@
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc020109a: file kern/mm/page_init_test.c, line 11.
+
+Breakpoint 1, page_init_test () at kern/mm/page_init_test.c:11
+11	    uint64_t reported_end = get_memory_base() + get_memory_size();
+GUEST_PC=0xffffffffc020109a SATP=0x8000000000080206 OFFSET=0xffffffff40000000
+ROOT_PA=0x80206000 VPN2=511 LEAF_PTE=0x200000cf
+TRANSLATED_PA=0x8020109a OFFSET_PA=0x8020109a
+=> 0xffffffffc020109a <page_init_test>:	addi	sp,sp,-64
+   0xffffffffc020109c <page_init_test+2>:	sd	ra,56(sp)
+   0xffffffffc020109e <page_init_test+4>:	sd	s4,16(sp)
+   0xffffffffc02010a0 <page_init_test+6>:	sd	s0,48(sp)
+0xffffffffc020109a <page_init_test>:	0x39	0x71	0x06	0xfc	0x52	0xe8	0x22	0xf8
+000000008020109a: 0x39 0x71 0x06 0xfc 0x52 0xe8 0x22 0xf8
+PAGE_COUNT=557056 NBASE=524288 FREE=31928
+[GDB guest] Sv39 level-2 leaf translation: PASS
+[Inferior 1 (process 1) detached]
+
+GDB_EXIT=0

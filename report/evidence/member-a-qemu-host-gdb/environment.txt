@@ -1,0 +1,8 @@
+date: 2026-10-15 (run2 = host-gdb.log/guest-gdb.log; run1 = run1-*)
+branch/commit of kernel: member-a/report-gdb @ cac93ad (code identical to lab2 cac93ad), standard profile bin/kernel
+debug QEMU: ~/src/qemu-4.1.1/build/riscv64-softmmu/qemu-system-riscv64 -> QEMU emulator version 4.1.1
+  configure: ../configure --prefix=~/opt/qemu-4.1.1 --target-list=riscv64-softmmu --python=python3 --disable-werror (default -O2 -g, NOT --enable-debug; some locals <optimized out>)
+  file: with debug_info, not stripped
+host GDB: GNU gdb (Ubuntu 12.1-0ubuntu1~22.04.2) 12.1, Ubuntu jammy .deb extracted with dpkg-deb -x into ~/opt/gdb-12.1-ubuntu (no apt install, no sudo)
+guest GDB: GNU gdb (GDB) 16.3.90.20250610-git
+kernel.ptrace_scope=1: QEMU is started as a child of host GDB instead of 'sudo gdb attach'

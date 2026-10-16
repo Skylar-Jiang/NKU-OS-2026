@@ -1,0 +1,5 @@
+$ make -j22   (in ~/src/qemu-4.1.1/build-debug)
+compiled objects: 1068
+  LINK    riscv32-softmmu/qemu-system-riscv32
+  LINK    riscv64-softmmu/qemu-system-riscv64
+MAKE_EXIT=0

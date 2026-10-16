@@ -1,0 +1,18 @@
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc0201312: file kern/mm/pmm.c, line 47.
+
+Breakpoint 1, pmm_init () at kern/mm/pmm.c:135
+135	    init_pmm_manager();
+Hardware assisted breakpoint 2 at 0xffffffffc020109a: file kern/mm/page_init_test.c, line 11.
+
+Breakpoint 2, page_init_test () at kern/mm/page_init_test.c:11
+11	    uint64_t reported_end = get_memory_base() + get_memory_size();
+BASE=0x80100000 NPAGE=557056 NBASE=524288 PAGES=0xffffffffc0208000 FREE=31928
+[GDB page_init] base 0x80100000: pages[0..255] (PA 0x80000000-0x800fffff) Reserved: PASS
+Hardware assisted breakpoint 3 at 0xffffffffc020159c: file kern/mm/slub.c, line 116.
+
+Breakpoint 3, slub_init () at kern/mm/slub.c:116
+116	    if (slub_ready) {
+[Inferior 1 (process 1) detached]
+
+GDB_EXIT=0

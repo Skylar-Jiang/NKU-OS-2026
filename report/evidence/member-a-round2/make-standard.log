@@ -1,0 +1,5 @@
+$ make -j2
++ cc kern/mm/buddy_test.c
++ ld bin/kernel
+riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img
+BUILD_EXIT=0

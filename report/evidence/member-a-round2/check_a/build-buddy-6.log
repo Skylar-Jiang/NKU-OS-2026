@@ -1,0 +1,19 @@
+$ make -j2 LAB2_PROFILE=buddy LAB2_BUDDY_NEGATIVE=6
++ cc kern/init/entry.S
++ cc kern/init/init.c
++ cc kern/libs/stdio.c
++ cc kern/debug/panic.c
++ cc kern/driver/console.c
++ cc kern/driver/dtb.c
++ cc kern/mm/buddy_pmm.c
++ cc kern/mm/buddy_test.c
++ cc kern/mm/default_pmm.c
++ cc kern/mm/page_init_test.c
++ cc kern/mm/pmm.c
++ cc kern/mm/slub.c
++ cc kern/mm/slub_test.c
++ cc tools/test_lab2.c
++ ld bin/buddy/6/kernel
+riscv64-unknown-elf-objcopy bin/buddy/6/kernel --strip-all -O binary bin/buddy/6/ucore.img
+
+BUILD_EXIT=0

@@ -1,0 +1,13 @@
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc0201312: file kern/mm/pmm.c, line 47.
+
+Breakpoint 1, pmm_init () at kern/mm/pmm.c:135
+135	    init_pmm_manager();
+Hardware assisted breakpoint 2 at 0xffffffffc02001d0: file kern/debug/panic.c, line 12.
+
+Breakpoint 2, __panic (file=file@entry=0xffffffffc0202b90 "kern/mm/pmm.c", line=line@entry=105, fmt=fmt@entry=0xffffffffc0202bd0 "page_init: no room for page descriptors") at kern/debug/panic.c:12
+12	    if (is_panic) {
+PANIC_FORMAT=page_init: no room for page descriptors
+[Inferior 1 (process 1) detached]
+
+GDB_EXIT=0

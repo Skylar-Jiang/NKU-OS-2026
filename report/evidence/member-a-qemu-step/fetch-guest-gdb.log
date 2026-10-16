@@ -1,0 +1,13 @@
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc02000d6: file kern/init/init.c, line 31.
+
+Breakpoint 1, kern_init () at kern/init/init.c:31
+31	    memset(edata, 0, end - edata);
+
+[GUEST] kern_init: pc=0xffffffffc02000d6 satp=0x8000000000080205 (MODE=8, root PPN=0x80205)
+=> 0xffffffffc02000d6 <kern_init>:	auipc	a0,0x6
+   0xffffffffc02000da <kern_init+4>:	addi	a0,a0,-190
+0xffffffffc02000d6 <kern_init>:	0x17	0x65	0x00	0x00
+[Inferior 1 (process 1) detached]
+GUEST_GDB_EXIT=0

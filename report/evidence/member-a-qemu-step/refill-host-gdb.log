@@ -1,0 +1,95 @@
+Breakpoint 1 at 0x3129c4: file ~/src/qemu-4.1.1/accel/tcg/cputlb.c, line 777.
+Breakpoint 2 at 0x3119da: file ~/src/qemu-4.1.1/accel/tcg/cputlb.c, line 298.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff7989640 (LWP 26814)]
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[New Thread 0x7ffff5107640 (LWP 26815)]
+[Switching to Thread 0x7ffff5107640 (LWP 26815)]
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[FLUSH] tlb_flush_by_mmuidx_async_work
+[REFILL #1] page 0xffffffffc0200000 -> index 0; slot before: addr_read=0xffffffffffffffff addr_write=0xffffffffffffffff addr_code=0xffffffffffffffff; tlb mask=0x7e0 (entries=64)
+#0  tlb_set_page_with_attrs (cpu=0x55555652c0d0, vaddr=18446744072637906944, paddr=2149580800, attrs=..., prot=7, mmu_idx=1, size=4096) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:777
+#1  0x0000555555866c93 in tlb_set_page (cpu=0x55555652c0d0, vaddr=18446744072637906944, paddr=2149580800, prot=7, mmu_idx=1, size=4096) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:847
+#2  0x0000555555920b69 in riscv_cpu_tlb_fill (cs=0x55555652c0d0, address=18446744072637907158, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, probe=false, retaddr=0) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:472
+DTB Init
+HartID: 0
+DTB Address: 0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000008000000 (128 MB)
+  End:  0x0000000087ffffff
+DTB init completed
+(THU.CST) os is loading ...
+Special kernel symbols:
+  entry  0xffffffffc02000d6 (virtual)
+  etext  0xffffffffc0201e0e (virtual)
+  edata  0xffffffffc0206018 (virtual)
+  end    0xffffffffc02060ec (virtual)
+Kernel executable memory footprint: 25KB
+memory management: best_fit_pmm_manager
+PMM: DTB [0x0000000080000000, 0x0000000088000000), managed end 0x0000000088000000
+[REFILL #2] page 0xffffffffc0200000 -> index 0; slot before: addr_read=0xffffffffc0340000 addr_write=0xffffffffc0340000 addr_code=0xffffffffc0340000; tlb mask=0x7e0 (entries=64)
+#0  tlb_set_page_with_attrs (cpu=0x55555652c0d0, vaddr=18446744072637906944, paddr=2149580800, attrs=..., prot=7, mmu_idx=1, size=4096) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:777
+#1  0x0000555555866c93 in tlb_set_page (cpu=0x55555652c0d0, vaddr=18446744072637906944, paddr=2149580800, prot=7, mmu_idx=1, size=4096) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:847
+#2  0x0000555555920b69 in riscv_cpu_tlb_fill (cs=0x55555652c0d0, address=18446744072637907324, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, probe=false, retaddr=0) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:472
+PMM: descriptors [0x0000000080207000, 0x0000000080347000), free [0x0000000080347000, 0x0000000088000000)
+[REFILL #3] page 0xffffffffc0200000 -> index 0; slot before: addr_read=0xffffffffc0340000 addr_write=0xffffffffc0340000 addr_code=0xffffffffc0340000; tlb mask=0x7e0 (entries=64)
+#0  tlb_set_page_with_attrs (cpu=0x55555652c0d0, vaddr=18446744072637906944, paddr=2149580800, attrs=..., prot=7, mmu_idx=1, size=4096) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:777
+#1  0x0000555555866c93 in tlb_set_page (cpu=0x55555652c0d0, vaddr=18446744072637906944, paddr=2149580800, prot=7, mmu_idx=1, size=4096) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:847
+#2  0x0000555555920b69 in riscv_cpu_tlb_fill (cs=0x55555652c0d0, address=18446744072637910840, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, probe=false, retaddr=0) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:472
+check_alloc_page() succeeded!
+satp virtual address: 0xffffffffc0205000
+satp physical address: 0x0000000080205000
+[REFILL #4] page 0xffffffffc0200000 -> index 0; slot before: addr_read=0xffffffffc0340000 addr_write=0xffffffffc0340000 addr_code=0xffffffffc0340000; tlb mask=0x7e0 (entries=64)
+#0  tlb_set_page_with_attrs (cpu=0x55555652c0d0, vaddr=18446744072637906944, paddr=2149580800, attrs=..., prot=7, mmu_idx=1, size=4096) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:777
+#1  0x0000555555866c93 in tlb_set_page (cpu=0x55555652c0d0, vaddr=18446744072637906944, paddr=2149580800, prot=7, mmu_idx=1, size=4096) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:847
+#2  0x0000555555920b69 in riscv_cpu_tlb_fill (cs=0x55555652c0d0, address=18446744072637908560, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, probe=false, retaddr=0) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:472
+[REFILL #5] page 0xffffffffc0200000 -> index 0; slot before: addr_read=0xffffffffc0240000 addr_write=0xffffffffc0240000 addr_code=0xffffffffc0240000; tlb mask=0x7e0 (entries=64)
+slub_check() succeeded!
+
+Thread 1 "qemu-system-ris" received signal SIGTERM, Terminated.
+[Switching to Thread 0x7ffff7c2ab00 (LWP 26808)]
+0x00007ffff7b18e1e in ppoll () from /lib/x86_64-linux-gnu/libc.so.6
+HOST_GDB_EXIT=0

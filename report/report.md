@@ -1,66 +1,99 @@
-# Lab 2：物理内存和页表——甲负责部分初稿
+# Lab 2：物理内存和页表 实验报告
 
-> 记录日期：2026-10-14。本文基于实际源码、QEMU 运行及 GDB 证据。甲的 Page Init、Buddy 和独立测试已完成；团队标准构建仍等待乙的 Best-Fit。本文不是最终小组报告。Prompt 待三人统一整理，`prompt.md` 当前只保留分类模板。
+| 成员 | 姓名 | 学号 | 负责内容 |
+| --- | --- | --- | --- |
+| 甲 | 待填 | 待填 | 物理内存探测与 `page_init()`、Buddy System 及测试、`pmm.c` 管理器接入、QEMU/GDB 地址翻译调试、集成验收 |
+| 乙 | 待填 | 待填 | Best-Fit、SLUB 及测试、`init.c` 中的 SLUB 入口 |
+| 丙 | 待填 | 待填 | First-Fit 分析、硬件内存探测思考题、QEMU/GDB 主体调试 |
 
-## 1. 背景、任务和协作范围
+## 1. 实验概述与整体逻辑
 
-内核启动后，需要把设备树描述的物理内存转换为可管理的页集合，再通过统一的物理内存管理接口选择分配策略。甲负责物理内存初始化、Buddy 分配器、测试，以及 `pmm.c` 中的管理器接入；乙负责 Best-Fit、SLUB 和必要的 `init.c` 修改；丙负责 First-Fit 分析、QEMU/GDB 主体调试及相关思考题。姓名、学号和最终完成日期待填写。
+### 1.1 从上电到页分配的执行链
 
-源码中的实际启动流程为：
+本章围绕“发现物理内存 → 组织物理页 → 分配物理页 → 通过页表访问内存”展开。按实际代码和 128 MiB 标准内核的运行结果，执行链如下：
 
 ```text
-kern_entry（保存启动参数，建立 Sv39 映射）
-  -> kern_init
-     -> dtb_init（解析物理内存信息）
-     -> pmm_init
-        -> init_pmm_manager
-        -> page_init -> init_memmap
-        -> check_alloc_page
-        -> 记录启动页表地址
-        -> 显式测试配置下的 Page Init / Buddy 测试
+OpenSBI            M 模式；地址不经过页表，直接作为物理地址
+  -> kern_entry    0x80200000，S 模式，satp = 0（Bare），地址同样直接作为物理地址
+       保存 hartid、DTB 地址
+       satp <- Sv39 | PPN(boot_page_table_sv39)   satp = 0x8000000000080205，根页表 PA 0x80205000
+       sfence.vma                                  刷新 TLB
+       跳转到高地址 kern_init
+  -> kern_init     0xffffffffc02000d6，此后取指和访存都经过 Sv39 翻译
+       dtb_init          解析设备树，得到内存 base/size
+       pmm_init
+         init_pmm_manager  选择策略（标准配置为 best_fit_pmm_manager）
+         page_init         建立 Page 描述符数组，保留已占用页，调用 init_memmap 注册空闲区
+         check_alloc_page  执行当前管理器的自检
+       slub_init / slub_test  在页分配器之上建立对象级分配
 ```
 
-基础目标是保护 OpenSBI、内核和页描述符等占用空间，只交出合法完整空闲页。Buddy 进一步验证按 2 的幂组织空闲块、分拆和伙伴合并。未替乙、丙撰写其尚未提供的成果。
+这条链要解决两个先后相依的问题。第一，MMU 依赖内存中的页表，而页表需要由操作系统事先构造，因此上电后 CPU 先以物理地址运行，页表就绪并写入 `satp`、刷新 TLB 之后才进入 Sv39。第二，操作系统必须先知道“哪里有内存、哪些内存已被占用”，才能把剩余的页交给分配器。本实验的启动页表由 `entry.S` 静态给出（一个 1 GiB 超级页），物理页分配器不参与建表；页表决定 CPU 如何访问内存，物理内存管理决定哪些物理页可以分配，两者是并行的两条主线。
 
-## 2. Worktree、安全迁移与环境
+### 1.2 各模块之间的关系
 
-### 2.1 Git 基线与文件保护
+| 层次 | 模块 | 解决的问题 | 依赖 |
+| --- | --- | --- | --- |
+| 物理内存发现 | `dtb.c` | 物理内存在哪里、有多大 | OpenSBI 通过 `a1` 传入的 DTB |
+| 页描述符布局 | `page_init()` | 把物理范围变成 `struct Page` 数组，排除 OpenSBI、内核镜像和描述符数组本身 | DTB 结果、链接符号 `end`、启动映射的固定偏移 |
+| 分配机制 | `struct pmm_manager` | 机制与策略分离：内核只调用 `alloc_pages`/`free_pages`，具体策略可替换 | Page 数组 |
+| 页级策略 | First-Fit / Best-Fit / Buddy | 连续物理页的分配、回收与合并 | `init_memmap` 注册的空闲区 |
+| 对象级分配 | SLUB | 小于一页的任意大小对象 | 页分配器的单页接口 |
+| 地址翻译 | Sv39 页表、TLB | 虚拟地址到物理地址 | `satp`、启动页表；由 QEMU 模拟的 MMU 完成 |
 
-- 原仓库：`/home/jianglinjing/oslab`，原工作区仍在 `lab1`、HEAD `3900390`。原有 24 个跟踪文件删除状态及未跟踪内容不作处理。
-- 新工作区：`/home/jianglinjing/oslab-lab2`，分支 `lab2`，从本地 `main` 的 `9e725207f870e1ed2faba0ab0d9399f9f7747b56` 创建。
-- 创建前 `main...origin/main` 差异为 `0 0`；实际 `git ls-remote --heads origin` 确认远端 main 为同一提交，远端当时没有 `lab2`。远端 lab1 为 `a732185...`，与本地 lab1 不同；未同步或改动它。
-- Worktree 使用同一个团队仓库，未初始化无关独立仓库。开发验收时尚未 commit 或 push，也未执行 merge、rebase、reset 或 clean；本次按用户授权提交甲的阶段性成果。
-- `main` 继承的 `.gitignore`、`AGENTS.md`、`README.md`、`lab1/` 只在新工作区搬至审计备份 `/tmp/nku-lab2-audit-i1zl6cqh/inherited-main/`。指引已先阅读。旧目录及 main/lab1 历史不变；这些搬移在开发验收时显示为 lab2 工作区中预期的 59 个未暂存删除；阶段性提交将记录该目录调整，不改变 main 或 lab1 的历史。
-- 旧 Lab 2 的 39 个工程文件复制到新 `code/`，排除构建产物、缓存和 Zone.Identifier。旧源码、旧报告和包含真实 Prompt 的旧文件均原样保留；初始报告及 Prompt 另备份在同一审计目录。
-- 新工作区根目录只有 `code/`、`report/`，以及 Git Worktree 必需且不提交的 `.git` 指针。`obj/`、`bin/`、缓存等通过共享的本地 `.git/info/exclude` 排除；不新增顶层配置文件。最终保护核对见 [Git/文件检查记录](evidence/final-safety-check.txt)。
+模块之间有三点关键联系：
 
-### 2.2 编译与模拟器环境
+- **物理页号与虚拟地址并存。** 分配器管理物理页（`pages[i]` 对应物理页号 `nbase + i`），内核访问描述符和页内容却使用虚拟地址（`page2pa(p) + va_pa_offset`）。Page Init、Buddy 的伙伴计算、SLUB 由页得到对象地址，都依赖这一换算。
+- **策略只在注册的空闲区内生效。** 三种页分配策略都不知道 OpenSBI 和内核的位置，只管理 `page_init()` 交给它们的区间。Page Init 多注册一页，任何策略都可能把内核内存分配出去。
+- **SLUB 建立在页分配器之上。** SLUB 每次只申请或释放一整页，因此与 Best-Fit、Buddy 都兼容；实测 SLUB 测试在 First-Fit、Best-Fit、Buddy 三种页管理器上均通过。
 
-- RISC-V GCC：15.1.0，位于 `/home/jianglinjing/compiler-tools/riscv-elf-toolchains/bin/`。
-- RISC-V GDB：16.3.90.20250610-git，可以调试客户机；没有找到可用宿主 GDB。
-- 课程 QEMU：`/home/jianglinjing/opt/qemu-4.1.1/bin/qemu-system-riscv64`，版本 4.1.1，已剥离符号。
-- `/opt/qemu/bin/qemu-system-riscv64` 为 7.0.0，带调试信息；不能据此声称现有内核可在其上正常启动。
-- 旧 `.envrc` 将 QEMU 4.1.1 加到 PATH 前部；新 Worktree 不会自动继承该目录配置。本次全部成功运行显式选择 QEMU 4.1.1，没有修改系统、Shell 配置或软件安装。
+### 1.3 构建配置与验证结果
 
-新终端可临时设置：
+| 配置 | 命令 | 页管理器 | 用途 |
+| --- | --- | --- | --- |
+| 标准 | `make` / `make qemu` | Best-Fit | 正式内核，运行 Best-Fit 自检和 SLUB 测试 |
+| 官方评分 | `make grade` | Best-Fit | 在临时副本中注入官方测试，检查 Page Init 与 Best-Fit |
+| Page Init 测试 | `make LAB2_PROFILE=page-init` | First-Fit | 全描述符布局检查，并调用未修改的 `test_page_init()` |
+| Buddy 测试 | `make LAB2_PROFILE=buddy` | Buddy | Buddy 正常用例；`LAB2_BUDDY_NEGATIVE=1..6` 为隔离的预期 panic 用例 |
+
+所有运行均使用 QEMU 4.1.1：
+
+| 检查 | 结果 | 证据 |
+| --- | --- | --- |
+| 标准 `make`、`make qemu`（64/128/256 MiB） | 构建成功；`check_alloc_page() succeeded!`、`slub_check() succeeded!` | [integration/](evidence/integration/README.md) |
+| `make grade` | Page Init OK，Best Fit OK，20/20 | [member-a-round2/](evidence/member-a-round2/README.md) |
+| Page Init 独立测试（64/128/256 MiB）与 GDB 输入注入 | 全部通过 | 第 3.4 节 |
+| Buddy 正常用例（64/128/256 MiB）与 6 个预期 panic 用例 | 全部通过 | 第 8 节 |
+| QEMU 地址翻译调试 | 完成取指与数据访问的 TLB Miss、Sv39 遍历、TLB 填入与命中观察 | 第 10 节 |
+
+## 2. 实验环境
+
+| 组件 | 版本或路径 |
+| --- | --- |
+| RISC-V 工具链 | riscv64-unknown-elf-gcc 15.1.0，riscv64-unknown-elf-gdb 16.3.90 |
+| 课程 QEMU | 4.1.1（`~/opt/qemu-4.1.1`），用于全部构建、运行和评分 |
+| 调试版 QEMU | 4.1.1，`--enable-debug` 构建，以及加 `--enable-tcg-interpreter` 的构建，见 10.1 节 |
+| 宿主 GDB | GNU gdb 12.1（x86-64） |
+| 运行环境 | WSL2，Linux 6.6 |
+
+[Makefile](../code/Makefile) 通过 `KSRCDIR` 和 `function.mk` 自动发现 `kern/mm/` 下的源文件。两个独立测试配置排除 `best_fit_pmm.c`，使 Page Init 测试使用 First-Fit、Buddy 测试使用 Buddy；它们编译官方测试源 `tools/test_lab2.c` 以调用 `test_page_init()`，测试内核的对象和镜像放在各自的配置子目录中。常用命令：
 
 ```bash
-cd /home/jianglinjing/oslab-lab2/code
-export PATH="/home/jianglinjing/compiler-tools/riscv-elf-toolchains/bin:$PATH"
-export LAB2_QEMU="/home/jianglinjing/opt/qemu-4.1.1/bin/qemu-system-riscv64"
+make && make QEMU="$LAB2_QEMU" qemu          # 标准内核
+make QEMU="$LAB2_QEMU" grade                 # 官方评分
+python3 tools/check_a.py --qemu "$LAB2_QEMU" # Page Init、Buddy 独立回归与预期 panic 用例
+python3 tools/debug_a.py --qemu "$LAB2_QEMU" # 客户机 GDB 地址翻译核对与 Page Init 输入注入
 ```
 
-这些是当前终端的变量，不写入提交树。工具和环境检查见 [environment.txt](evidence/environment.txt)。
+`kern_init()` 在所有配置下都会在 `pmm_init()` 之后运行 `slub_test()`，因此独立测试配置的串口输出末尾同样有 `slub_check() succeeded!`。
 
-## 3. Page Init：问题、规格与实现
+## 3. 练习 1：物理内存探测与页描述符初始化（甲）
 
-### 3.1 物理范围和描述符关系
+### 3.1 问题与物理布局
 
-实现位于 [pmm.c](../code/kern/mm/pmm.c) 的 `//lab2 function1 YOUR CODE` 后。保留标记，不擅填学号。
+`page_init()` 需要把设备树给出的物理内存范围转换为页描述符数组，并只把真正空闲的完整页交给分配器。实现位于 [pmm.c](../code/kern/mm/pmm.c) 的 `//lab2 function1 YOUR CODE` 标记之后。
 
-`DRAM_BASE = 0x80000000`，内核物理起点为 `0x80200000`。`entry.S` 建立的固定偏移为 `PHYSICAL_MEMORY_OFFSET = 0xFFFFFFFF40000000`。DTB 的 DRAM 起点与内核装载起点不同，不能把 `KERNBASE - memory_base` 当作偏移。
-
-`npage` 是可管理物理内存上界的物理页号，`nbase = DRAM_BASE / PGSIZE`。描述符数量为 `npage - nbase`，描述符 `pages[i]` 对应物理地址 `(nbase + i) * PGSIZE`。
+关键常量与关系如下：`DRAM_BASE = 0x80000000`，内核物理起点 `0x80200000`，`entry.S` 建立的固定虚实偏移 `PHYSICAL_MEMORY_OFFSET = 0xFFFFFFFF40000000`。DTB 给出的 DRAM 起点与内核装载起点不同，因此不能用 `KERNBASE - memory_base` 作为偏移。`nbase = DRAM_BASE / PGSIZE`，`npage` 是可管理物理内存上界的物理页号，描述符数量为 `npage - nbase`，`pages[i]` 对应物理地址 `(nbase + i) * PGSIZE`。
 
 ```text
 物理地址：
@@ -70,228 +103,611 @@ export LAB2_QEMU="/home/jianglinjing/opt/qemu-4.1.1/bin/qemu-system-riscv64"
                                                    free_start          managed_end
 ```
 
-`pages` 位于页对齐的内核虚拟 `end` 之后；元数据的物理末端再次向上对齐，才能得到第一个空闲页。尾部不足整页的空间不注册。
+`pages` 位于页对齐的内核末端 `end` 之后；描述符数组的物理末端再次向上对齐，得到第一个空闲页；上界向下按页对齐，尾部不足一页的空间不注册。
 
-### 3.2 功能规格
-
-以下是实际实现的 SPEC 摘要；Prompt 原文留待小组统一整理。
-
-**[PROMPT] 功能目标：** 在不更改公共 PMM 接口的条件下完成物理页描述符布局与空闲区注册。
-
-**[RELY] 可信依赖：** 已执行的 `dtb_init`、两个内存 getter、启动映射与链接符号 `end`、`Page`、页面状态宏、地址转换宏及已初始化的 `pmm_manager`。
-
-**[GUARANTEE] 实现接口：** `static void page_init(void)`，不改变 `pmm.h`、`memlayout.h`、DTB、First-Fit、Best-Fit 或官方测试。
-
-**[SPECIFICATION] 行为：**
-
-- **Pre-Condition：** 启动映射已启用，DTB 已解析，管理器已初始化，描述符尚未建立；设备树数据可能异常。
-- **Post-Condition：** 偏移、上界页号和描述符地址正确；OpenSBI、内核、描述符及对齐空隙保持 Reserved；仅合法完整空闲页被注册。
-- **有效范围：** 检查起点符合当前单 DRAM 框架并覆盖内核装载起点；检查非零大小和无加法溢出。范围上界截断到 `PHYSICAL_MEMORY_END` 后向下按页对齐。
-- **无效范围：** 零大小、起点异常、地址溢出或内存不包含内核时 panic。
-- **元数据空间：** 先用除法检验描述符数组是否放得下，再计算数组物理末端，避免乘法越界或覆盖内核。
-- **无完整空闲页：** 只完成 Reserved 描述符初始化，不调用 `init_memmap` 注册零长区间。
-- **Requirements：** 不硬编码空闲页数；区分 VA、PA、PPN 和描述符地址；不使用超出 `pages` 范围的转换。
-
-### 3.3 实现步骤与证据
-
-1. 设置固定虚实偏移，获取并验证 DTB 范围。
-2. 截断并向下对齐上界，校验内核末端在范围内。
-3. 设置 `npage`，计算 `count = npage - nbase` 和对齐的 `pages_pa`，在写内存前校验元数据容量。
-4. 初始化所有描述符为 Reserved、ref=0、property=0，并初始化链表节点。
-5. 对元数据末端向上对齐；有剩余完整页时，调用当前管理器的 `init_memmap`。框架用 Reserved 表示尚未交给 PMM 的页面，管理器对选定空闲区清除该标志。
-
-新增 [page_init_test.c](../code/kern/mm/page_init_test.c) 会检查全部描述符的保留状态、全部地址往返和精确空闲页数，并调用老师实际提供的、未修改的 `test_page_init()`。256 MiB 场景因手册要求截断到框架上界，而官方测试直接期待原始 DTB 末端页号，因此明确跳过该官方 raw-end 检查，使用独立的截断布局检查；默认 128 MiB 场景实际通过官方函数。
-
-本次 128 MiB Page Init 配置的日志记录：描述符物理区间 `[0x80207000, 0x80347000)`，空闲页数 31929。这里每个 `Page` 为 40 字节，数组包含 32768 个元素。Buddy 测试内核较大，其初始空闲页数为 31927；不同配置的内核大小不同，不能硬编码同一空闲页数。
-
-## 4. Buddy：设计、接口和算法
-
-### 4.1 数据组织与释放契约
-
-实现为 [buddy_pmm.c](../code/kern/mm/buddy_pmm.c)、[buddy_pmm.h](../code/kern/mm/buddy_pmm.h)，注册 `buddy_pmm_manager`。公共 `Page` 布局和 `pmm_manager` 接口不变。
-
-- 维护 0 到 15 阶的空闲链表，阶 k 对应 `2^k` 页，单独维护真实空闲页总数。最大阶与当前 128 MiB / 4 KiB 框架上界一致，有编译期断言。
-- 伙伴按**物理页号**计算：`buddy_ppn = ppn XOR (1 << order)`。只有同阶、同容量、真正空闲的伙伴能够合并，普通相邻块不满足该条件。
-- `PageProperty` 仅标记空闲块头，`property` 在空闲头和已分配头上均记录实际容量。内部页没有块头标志，property 为零。
-- Buddy 私有 flags 使用 bit 2 表示归属、bit 3 表示已分配块头、bit 32..63 记录原请求页数。`Page.ref` 保持引用计数语义，不借它保存请求大小。
-- 例如请求 3 页实际占用 4 页，空闲统计减少 4；释放时既可 `free_pages(p,3)`，也可 `free_pages(p,4)`。这两种都完整归还 4 页。
-- **只支持完整块释放。** n 必须等于原请求或记录的实际容量；不支持内部指针、部分释放、错误尺寸和重复释放，均在修改空闲状态前检测并 panic。这与 First-Fit 原有自测的部分释放习惯不同，所以 Buddy 有独立测试。
-- 当前为单核启动阶段，无并发和锁保证。后续 SLUB 若使用 Buddy，需要先确认完整块释放语义、私有标志位及并发约束。不能把该管理器直接替换到已有活动分配的运行环境。
-
-### 4.2 各函数的 SPEC 与解释
-
-所有管理回调均保持内部 `static`，外部通过管理器结构调用。另提供只读的 `buddy_validate()` 供自测检查。
-
-| 函数 | Pre-Condition | Post-Condition / 关键 Case |
-| --- | --- | --- |
-| `buddy_init` | 尚未接管页面；重建时无活动分配 | 初始化所有阶链表，空闲计数为零 |
-| `buddy_init_memmap(base,n)` | 合法连续描述符，n>0，未接管，符合框架 Reserved 交接约定 | 先整段检查再修改；按物理对齐及剩余长度划分最大合法幂次块；非对齐起点、非幂次长度也不丢页；已注册相邻区间可按真正伙伴关系合并 |
-| `buddy_alloc_pages(n)` | n>0，已初始化 | 向上取幂；查找最小可用阶，逐级拆分并返回左半块；记录请求和容量；按容量扣数；不足或巨大请求返回 NULL，状态不变 |
-| `buddy_free_pages(base,n)` | 先前分配的完整块头，n 为请求或容量 | 验证整数地址、描述符对齐、归属、头标志及尺寸；清除分配元数据；逐阶 XOR 找伙伴，满足条件才合并；按实际容量加数 |
-| `buddy_nr_free_pages` | 状态已初始化 | 返回真实空闲页数，不按原请求数计量 |
-| `buddy_check` | 已注册合法页面 | 调用 `buddy_validate`，验证当前状态，输出检查结果；独立场景的具体行为测试另由 `buddy_test` 执行 |
-
-整体不变量包括：块按物理容量对齐；各空闲块不重叠；保留页不进入链表；空闲同阶伙伴不遗留未合并状态；内部描述符无伪块头；空闲链表容量之和等于空闲计数；所有已接管页数等于空闲页数与已分配容量之和。
-
-### 4.3 算法复杂度与权衡
-
-记最大阶数为 K（当前 K=15）。分配扫描阶并分拆，释放逐阶寻找伙伴，都为 O(K)，伙伴定位本身为 O(1)。初始化需处理全部描述符，约为 O(N + K × 初始块数)。链表头额外空间为 O(K)，每页复用现有描述符，不依赖宿主 malloc。
-
-`buddy_validate` 是调试检查，扫描描述符及链表，不能把其成本当作正常分配路径的复杂度。幂次取整带来内部碎片，但能用明确的伙伴关系简化合并；总空闲页充足也可能没有满足请求的连续高阶块。
-
-## 5. Buddy 独立测试：设计与实际运行
-
-测试在实现后单独编写，代码为 [buddy_test.c](../code/kern/mm/buddy_test.c)。这不被表述成两次独立发送的用户 Prompt；正式 Prompt 由小组后续根据真实交互统一整理。
-
-### 5.1 测试状态隔离
-
-`buddy_test()` 只允许在启动初始化完成、当前管理区全部空闲且没有活动分配时运行。先确认初始单连续空闲区；用同一真实物理区间的子区间构造测试环境，测试间要求全部回收后才重建描述符。最后重新注册完整初始空闲区并验证计数恢复。
-
-测试不使用模拟分配器或伪 Page 数组。分配范围来自实际 Page Init；在真实物理页的首尾写入并读回不同标记，检查跨页容量、互不覆盖和数据完整性。测试区不包含 OpenSBI、内核或描述符占用页。该入口不能用于运行中的 SLUB 堆或已有活动分配的系统。
-
-### 5.2 用例覆盖
-
-| 用例 | 预期与检查 |
-| --- | --- |
-| 真实大内存区高阶分配 | 513 页及更高阶请求取整，检查物理对齐、互不重叠、容量扣数和完整回收 |
-| 1/2/4/8、3/5/6 页 | 连续容量、两两不重叠、ref/标志、实际页数统计、首尾数据标记；原请求释放与实际容量释放均验证 |
-| 64 页块拆分 | 1 页和 32 页请求从合适阶获取，释放后重新分配完整 64 页 |
-| 占用伙伴与递归合并 | 伙伴尚在使用时 16 页申请失败；两块 8 页归还后恢复 16 页块 |
-| 相邻非伙伴防护 | 释放 4 页区间内下标 1、2 的页面，虽相邻也不能分配 2 页块；真实伙伴归还后才能合并 |
-| 耗尽与巨大请求 | 分配所有单页，确认不重复、不越界、耗尽时 NULL，失败计数不变；反序释放恢复 |
-| 不规则区间、最后一页 | 测试高阶未对齐起点+13页、物理上界最后1页；不丢尾页、不越界 |
-| 分段注册与空洞 | 两段被空洞隔开时不可合并；补注册中间区间后才按伙伴合并 |
-| 2000 次确定性混合操作 | 固定种子、32 个槽、1..12 页请求，持续校验计数、重叠和数据，间歇检查全部不变量，最终恢复整块 |
-| 5 个独立 panic 启动 | 重复释放、内部指针、错误页数、保留页、未对齐描述符地址；检查确切错误文本，正常回归与 panic 启动分离 |
-
-### 5.3 实测结果及边界
-
-[check_a.py](../code/tools/check_a.py) 构建并启动真实 QEMU 内核，保存原始构建及串口日志。正常运行以实际 PASS 标记判定，panic 场景以 BEGIN 标记、内核 panic 来源和确切错误文本共同判定。内核最后是 `while(1)`，测试脚本只终止自己创建的 QEMU，退出码或超时本身不代表测试成功。
-
-| 验证类别 | 实际结果 | 证据 |
-| --- | --- | --- |
-| Buddy 模块 freestanding 静态编译 | 通过 | 编译检查及后续实际链接 |
-| 甲模块默认配置对象编译 | 通过；标准内核整体仍未通过 | [a-module-build.log](evidence/a-module-build.log) |
-| Page Init 测试配置完整内核编译 | 成功 | [build-page-init-0.log](evidence/build-page-init-0.log) |
-| Buddy 测试配置完整内核编译 | 成功 | [build-buddy-0.log](evidence/build-buddy-0.log) |
-| Page Init：64/128 MiB | 官方 `test_page_init()` 及独立全描述符检查均 PASS | [64M](evidence/page-init-64M.log)、[128M](evidence/page-init-128M.log) |
-| Page Init：256 MiB | 截断布局检查 PASS；未声称官方 raw-end 检查通过 | [256M](evidence/page-init-256M.log) |
-| Buddy：64/128/256 MiB | 全部正常用例 PASS，恢复完整初始空闲区 | [64M](evidence/buddy-64M.log)、[128M](evidence/buddy-128M.log)、[256M](evidence/buddy-256M.log) |
-| Buddy：5 个错误释放启动 | 全部观察到预期 panic | [1](evidence/buddy-negative-1.log)、[2](evidence/buddy-negative-2.log)、[3](evidence/buddy-negative-3.log)、[4](evidence/buddy-negative-4.log)、[5](evidence/buddy-negative-5.log) |
-| 直接调用 Makefile qemu 入口 | Buddy 配置观察到全部 PASS，因最终循环由 timeout 结束 | [make-qemu-buddy.log](evidence/make-qemu-buddy.log) |
-| 团队标准 `make -j2` | 失败，Best-Fit 缺少 `free_list`、`nr_free` | [standard-build.log](evidence/standard-build.log) |
-| 官方 `make grade` | 未运行；标准构建不完整且标准管理器尚未接入 Best-Fit | 不报告评分或假 PASS |
-
-最终独立回归摘要见 [final-a-check.log](evidence/final-a-check.log)。当前没有观察到 Buddy 泄漏、重复分配、错误合并或计数错误，但有限测试不构成所有输入的形式化证明。
-
-## 6. 个人 GDB 验证、失败记录与修复
-
-### 6.1 已完成：客户机 Sv39 地址转换
-
-[debug_a.py](../code/tools/debug_a.py) 使用 RISC-V GDB 连接 QEMU 4.1.1，只监听本机随机端口，不连接或终止其他调试会话。
-
-本次在 `page_init_test` 处实际观察到：
+以 128 MiB 标准内核的实测输出为例：
 
 ```text
-GUEST_PC=0xffffffffc0201092
-SATP=0x8000000000080205
-ROOT_PA=0x80205000
-VPN2=511
-LEAF_PTE=0x200000cf
-TRANSLATED_PA=0x80201092
-OFFSET_PA=0x80201092
+PMM: DTB [0x0000000080000000, 0x0000000088000000), managed end 0x0000000088000000
+PMM: descriptors [0x0000000080207000, 0x0000000080347000), free [0x0000000080347000, 0x0000000088000000)
 ```
 
-SATP 的 MODE=8 表示 Sv39。启动根页表第 511 项具有 V/R/W/X 标志，是 level-2 的 1 GiB 叶映射，并非经过三个非叶项的 4 KiB 页表遍历。取 PTE 中的物理基址，加虚拟地址低 30 位，得到 `0x80201092`，与减去固定偏移一致。GDB 的虚拟地址读数和 QEMU monitor 的物理字节读数也实际记录在 [gdb-guest-translation.log](evidence/gdb-guest-translation.log)。
+这些数值可以逐项推出：管理范围共 `(0x88000000 - 0x80000000) / 4096 = 32768` 页；每个 `struct Page` 为 40 字节，数组占 `32768 × 40 = 0x140000` 字节，正好是 `[0x80207000, 0x80347000)`；第一个空闲页 `0x80347000` 之前的 `0x347 = 839` 页（OpenSBI、内核、描述符数组）保持 Reserved，其后 `(0x88000000 - 0x80347000) / 4096 = 31929` 页注册为空闲页，与 Best-Fit 自检开始时的空闲页数一致。
 
-这证明本次客户机页表及地址转换核对已完成，**不等于**在宿主 GDB 中单步观察了 QEMU 的 TLB 查找、TLB Miss 或页表遍历 C 实现。
+### 3.2 功能规格（SPEC）
 
-### 6.2 Page Init 输入注入测试
+以下按 Lab 0.5 的四段式整理，内容与实现、测试逐条核对一致。生成代码时使用的 Prompt 原文见 [prompt.md](prompt.md)。
 
-在真实内核进入 `pmm_init` 时，GDB 修改已经解析的 DTB 全局值，再继续运行初始化。实际 backing RAM 仍为 128 MiB。这是明确标识的输入故障注入，不是伪称硬件提供了该异常 DTB。
+**[PROMPT]** 在 `code/kern/mm/pmm.c` 中实现 `page_init()`：把设备树给出的物理内存范围转换为 `struct Page` 描述符数组，并把除 OpenSBI、内核镜像、描述符数组及对齐空隙之外的完整空闲页交给当前 `pmm_manager`。不改变公共 PMM 接口，保留 `lab2` 注释。
 
-- 零大小、起点为零、加法溢出：进入 `page_init: invalid DTB memory range`。
-- 内存范围不含内核末端：进入 `memory does not contain the kernel`。
-- 仅能包含内核、不能容纳描述符数组：进入 `no room for page descriptors`。
-- 报告 64 MiB 减 17 字节：尾部不完整物理页排除，npage 及独立布局检查通过。
-- 计算恰能容纳描述符、没有完整空闲页的范围：在进入 First-Fit 自测之前停止，空闲链表为空、计数为零、全部描述符 Reserved，检查通过。本例未继续执行要求非空空闲区的既有 First-Fit 自测，也未声称零空闲页内核可完整运行。
+**[RELY]**
 
-完整结果见 [final-debug-a.log](evidence/final-debug-a.log)，原始 GDB 命令和每例输出位于 `evidence/gdb-page-init-*`。
+```c
+// memlayout.h / riscv.h 中的真实常量
+#define DRAM_BASE              0x80000000
+#define KERNEL_BEGIN_PADDR     0x80200000
+#define PHYSICAL_MEMORY_END    0x88000000
+#define PHYSICAL_MEMORY_OFFSET 0xFFFFFFFF40000000   // entry.S 建立的 VA - PA
+struct Page { int ref; uint64_t flags; unsigned int property; list_entry_t page_link; }; // 40 字节
+extern struct Page *pages; extern size_t npage; extern const size_t nbase; // nbase = DRAM_BASE / PGSIZE
+extern uint64_t va_pa_offset;
+uint64_t get_memory_base(void); uint64_t get_memory_size(void);  // dtb_init 解析的结果
+static void init_memmap(struct Page *base, size_t n);           // 转发给 pmm_manager->init_memmap
+// 以及 PADDR、PPN、pa2page、ROUNDUP、ROUNDDOWN、SetPageReserved、set_page_ref、panic、cprintf、链接符号 end
+```
 
-### 6.3 实际遇到的问题
+**[GUARANTEE]** `static void page_init(void);`，由 `pmm_init()` 在 `init_pmm_manager()` 之后调用；不修改 `pmm.h`、`memlayout.h`、DTB 模块、各分配器和官方测试。
 
-1. **QEMU 4.1.1 的 32 MiB 启动无输出。** 首次自动测试未取得标记，保留 [原始失败日志](evidence/initial-qemu41-32M-no-output.log)。128 MiB 运行实际记录 DTB 地址为 `0x82200000`，已超出 32 MiB 范围，因此将课程固件的内存矩阵改为 64/128/256 MiB 并实际通过；内部失败路径未单独定位，不将该推断写成已确认的代码 Bug。
-2. **GDB 对无类型汇编符号、PC 和 SATP 的类型处理。** 首先因 `boot_page_table_sv39` 类型未知而失败；改为显式 char 指针后，又发现 PC 的位运算需要整数转换，SATP 需要无符号转换才能正确判断 MODE。保留 [符号类型错误](evidence/initial-gdb-symbol-type-error.log)、[PC 算术错误](evidence/initial-gdb-pc-arithmetic-error.log)、[SATP 有符号判断错误](evidence/initial-gdb-signed-satp-error.log)。修复调试脚本的转换后重新执行成功，未改内核来迎合调试脚本。
-3. **标准构建中的 Best-Fit 骨架。** `free_list` 和 `nr_free` 尚未定义，这是原有未完成模块；未替乙实现。通过显式 A-only 构建配置验证实际 First-Fit 和 Buddy 内核，没有用测试桩冒充 Best-Fit。
-4. **双重 GDB 环境不齐。** 课程 QEMU 4.1.1 已剥离符号、未找到宿主 GDB。QEMU 7.0.0 虽带调试信息，启动尝试只观察到 OpenSBI，后续入口断点诊断超时，原因未确定，保留 [串口记录](evidence/gdb-qemu7-startup-diagnostic-serial.log)。未修改 `entry.S`，未重装工具或更改系统配置。仍需丙提供可用且与实验启动流程兼容的带符号 QEMU、源码路径及宿主 GDB。
+**[SPECIFICATION]**
 
-本阶段没有观察到 Page Init 或 Buddy 算法的失败用例，因此没有虚构算法 Bug 或修复过程。工具脚本问题与骨架未完成均分别说明。
+**Pre-Condition：**
 
-## 7. 构建入口与后续集成
+- `entry.S` 已用 `boot_page_table_sv39` 建立 `VA = PA + 0xFFFFFFFF40000000` 的映射并开启 Sv39；
+- `dtb_init()` 已运行，`get_memory_base()`、`get_memory_size()` 返回解析结果，但结果可能异常；
+- `pmm_manager` 已选定并执行过 `init()`，尚未接管任何页。
 
-### 7.1 当前可独立运行的方法
+**Post-Condition：**
 
-[Makefile](../code/Makefile) 仍通过 `KSRCDIR` 和 `function.mk` 的 wildcard 发现 `kern/mm/` 内新增 `.c`、`.S`。仅新增目录不会自动递归发现。正式 `LAB2_PROFILE=standard` 默认保留原有 First-Fit 选择，并编译乙的 Best-Fit 文件；没有提前替换正式管理器。
+- `va_pa_offset == PHYSICAL_MEMORY_OFFSET`；
+- `managed_end = ROUNDDOWN(min(base + size, PHYSICAL_MEMORY_END), PGSIZE)`，`npage = PPN(managed_end)`，`npage` 是可管理物理页号的排他上界；
+- `pages` 指向 `ROUNDUP(PADDR(end), PGSIZE)` 处的内核虚拟地址，共 `npage - nbase` 个描述符。描述符从 `DRAM_BASE` 开始编号，使框架的 `pa2page()`、`page2pa()` 可以直接使用；
+- 每个描述符的 `flags` 只置 Reserved，`property = 0`，`ref = 0`，链表节点自环；
+- `free_start = ROUNDUP(描述符数组物理末端, PGSIZE)`。若 `free_start < managed_end`，恰好调用一次 `init_memmap(pa2page(free_start), (managed_end - free_start) / PGSIZE)`；`[DRAM_BASE, free_start)` 中的页不会交给分配器。
 
-两个显式测试配置排除未完成的 `best_fit_pmm.c`，编译实际官方测试源以调用 Page Init 检查。未使用的 `test_best_fit` 随函数 section 被链接器回收，没有伪造其管理器定义。测试内核的对象和镜像放在不同配置子目录；公共 libs 对象复用，因为这些配置不改变库编译标志。
+  **Case 1（有效范围）：** DTB 范围覆盖内核且能放下描述符数组时，按上述规则建立布局，并打印 DTB 范围、描述符区间和空闲区间。
+
+  **Case 2（DTB 数据无效）：** `size == 0`、`base < DRAM_BASE`、`base > KERNEL_BEGIN_PADDR` 或 `base + size` 溢出时，在修改任何描述符之前 panic，信息为 `page_init: invalid DTB memory range`。
+
+  **Case 3（范围不包含内核）：** 内核物理末端不在 `[KERNEL_BEGIN_PADDR, managed_end)` 内时 panic，信息为 `memory does not contain the kernel`。
+
+  **Case 4（放不下描述符数组）：** 数组起点超出 `managed_end`，或剩余空间按除法计算放不下 `npage - nbase` 个描述符时 panic，信息为 `no room for page descriptors`。使用除法判断，避免 `count * sizeof(struct Page)` 溢出后误判。
+
+  **Case 5（超过框架上界）：** `base + size > PHYSICAL_MEMORY_END` 时截断到 `0x88000000`。
+
+  **Case 6（尾部不完整页）：** 上界向下按页对齐，不足一页的尾部不注册。
+
+  **Case 7（没有完整空闲页）：** 描述符数组之后不剩完整页时，只完成 Reserved 初始化，不调用 `init_memmap()`。
+
+**Requirements：** 不硬编码空闲页数；严格区分虚拟地址、物理地址、物理页号和描述符地址；所有校验在写描述符之前完成。
+
+### 3.3 实现
+
+1. 设置固定虚实偏移，读取并校验 DTB 范围。
+2. 截断并向下对齐上界，校验内核末端位于范围内。
+3. 设置 `npage`，计算 `count = npage - nbase` 和对齐后的 `pages_pa`，在写内存之前校验元数据容量。
+4. 把所有描述符初始化为 Reserved、`ref = 0`、`property = 0`，并初始化链表节点。
+5. 对描述符数组末端向上对齐，存在完整空闲页时调用当前管理器的 `init_memmap`。框架以 Reserved 表示“尚未交给页管理器”，管理器在接管空闲区时清除该标志。
+
+### 3.4 测试与验证
+
+验证分为两类。第一类是正常启动：[page_init_test.c](../code/kern/mm/page_init_test.c) 在 Page Init 测试配置中逐个检查全部描述符的保留状态、`pa2page`/`page2pa` 往返和精确空闲页数，并调用官方未修改的 `test_page_init()`；`make grade` 的 check page init 在标准配置中再次检查。第二类是输入注入：在真实内核进入 `pmm_init` 时，用客户机 GDB 修改已解析的 DTB 全局变量，观察 `page_init()` 对异常输入的处理（实际内存保持 128 MiB）。
+
+| SPEC 条目 | 验证方法 | 实测结果 |
+| --- | --- | --- |
+| Post-Condition 全部条目、Case 1 | 64/128 MiB 启动，`page_init_test()` 与官方 `test_page_init()`；`make grade` | 全部 PASS；官方评分 check page init OK |
+| Case 2 | 注入 size=0、base=0、base+size 溢出、base=`0x80300000` | 均 panic，`page_init: invalid DTB memory range` |
+| Case 3 | 注入不覆盖内核的 size | panic，`memory does not contain the kernel` |
+| Case 4 | 注入只够容纳内核、放不下描述符的 size | panic，`no room for page descriptors` |
+| Case 5 | 256 MiB 启动 | managed end 截断为 `0x88000000`，独立布局检查 PASS |
+| Case 6 | 注入 64 MiB − 17 字节 | 尾部不完整页被排除，`npage` 与布局检查 PASS |
+| Case 7 | 注入恰好只够放描述符的 size | 空闲链表为空、空闲页数为 0、全部描述符 Reserved |
+| 描述符从 `nbase` 编号 | 注入 base=`0x80100000` | `pages[0..255]`（PA `0x80000000`–`0x800fffff`）全部 Reserved，官方与独立检查 PASS |
+
+256 MiB 场景下，官方 `test_page_init()` 期望的是未截断的 DTB 末端页号，而本实现按指导书要求截断到框架上界，因此该场景使用独立的截断布局检查。日志见 [member-a-round2/](evidence/member-a-round2/README.md)（`check_a/page-init-*.log`、`debug_a/`、`page-init-extra/`）。
+
+## 4. Challenge：硬件可用物理内存范围的获取方法（丙）
+
+<!-- 丙撰写：如果 OS 无法提前知道可用物理内存范围，如何获取（原理、适用条件、风险），并联系本实验中 DTB 的作用。 -->
+
+## 5. 练习 2-1：理解 First-Fit 连续物理内存分配算法（丙）
+
+<!-- 丙撰写：结合 default_init、default_init_memmap、default_alloc_pages、default_free_pages 说明初始化、分配、回收与合并；回答“First-Fit 是否有进一步的改进空间”。现有材料：member-c/First-Fit源码分析.md。 -->
+
+## 6. 练习 2-2：Best-Fit 连续物理内存分配算法（乙）
+
+<!-- 乙撰写：best_fit_pmm.c 的内部状态与各回调设计、最小满足块的选择逻辑、SPEC 与 Prompt、改进空间；make qemu 与 make grade 结果。 -->
+
+## 7. 练习 2-3：Buddy System 设计与实现（甲）
+
+### 7.1 数据组织与释放契约
+
+实现为 [buddy_pmm.c](../code/kern/mm/buddy_pmm.c)、[buddy_pmm.h](../code/kern/mm/buddy_pmm.h)，注册为 `buddy_pmm_manager`，公共 `Page` 布局和 `pmm_manager` 接口保持不变。
+
+- 维护 0 到 15 阶的空闲链表，阶 k 对应 `2^k` 页，另外维护真实空闲页总数。最大阶与 128 MiB / 4 KiB 的框架上界一致，由编译期断言保证。
+- 伙伴按物理页号计算：`buddy_ppn = ppn XOR (1 << order)`。只有同阶、同容量且空闲的伙伴才能合并，物理上相邻但不互为伙伴的块不会合并。
+- 请求 n 页时实际占用 `2^ceil(log2 n)` 页。例如请求 3 页占用 4 页，空闲统计减少 4；释放时 `free_pages(p, 3)` 与 `free_pages(p, 4)` 都归还整个 4 页块。
+- 只支持整块释放：`n` 必须等于原请求或实际容量。内部指针、部分释放、错误尺寸和重复释放都在修改空闲状态之前检测并 panic。
+- 管理器运行在单核启动阶段，不涉及并发。SLUB 只按单页调用页分配器，满足整块释放契约，实测在 Buddy 配置下 SLUB 测试通过。
+
+### 7.2 关键机制
+
+**描述符状态编码。** Buddy 复用 `struct Page` 的已有字段：
+
+| 字段 | 空闲块头 | 已分配块头 | 块内其他页 |
+| --- | --- | --- | --- |
+| `flags` bit 0 `PG_reserved` | 0 | 0 | 0 |
+| `flags` bit 1 `PG_property` | 1 | 0 | 0 |
+| `flags` bit 2 `BUDDY_MANAGED` | 1 | 1 | 1 |
+| `flags` bit 3 `BUDDY_ALLOCATED` | 0 | 1 | 0 |
+| `flags` bit 32..63 | 0 | 原请求页数 n | 0 |
+| `property` | 块容量 2^k | 块容量 2^k | 0 |
+| `page_link` | 挂在 `free_lists[k]` | 不在链表 | 不在链表 |
+
+只看块头就能区分空闲块、已分配块和块内页，因此释放时传入块内页、重复释放或保留页，都能在修改状态之前识别出来。`Page.ref` 保持引用计数语义，原请求页数单独存放在 flags 高位。
+
+**XOR 伙伴查找。** 阶为 k 的块大小为 2^k 页，起点物理页号按 2^k 对齐。把一个 2^(k+1) 的块对半拆开，左半起点的第 k 位为 0、右半为 1，其余位相同，所以伙伴起点为 `ppn ^ (1 << k)`，合并后的新块起点为 `ppn & ~(1 << k)`。实现使用绝对物理页号：`nbase = 0x80000 = 2^19` 是 2^15 的倍数，按绝对页号对齐等价于按相对 `DRAM_BASE` 的页号对齐。合并需要同时满足：伙伴在描述符范围内、属于 Buddy、是空闲块头、容量同为 2^k。例如 4 页区间中下标 1 和 2 的两页物理相邻，但 `1 ^ 1 = 0`、`2 ^ 1 = 3`，二者不是伙伴，都释放后仍不能分配 2 页（`non_buddies` 用例）。
+
+**拆分。** 从满足 `2^k >= n` 的最小非空阶取块；若取到的块更大，则反复对半拆分，右半挂回低一阶链表，左半继续拆分，直到容量为 2^k。64 页区间先分配 1 页再分配 32 页，二者分别位于区间起点和起点 + 32（`split_and_merge` 用例），与“保留左半”的拆分顺序一致。
+
+**为什么只支持整块释放。** 伙伴关系依赖“块大小为 2 的幂、起点按大小对齐”。若只归还块中的一部分，剩余部分既不是 2 的幂也不满足对齐，必须再拆分成若干合法块，块头记录的请求和容量也随之失效。这与 First-Fit 自检中“释放一段的一部分”的用法不兼容，因此 Buddy 在独立配置中测试，标准配置使用 Best-Fit。
+
+### 7.3 各函数的 SPEC
+
+以下按 Lab 0.5 四段式整理，以实际实现为准。Prompt 原文见 [prompt.md](prompt.md)。
+
+**[PROMPT]** 新增 `code/kern/mm/buddy_pmm.c`、`buddy_pmm.h`，按 `struct pmm_manager` 接口实现伙伴系统并注册为 `buddy_pmm_manager`；不替换标准配置的 Best-Fit，不修改官方测试。
+
+**[RELY]** `struct pmm_manager { name, init, init_memmap, alloc_pages, free_pages, nr_free_pages, check }`（`pmm.h`）；`struct Page` 及 `PageReserved`、`PageProperty`、`SetPageProperty`、`ClearPageProperty`、`set_page_ref`；`page2ppn`、`pages`、`npage`、`nbase`；`list.h`；`assert`、`panic`、`cprintf`。
+
+**[GUARANTEE]**
+
+```c
+const struct pmm_manager buddy_pmm_manager;              // buddy_pmm.h 声明
+static void buddy_init(void);
+static void buddy_init_memmap(struct Page *base, size_t n);
+static struct Page *buddy_alloc_pages(size_t n);
+static void buddy_free_pages(struct Page *base, size_t n);
+static size_t buddy_nr_free_pages(void);
+static void buddy_check(void);
+void buddy_validate(void);                               // 只读不变量检查，供测试使用
+```
+
+**[SPECIFICATION]**
+
+#### buddy_init
+
+- **Pre-Condition：** 没有活动分配（启动时首次调用，或测试重建现场时调用）。
+- **Post-Condition：** 0–15 阶空闲链表都为空，空闲页数为 0。
+- **Requirements：** `(PHYSICAL_MEMORY_END - DRAM_BASE) / PGSIZE == 2^15`，由编译期断言保证。
+
+#### buddy_init_memmap(base, n)
+
+- **Pre-Condition：** `base` 是 `pages` 数组内按描述符对齐的指针；`n > 0` 且不越过数组末端；区间内各页都是 Reserved，且没有被 Buddy 接管。
+- **Post-Condition：** 区间内各页都属于 Buddy、引用计数为 0；区间被切成若干个起点按 2^k 对齐的 2^k 块；空闲页数增加 n。
+
+  **Case 1（起点对齐且足够长）：** 取满足“不超过剩余长度、起点对齐”的最大阶组成高阶块。
+
+  **Case 2（起点不满足高阶对齐）：** 先用较小阶的块补齐到对齐边界，再使用高阶块，不丢页。
+
+  **Case 3（长度不是 2 的幂）：** 尾部余下的页继续切成更小的块，全部纳入管理。
+
+  **Case 4（与已注册区间互为伙伴）：** 每插入一块都尝试与已有的同阶空闲伙伴合并，分段注册后补上中间空洞即可合并成大块。
+
+  **Case 5（非法输入）：** 指针不在描述符数组内或未对齐时 panic（`buddy: invalid page descriptor`）；区间含有非 Reserved 或已被接管的页时断言失败。所有检查在修改状态之前完成。
+
+#### buddy_alloc_pages(n)
+
+- **Pre-Condition：** 已初始化，`n > 0`。
+- **Post-Condition：** 成功时返回块头 p，容量 `c = 2^ceil(log2 n)`，起点按 c 对齐；块头标记为已分配并记录 n，`property = c`；空闲页数减少 c；拆分产生的右半块挂入对应阶。失败时返回 NULL，状态不变。
+
+  **Case 1（对应阶有空闲块）：** 直接取出。
+
+  **Case 2（需要拆分）：** 从更高的最小非空阶取块，逐级对半拆分。
+
+  **Case 3（n 不是 2 的幂）：** n = 3 时占用 4 页，块头记录请求 3、容量 4。
+
+  **Case 4（无法满足）：** `n > 2^15`、`n` 超过空闲页总数，或总数足够但没有足够大的连续块时，返回 NULL。
+
+- **Requirements：** 复杂度 O(K)，K 为最大阶。
+
+#### buddy_free_pages(base, n)
+
+- **Pre-Condition：** `base` 是某次分配返回、尚未释放的块头；`n` 等于当时的请求或实际容量。
+- **Post-Condition：** 整块归还，空闲页数增加实际容量；块与伙伴逐阶合并，直到伙伴不空闲、不同阶、越界或已到最大阶；合并后的块头是地址较低的一方。
+
+  **Case 1（伙伴仍被占用）：** 不合并，按原阶挂入链表。
+
+  **Case 2（伙伴空闲且同阶）：** 合并成高一阶的块，继续向上检查。
+
+  **Case 3（连续多阶都可合并）：** 迭代向上合并，例如 8 页 + 8 页恢复为 16 页。
+
+  **Case 4（原请求不是 2 的幂）：** `free_pages(p, 3)` 与 `free_pages(p, 4)` 都归还整个 4 页块。
+
+  **Case 5（非法释放）：** 在修改任何状态之前 panic：描述符地址非法或未对齐时为 `invalid page descriptor`；传入块内页、重复释放、保留页时为 `free requires an allocated block head`；`n` 既不是请求也不是容量时为 `free size must match request or capacity`。
+
+- **Requirements：** 只支持整块释放（原因见 7.2 节）。
+
+#### buddy_nr_free_pages
+
+- **Post-Condition：** 返回所有空闲块容量之和，按实际容量而不是原请求计算。
+
+#### buddy_check
+
+- **Post-Condition：** 调用 `buddy_validate()` 检查全部不变量并打印结果，不修改状态。行为测试由独立配置中的 `buddy_test()` 完成（第 8 节）。
+
+### 7.4 复杂度与权衡
+
+记最大阶数为 K（K = 15）。分配时扫描阶并拆分、释放时逐阶寻找伙伴，复杂度均为 O(K)，单次伙伴定位为 O(1)。初始化需处理全部描述符，约为 O(N + K × 初始块数)。额外空间仅为 K+1 个链表头，每页复用已有描述符。代价是幂次取整造成的内部碎片：请求 513 页实际占用 1024 页。此外，即使总空闲页充足，也可能因为不存在足够大的对齐块而分配失败。
+
+## 8. 练习 2-3：Buddy 独立测试（甲）
+
+测试代码为 [buddy_test.c](../code/kern/mm/buddy_test.c)，与实现分开设计，对应的测试 Prompt 见 [prompt.md](prompt.md)。
+
+### 8.1 测试环境的隔离
+
+`buddy_test()` 在启动初始化完成、管理区全部空闲且没有活动分配时运行。它先确认初始空闲区是单一连续区间，再以该真实物理区间的子区间构造各个测试场景；每个场景要求所有分配都已归还，之后才重建描述符。全部场景结束后，重新注册完整的初始空闲区并验证空闲页数恢复。测试不使用模拟分配器或伪造的 Page 数组：分配到的物理页在首尾写入并读回不同标记，用来检查跨页容量、互不覆盖和数据完整性。测试区不包含 OpenSBI、内核或描述符占用的页。
+
+### 8.2 用例设计
+
+| 用例 | 检查内容 |
+| --- | --- |
+| 真实大内存区高阶分配 | 513 页及更高阶请求的取整、物理对齐、互不重叠、容量扣数和完整回收 |
+| 1/2/4/8、3/5/6 页 | 连续容量、两两不重叠、ref 与标志、实际页数统计、首尾数据标记；按原请求释放与按实际容量释放均验证 |
+| 64 页块拆分 | 1 页与 32 页请求从正确的阶获取，释放后可重新分配完整 64 页 |
+| 占用伙伴与递归合并 | 伙伴仍在使用时 16 页申请失败；两块 8 页归还后恢复 16 页块 |
+| 相邻非伙伴 | 4 页区间内下标 1、2 的页释放后不能分配 2 页；真实伙伴归还后才能合并 |
+| 耗尽与巨大请求 | 分配全部单页，确认不重复、不越界，耗尽时返回 NULL 且计数不变；反序释放后恢复 |
+| 不规则区间与最后一页 | 高阶未对齐起点 + 13 页、物理上界的最后 1 页；不丢尾页、不越界 |
+| 分段注册与空洞 | 被空洞隔开的两段不能合并；补注册中间区间后按伙伴关系合并 |
+| 2000 次确定性混合操作 | 固定种子、32 个槽、1–12 页请求，持续检查计数、重叠和数据，定期检查全部不变量，最终恢复整块 |
+| 6 个预期 panic 启动 | 重复释放、内部指针、错误页数、释放保留页、未对齐描述符地址、重复注册已接管的页；按确切错误信息判定 |
+
+预期 panic 的用例各自单独编译启动（`LAB2_BUDDY_NEGATIVE=1..6`），不会影响正常用例的回归。
+
+### 8.3 测试结果
+
+[check_a.py](../code/tools/check_a.py) 构建并启动真实的 QEMU 内核：正常用例以串口中的 PASS 标记判定；预期 panic 用例同时检查 BEGIN 标记、panic 发生位置和确切错误信息。
+
+| 测试 | 结果 | 日志 |
+| --- | --- | --- |
+| Buddy 正常用例，64/128/256 MiB | 全部 PASS，最终恢复完整初始空闲区 | [64M](evidence/member-a-round2/check_a/buddy-64M.log)、[128M](evidence/member-a-round2/check_a/buddy-128M.log)、[256M](evidence/member-a-round2/check_a/buddy-256M.log) |
+| 预期 panic 用例 1–5 | 重复释放、内部指针、释放保留页报 `free requires an allocated block head`；错误页数报 `free size must match request or capacity`；未对齐描述符报 `invalid page descriptor` | [1](evidence/member-a-round2/check_a/buddy-negative-1.log)、[2](evidence/member-a-round2/check_a/buddy-negative-2.log)、[3](evidence/member-a-round2/check_a/buddy-negative-3.log)、[4](evidence/member-a-round2/check_a/buddy-negative-4.log)、[5](evidence/member-a-round2/check_a/buddy-negative-5.log) |
+| 预期 panic 用例 6 | 重复注册被拒绝，`assertion failed: PageReserved(base + i)` | [6](evidence/member-a-round2/check_a/buddy-negative-6.log) |
+| Buddy 配置下完整启动 | Buddy 测试之后 SLUB 测试也通过 | [profile-buddy-full-boot-128M.log](evidence/integration/pre-merge-isolated/profile-buddy-full-boot-128M.log) |
+
+128 MiB 正常用例的串口输出：
+
+```text
+buddy_check: free-list invariants PASS (31927 pages)
+[Buddy] real-arena high-order allocation and recovery: PASS
+[Buddy] basic, 3/5/6 rounding, payload, full recovery: PASS
+[Buddy] high-order split, occupied buddy, recursive merge: PASS
+[Buddy] adjacent non-buddies never merge: PASS
+[Buddy] exhaustion, irregular range, last page, holes: PASS
+[Buddy] 2000 deterministic mixed operations, payload integrity: PASS
+[Buddy] original boot-time free interval restored: PASS (31927 pages)
+[Buddy] ALL NORMAL TESTS PASS
+```
+
+Buddy 测试内核比标准内核略大，因此初始空闲页为 31927，比标准内核少 2 页；这也说明空闲页数必须由 Page Init 实际计算，不能硬编码。
+
+## 9. Challenge：SLUB 任意大小内存单元分配（乙）
+
+<!-- 乙撰写：两层架构（页级 alloc_page/free_page，对象级 16–1024 字节 7 个大小类，slab 头位于页首，空闲对象链表）；两份 Prompt；测试覆盖的核心行为与边界及其有效性。 -->
+
+## 10. 分支任务：QEMU/GDB 调试页表查询过程（甲）
+
+### 10.1 实验目的与方法
+
+uCore 运行在 QEMU 模拟的 RISC-V 处理器上，地址翻译由 QEMU 的 C 代码完成。本实验的目的，是在 QEMU 源码层面观察一次访存从“查 TLB”到“得到物理地址”的完整过程，具体包括四个问题：
+
+1. TLB Miss 时，QEMU 经过哪条调用路径进入 RISC-V 的地址翻译；
+2. Sv39 页表如何被逐级遍历，超级页如何得到物理地址；
+3. TLB 命中时，哪些代码被跳过；
+4. 模拟 TLB 与真实硬件 TLB 在逻辑上有哪些区别。
+
+**两个 GDB 的分工。** 宿主 GDB（x86-64 的 gdb 12.1）附加到 QEMU 进程，在模拟器的 C 源码中设置断点、查看变量；客户机 GDB（`riscv64-unknown-elf-gdb`）通过 QEMU 的 gdbstub 调试 uCore，查看 RISC-V 指令和寄存器。宿主断点暂停的是整个模拟器线程，客户机断点暂停的是被模拟的 CPU。
+
+**调试版 QEMU。** 按指导书在独立目录中重新编译 QEMU 4.1.1，不执行 `make install`，课程 QEMU 保持不变：
 
 ```bash
-# 全部独立构建、QEMU 正常回归及隔离 panic 场景
-python3 tools/check_a.py --qemu "$LAB2_QEMU"
-
-# 客户机 GDB 转换核对、输入故障注入和边界检查
-python3 tools/debug_a.py --qemu "$LAB2_QEMU"
-
-# 显式编译和交互运行，最终循环可用 Ctrl-a x 退出 QEMU
-make LAB2_PROFILE=page-init
-make LAB2_PROFILE=page-init QEMU="$LAB2_QEMU" qemu
-make LAB2_PROFILE=buddy
-make LAB2_PROFILE=buddy QEMU="$LAB2_QEMU" qemu
-
-# 手动客户机调试，需要两个终端使用同一配置
-make LAB2_PROFILE=page-init QEMU="$LAB2_QEMU" debug
-make LAB2_PROFILE=page-init gdb
+../configure --target-list=riscv32-softmmu,riscv64-softmmu --enable-debug   # build-debug/
+../configure --target-list=riscv32-softmmu,riscv64-softmmu --enable-debug \
+             --enable-tcg-interpreter                                        # build-debug-tci/
 ```
 
-正式构建未完成前，上述配置证明甲的真实内核可运行，不代表团队标准内核或官方评分已经通过。Buddy 测试不能在已有活动分配的运行内核中直接调用。
+`--enable-debug` 构建不做优化（`CFLAGS -g`），可以逐行单步。第二个构建另外启用了 TCG 解释器（TCI），原因在于数据访问的 TLB 查询方式：默认的 TCG 后端会把“查 TLB、比较、命中后直接访问”编译成宿主机器码，内联在翻译结果中（`tcg/i386/tcg-target.inc.c` 的 `tcg_out_tlb_load`），只有 Miss 才调用 C 函数 `load_helper`/`store_helper`；TCI 后端则在每次客户机 load/store 时都调用这两个 C 函数。因此，取指路径在 `build-debug` 上观察，数据访问的 Miss 与命中在 `build-debug-tci` 上观察。两个构建都能完整启动本仓库的标准内核。
 
-### 7.2 需要乙和丙提供的内容
+**调试环境。** 终端 1 用 `make debug QEMU=<调试版 QEMU>` 以 `-s -S` 启动 QEMU，使其在复位向量处等待；终端 2 运行客户机 GDB（`make gdb`）；终端 3 中宿主 GDB 附加到 QEMU 进程。图 10-1 显示调试版 QEMU 已按 `-s -S` 启动，客户机 GDB 停在复位向量 `0x1000`。
 
-- 乙：完整 `best_fit_pmm.c` 及相应头文件；管理器定义和全部回调，与原有 `basic_check`、`best_fit_check` 保持一致的状态约定；实际测试结果。当前只见框架测试和 extern 声明，未判断其其他分支或设备上的进度。
-- 乙：后续 `slub.c/h`、测试和必要 `init.c` 改动，以及页分配/释放契约。若仍使用 Best-Fit，避免把 Buddy 整块释放限制带入不兼容调用。
-- 丙：First-Fit 分析、内存探测思考题，带调试信息且可运行的 QEMU 版本、源码路径、宿主 GDB、关键调用路径、断点和真实 TLB/页表调试证据。
-- 三人：姓名学号、真实 Prompt 原文、各自调试和测试截图、各负责部分报告。当前 `images/` 只有 `.gitkeep`，没有引用不存在的图片。
+![图 10-1 调试环境：调试版 QEMU 以 -s -S 启动，客户机 GDB 停在复位向量 0x1000](images/a-gdb-01-env.png)
 
-### 7.3 正式集成顺序
+*图 10-1 调试环境：调试版 QEMU 进程（上）与停在复位向量的客户机 GDB（下）*
 
-乙提交后先审阅差异，保留甲负责的 `pmm.c`，仅将其标准构建分支选择改为 `&best_fit_pmm_manager`；显式 Page Init 配置仍选择 First-Fit，Buddy 配置仍选择 Buddy。不要把管理器切换发生在有活动分配的运行中。
+**观察对象。** 观察的地址来自内核符号表和反汇编：
 
-```bash
-make
-make QEMU="$LAB2_QEMU" qemu
+| 场景 | 虚拟地址 | 访问类型 | 对应的客户机指令或数据 |
+| --- | --- | --- | --- |
+| M 模式复位 | `0x1000` | 取指 | QEMU virt 复位向量（MROM） |
+| Sv39 取指 | `0xffffffffc02000d6` | 取指 | `kern_init` 第一条指令 |
+| Sv39 store | `0xffffffffc0206018`、`0xffffffffc0206019` | store | `memset` 清零 bss 的前两个字节（`sb a1,-1(a5)`） |
+| Sv39 load | `0xffffffffc0201f08` | load | `dtb_init` 中 `cprintf` 读取格式串 `"DTB Init\n"` |
 
-# 官方 grade 会清理当前构建产物并在临时副本注入测试。
-# 使用自己创建的唯一临时目录，避免默认 /tmp/lab2_grade 的并发清理风险。
-lab2_grade_tmp=$(mktemp -d /tmp/nku-lab2-grade.XXXXXX)
-make QEMU="$LAB2_QEMU" GRADE_TMP="$lab2_grade_tmp" grade
+### 10.2 QEMU 地址翻译的源码路径
 
-# 接入队友模块后再回归甲的独立配置
-python3 tools/check_a.py --qemu "$LAB2_QEMU"
-python3 tools/debug_a.py --qemu "$LAB2_QEMU"
+阅读 `accel/tcg/cputlb.c` 与 `target/riscv/cpu_helper.c`，一次访存的处理路径如下：
+
+```text
+取指:   get_page_addr_code   cputlb.c:1030  tlb_hit() 判断
+                             cputlb.c:1031  VICTIM_TLB_HIT() 查 8 项 victim TLB
+                             cputlb.c:1032  tlb_fill()            （两者都未命中时）
+数据:   load_helper          cputlb.c:1271  tlb_hit() 判断 → 未命中则 victim TLB → tlb_fill()
+        store_helper         cputlb.c:1519  同上，cputlb.c:1522 调用 tlb_fill()
+填充:   tlb_fill             cputlb.c:878   → cc->tlb_fill，即 riscv_cpu_tlb_fill
+        riscv_cpu_tlb_fill   cpu_helper.c:451  get_physical_address()  完成翻译
+                             cpu_helper.c:472  tlb_set_page()          写入 TLB 表项
+命中后: 宿主地址 = 客户机虚拟地址 + entry->addend
 ```
 
-官方评分仅对 Page Init 和 Best-Fit 的标记各计 10 分，要求当前管理器为 Best-Fit；Buddy 和 SLUB 需要独立证据。注入器拒绝正式 Makefile 已含 `kern/test` 或 pmm.c 已含测试注入头的情况，因此不应把临时注入副本带回正式源码。老师的评分与注入文件本次均未修改。
+`get_physical_address()` 中决定翻译方式的关键分支：
 
-待可用宿主调试环境就绪，甲还需完成至少一次 QEMU 源码单步观察，区分模拟 TLB 命中路径、Miss 后的软件页表遍历和最终物理地址，并与现有客户机证据关联。
+| 位置 | 代码 | 作用 |
+| --- | --- | --- |
+| 171 行 | `if (mode == PRV_M \|\| !riscv_feature(env, RISCV_FEATURE_MMU))` | M 模式直接返回 `*physical = addr` |
+| 187–197 行 | `switch (vm)` | `VM_1_10_SV39` 设定 `levels = 3, ptidxbits = 9, ptesize = 8`；`VM_1_10_MBARE` 直接返回 `*physical = addr` |
+| 237 行 | `for (i = 0; i < levels; i++, ptshift -= ptidxbits)` | 逐级遍历页表 |
+| 238–252 行 | `idx = (addr >> (PGSHIFT + ptshift)) & 0x1ff`；`pte_addr = base + idx * ptesize`；`pte = ldq_phys(...)` | 计算本级索引与 PTE 地址，从物理内存读出 PTE |
+| 256、259 行 | `!(pte & PTE_V)`；`!(pte & (PTE_R \| PTE_W \| PTE_X))` | PTE 无效则失败；R/W/X 全为 0 表示非叶 PTE，令 `base = ppn << 12` 进入下一级 |
+| 276 行 | `ppn & ((1ULL << ptshift) - 1)` | 超级页的 PPN 对齐检查 |
+| 279–286 行 | 按访问类型检查 R/W/X | 权限检查 |
+| 291–317 行 | 计算 `updated_pte`，必要时用 cmpxchg 写回 | 由软件更新 A/D 位 |
+| 334 行 | `*physical = (ppn \| (vpn & ((1L << ptshift) - 1))) << PGSHIFT` | 合成物理页基址 |
 
-## 8. OS 理论、尚未覆盖内容与最终报告待办
+### 10.3 未开启分页时的取指：M 模式不经过页表
 
-物理页管理把连续地址空间变为描述符集合；Reserved 标志区分系统占用与可分配页。PMM 接口体现机制与策略分离，Page Init 组织初始资源，而 First-Fit、Best-Fit、Buddy 决定如何分配。
+**目的。** 观察 CPU 上电后、页表尚未建立时，QEMU 如何处理取指。
 
-Buddy 的幂次取整引入内部碎片；空闲块分散则体现外部碎片和连续分配约束。物理连续并不意味着任意请求都能满足，必须同时满足容量、对齐和伙伴结构。
+**方法。** 在 `riscv_cpu_tlb_fill` 和 `get_physical_address` 上设置断点，客户机 GDB 执行 `continue`。
 
-Sv39、PTE 和 SATP 属于地址翻译机制；物理页分配策略不能代替 MMU 翻译。页描述符本身通过内核虚拟地址访问，但其下标对应物理页号。TLB 是翻译缓存，软件模拟 TLB 与真实硬件 TLB 的逻辑差异仍待 QEMU 主体调试后由丙补充。
+**观察。** 第一次命中发生在复位向量 `0x1000`（图 10-2）：`access_type = MMU_INST_FETCH`，`mmu_idx = 3`；调用栈为 `get_page_addr_code`（cputlb.c:1032）→ `tlb_fill` → `riscv_cpu_tlb_fill`。进入 `get_physical_address` 时，`addr = 0x1000`、`mmu_idx = 3`。
 
-当前未覆盖完整虚拟内存分配、缺页异常处理、按需分页、交换、进程地址空间隔离、多核并发与实际生产系统的 NUMA/复杂固件保留区管理。DTB 模块当前只解析一个简化的 memory reg 范围，未实现任意硬件布局的通用内存管理。
+![图 10-2 复位向量取指的 TLB 填充：mmu_idx = 3（M 模式），由 get_page_addr_code 第 1032 行进入](images/a-gdb-02-mmode-fill.png)
 
-后续需补齐乙、丙成果、个人双重 GDB 证据、真实截图、所有练习回答和最终组员信息。`report/prompt.md` 本次保持纯分类模板，所有真实 Prompt 待三人统一整理；本报告的 SPEC 及命令说明不作为虚构的历史交互记录。最终提交到团队 `lab2` 分支前，核对提交树顶层仅有 `code/`、`report/`，保留 `lab2` 注释并由本人填写学号，排除构建产物，检查所有证据引用存在。本次提交仅记录甲的阶段性成果，不代表 Best-Fit、SLUB、官方完整评分或双重 GDB 已完成。
+*图 10-2 复位向量 0x1000 取指时的调用栈（上）与 get_physical_address 的参数（下）*
+
+**分析。** RISC-V 的 `mmu_idx` 就是当前特权级（`riscv_cpu_mmu_index()` 返回 `env->priv`），3 表示 M 模式。`get_physical_address` 第 171 行判断 `mode == PRV_M` 成立，直接令 `*physical = addr`，不读取 `satp`，也不访问页表。用条件断点全程记录同一次启动时，可以看到 OpenSBI 入口和 `kern_entry` 也遵循同样的规律：前者在 M 模式下直接返回，后者处于 S 模式但 `satp.MODE = 0`（Bare），由第 196 行的 `VM_1_10_MBARE` 分支直接返回：
+
+```text
+[HOST get_physical_address] M-mode VA=0x80000000 mmu_idx=3 -> 'mode == PRV_M' branch, physical = addr (no page table)
+[HOST get_physical_address] satp.MODE=BARE (satp=0x0) VA=0x80200000 access_type=2 -> case VM_1_10_MBARE, physical = addr
+[HOST get_physical_address] satp.MODE=BARE (satp=0x0) VA=0x80206000 access_type=1 -> case VM_1_10_MBARE, physical = addr
+```
+
+**结论。** 页表就绪之前，虚拟地址与物理地址相同；QEMU 仍然经由 `tlb_fill` 为这些地址建立 TLB 表项，但翻译本身不涉及页表。这正对应第 1.1 节所述“先以物理地址运行、再开启分页”的启动顺序。
+
+### 10.4 kern_init 取指：TLB Miss 进入 RISC-V 地址翻译
+
+**目的。** 观察开启 Sv39 后的第一次高地址取指如何触发 TLB Miss。
+
+**方法。** 为排除 OpenSBI 阶段的大量访问，给两个断点加上条件，只关注内核高地址：
+
+```text
+condition 1 mmu_idx == 1 && address >= 0xffffffffc0200000 && address < 0xffffffffc0300000
+condition 2 mmu_idx == 1 && addr >= 0xffffffffc0200000 && addr < 0xffffffffc0300000
+```
+
+**观察。** 断点在 `riscv_cpu_tlb_fill` 命中（图 10-3）：`address = 0xffffffffc02000d6`，即 `kern_init` 的入口；`access_type = MMU_INST_FETCH`，`mmu_idx = 1`（S 模式）。调用栈与复位取指相同，同样由 `get_page_addr_code` 第 1032 行调用 `tlb_fill`。
+
+![图 10-3 kern_init 取指 TLB Miss：address = 0xffffffffc02000d6，由 get_page_addr_code 第 1032 行调用 tlb_fill](images/a-gdb-03-fetch-miss.png)
+
+*图 10-3 kern_init 取指触发 TLB 填充的调用栈*
+
+**分析。** 发生 Miss 有两个原因。其一，`entry.S` 写入 `satp` 后执行了 `sfence.vma`；宿主 GDB 观察到它进入 `helper_tlb_flush`，软件 TLB 被整体清空。值得注意的是，QEMU 4.1.1 的 `write_satp()` 只在 ASID 变化时调用 `tlb_flush`，从 Bare 切换到 Sv39 时并不刷新，真正的刷新来自随后的 `sfence.vma`：
+
+```text
+[HOST write_satp] old satp=0x0 new=0x8000000000080205 priv=1
+[HOST helper_tlb_flush] sfence.vma executed, priv=1 satp=0x8000000000080205
+```
+
+其二，高地址页 `0xffffffffc0200000` 此前从未被访问过。因此第 1030 行的 `tlb_hit()` 为假，victim TLB 中也没有该页，只能调用 `tlb_fill` 进行页表遍历。逐行单步的记录显示，此时该页对应的表项（`index = 0`）中 `addr_code = 0xffffffffffffffff`，即无效表项。
+
+**结论。** 开启分页后的第一次取指确实经由“TLB 查询失败 → `tlb_fill` → `riscv_cpu_tlb_fill` → `get_physical_address`”进入 RISC-V 的地址翻译。
+
+### 10.5 Sv39 页表遍历与超级页物理地址
+
+**目的。** 观察 `get_physical_address` 如何从 `satp` 出发找到 PTE，并计算物理地址。
+
+**方法。** 在第 254 行（PTE 刚由 `ldq_phys` 读出）设置临时断点，打印遍历变量；再在第 337 行（物理地址已计算）设置临时断点，打印 `*physical`。
+
+**观察。** 第一次停在 254 行时（图 10-4），`satp = 0x8000000000080205`，`base = 0x80205000`，`levels = 3`，`i = 0`，`ptshift = 18`，`idx = 0x1ff`，`pte_addr = 0x80205ff8`，`pte = 0x200000cf`。停在 337 行时（图 10-5），`*physical = 0x80200000`。
+
+![图 10-4 第一级页表遍历：idx = 0x1ff，pte_addr = 0x80205ff8，pte = 0x200000cf](images/a-gdb-04-sv39-walk.png)
+
+*图 10-4 第 254 行处的遍历变量*
+
+![图 10-5 超级页物理页基址：*physical = 0x80200000](images/a-gdb-05-superpage-pa.png)
+
+*图 10-5 第 337 行处得到的物理页基址*
+
+**分析。** 由这些变量可以完整重建地址计算过程：
+
+| 步骤 | 计算 | 结果 |
+| --- | --- | --- |
+| 解析 `satp` | MODE = `satp >> 60`；根页表 PPN = 低 44 位 | MODE = 8（Sv39），`base = 0x80205 << 12 = 0x80205000`，即 `boot_page_table_sv39` |
+| 第一级索引 | `ptshift = (levels - 1) × 9 = 18`；`idx = (VA >> (12 + 18)) & 0x1ff` | `(0xffffffffc02000d6 >> 30) & 0x1ff = 0x1ff` |
+| PTE 地址 | `base + idx × 8` | `0x80205000 + 0xff8 = 0x80205ff8` |
+| 解析 PTE | 低 8 位为标志，`ppn = pte >> 10` | `0xcf` = D、A、X、W、R、V（无 U），`ppn = 0x80000` |
+| 判断叶子 | R/W/X 不全为 0 | 第一级就是叶子，即 1 GiB 超级页，循环只执行 `i = 0` 一次 |
+| 对齐检查 | `ppn & ((1 << 18) - 1)` | `0x80000 & 0x3ffff = 0`，通过 |
+| 物理页基址 | `(ppn \| (vpn & 0x3ffff)) << 12`，`vpn = VA >> 12` | `vpn & 0x3ffff = 0x200`，`(0x80000 \| 0x200) << 12 = 0x80200000` |
+| 物理地址 | 物理页基址 + 页内偏移 `0xd6` | `0x802000d6 = VA − 0xFFFFFFFF40000000` |
+
+超级页之所以能提前结束遍历，是因为 Sv39 规定：任一级 PTE 只要 R/W/X 不全为 0，就是叶子。第一级叶子覆盖 2^30 字节，VA 的低 30 位直接成为物理地址的低 30 位；QEMU 在第 334 行把这低 30 位中的页号部分（`vpn` 的低 18 位）并入 `ppn`，合成一个“虚拟的 4 KiB 叶子”，供 TLB 使用。权限方面，取指要求 X 位（第 286 行），PTE 满足；由于 D 位已置位，第 345–347 行同时授予写权限，最终 `prot = 7`（读、写、执行）。
+
+逐行单步的完整记录（[fetch-host-gdb.log](evidence/member-a-qemu-step/fetch-host-gdb.log)）显示，这次遍历依次经过 171 行（非 M 模式）、187 行（`vm = 8`）、191 行（Sv39 参数）、237–252 行（计算 `idx`、`pte_addr` 并读出 PTE）、256/259 行（有效且为叶子）、276 行（对齐检查）、286 行（执行权限）、334 行（物理地址），最后在 349 行返回 `TRANSLATE_SUCCESS`。客户机 GDB 在页表层面的独立核对也得到同样的结果：根页表第 511 项为 `0x200000cf`，按其计算的物理地址与“虚拟地址减固定偏移”一致（[gdb-guest-translation.log](evidence/member-a-round2/debug_a/gdb-guest-translation.log)）。
+
+**结论。** `0xffffffffc02000d6` 经一级 Sv39 遍历翻译为物理地址 `0x802000d6`，翻译结果与启动页表的线性映射一致。
+
+### 10.6 TLB 填入与取指命中
+
+**目的。** 观察翻译结果如何写入 TLB，以及之后再次访问同一页时 QEMU 跳过哪些代码。
+
+**观察一：TLB 填入。** `riscv_cpu_tlb_fill` 第 472 行调用 `tlb_set_page`，进入 `tlb_set_page_with_attrs`。逐行单步记录了表项的建立过程（节选）：
+
+```text
+[075]         tlb_set_page_with_attrs cputlb.c:700  {
+                vaddr = 0xffffffffc0200000
+                paddr = 0x80200000
+                prot = 0x7
+                size = 0x1000
+[093]         tlb_set_page_with_attrs cputlb.c:756  te = tlb_entry(env, mmu_idx, vaddr_page);
+                index = 0x0
+[101]         tlb_set_page_with_attrs cputlb.c:805  if (prot & PAGE_READ) {
+                tn.addend = 0x80001fe00000
+[103]         tlb_set_page_with_attrs cputlb.c:811  if (prot & PAGE_EXEC) {
+                tn.addr_read = 0xffffffffc0200000
+[105]         tlb_set_page_with_attrs cputlb.c:817  tn.addr_write = -1;
+                tn.addr_code = 0xffffffffc0200000
+[113]         tlb_set_page_with_attrs cputlb.c:830  if (prot & PAGE_WRITE_INV) {
+                tn.addr_write = 0xffffffffc0200400
+```
+
+表项按 4 KiB（`size = 0x1000`）建立，虽然页表中是 1 GiB 超级页。一次填入同时写好 `addr_read`、`addr_code`、`addr_write` 三个字段，以及 `addend`。`addr_write` 带有 `TLB_NOTDIRTY` 标志（`0x...0400`），因为这一页包含已翻译的代码，写这一页需要走慢路径，以便让翻译结果失效。
+
+**观察二：取指命中。** 在 `get_page_addr_code` 第 1030 行设置断点，继续执行后再次在 `addr = 0xffffffffc02000d6` 处停下（图 10-6）。执行 `next` 后，程序从 1030 行直接到达 1039 行。
+
+![图 10-6 取指 TLB 命中：next 从第 1030 行直接到达第 1039 行](images/a-gdb-06-fetch-hit.png)
+
+*图 10-6 再次查找 kern_init 所在页时跳过 TLB Miss 处理分支*
+
+**分析。** `tlb_hit(tlb_addr, addr)` 的定义是 `addr & TARGET_PAGE_MASK == tlb_addr & (TARGET_PAGE_MASK | TLB_INVALID_MASK)`，即比较页号，并要求表项没有无效标志。此时表项的 `addr_code = 0xffffffffc0200000`，正是 `addr` 的页号，因此 `tlb_hit` 为真，第 1031–1037 行的 Miss 处理分支（victim TLB 查询和 `tlb_fill`）被整体跳过。随后第 1051 行用 `addr + entry->addend = 0x7fffe00000d6` 得到 QEMU 进程中模拟内存的宿主指针；在该宿主地址读到的 4 个字节 `17 65 00 00`，与客户机 GDB 在 `kern_init` 处执行 `x/4bx $pc` 的结果相同（[fetch-host-gdb.log](evidence/member-a-qemu-step/fetch-host-gdb.log)、[fetch-guest-gdb.log](evidence/member-a-qemu-step/fetch-guest-gdb.log)）。
+
+**结论。** 一次 Miss 建立的 TLB 表项被后续取指复用；命中时 QEMU 既不遍历页表，也不经过物理地址，而是直接用 `addend` 由虚拟地址得到宿主指针。
+
+### 10.7 数据 Store：Miss 与命中
+
+**目的。** 观察数据写操作的 TLB 查询，并与取指路径对比。
+
+**方法。** 使用 TCI 构建，在 `store_helper` 第 1519 行设置条件断点（地址位于内核高地址范围），配合 `riscv_cpu_tlb_fill` 上的条件断点 `address == 0xffffffffc0206018`。
+
+**观察一：Store Miss。** `memset` 清零 bss 时，第一次写入 `0xffffffffc0206018`（`size = 1`，`val = 0`）。此时 `tlb_addr = 0xffffffffffffffff`；`next` 依次到达 1520 行（victim TLB）和 1522 行（`tlb_fill`）；随后 `riscv_cpu_tlb_fill` 命中，`address = 0xffffffffc0206018`，`access_type = MMU_DATA_STORE`（图 10-7）。调用栈为：
+
+```text
+#0  riscv_cpu_tlb_fill (..., address=18446744072637931544, size=1, access_type=MMU_DATA_STORE, mmu_idx=1, ...) at target/riscv/cpu_helper.c:438
+#1  tlb_fill (..., access_type=MMU_DATA_STORE, mmu_idx=1, ...) at accel/tcg/cputlb.c:878
+#2  store_helper (big_endian=false, size=1, ..., val=0, addr=18446744072637931544, ...) at accel/tcg/cputlb.c:1522
+#3  helper_ret_stb_mmu (..., val=0 '\000', oi=1, ...) at accel/tcg/cputlb.c:1642
+#4  tcg_qemu_tb_exec (...) at tcg/tci.c:1224
+#5  cpu_tb_exec (...) at accel/tcg/cpu-exec.c:173
+```
+
+![图 10-7 数据 Store Miss：tlb_addr 为无效值，第 1522 行调用 tlb_fill，riscv_cpu_tlb_fill 的访问类型为 MMU_DATA_STORE](images/a-gdb-07-store-miss.png)
+
+*图 10-7 store_helper 的 Miss 路径（上、中）与随后进入的 riscv_cpu_tlb_fill（下）*
+
+**观察二：Store 命中。** 紧接着写入下一个字节 `0xffffffffc0206019` 时，`tlb_addr = 0xffffffffc0206000`；`next` 从 1519 行直接到达 1531 行（图 10-8）。
+
+![图 10-8 数据 Store 命中：tlb_addr = 0xffffffffc0206000，next 从第 1519 行直接到达第 1531 行](images/a-gdb-08-store-hit.png)
+
+*图 10-8 同一页上的下一次 store 跳过 Miss 处理分支*
+
+**分析。** 调用栈表明，在 TCI 构建中，RISC-V 的 `sb` 指令由解释器 `tcg_qemu_tb_exec` 执行，经 `helper_ret_stb_mmu` 进入 `store_helper`。数据访问使用的是表项中的 `addr_write` 字段，判断方式与取指相同。第一次写入时，该页对应的表项无效，因此走 1520–1527 行的 Miss 分支，由 `tlb_fill` 以 `MMU_DATA_STORE` 类型完成翻译；`get_physical_address` 在 291–295 行同时检查并更新 A/D 位。填入后，同一页的下一次写入在 1519 行判断命中，直接跳到 1531 行的 IO 检查，随后在 1607 行用 `addend` 计算宿主地址并写入。两次写入只相差 1 字节，命中正是因为二者位于同一个 4 KiB 页 `0xffffffffc0206000`。
+
+**结论。** 数据写操作与取指遵循同一套“页号比较 → victim TLB → `tlb_fill`”逻辑，区别只在于比较的是 `addr_write` 字段，以及调用 `tlb_fill` 时传入的访问类型。
+
+### 10.8 数据 Load 命中：由 addend 得到宿主地址并读出数据
+
+**目的。** 观察一次数据读的 TLB 命中，并验证 `entry->addend` 的作用。
+
+**方法。** 在 `load_helper` 第 1271 行设置断点。TCI 中，翻译代码时读取指令同样经过 `load_helper`（此时 `code_read = true`，`access_type = MMU_INST_FETCH`），因此先确认 `access_type = MMU_DATA_LOAD`、`code_read = false`，再单步观察。
+
+**观察。** 停下时 `addr = 0xffffffffc0201f08`，`tlb_addr = 0xffffffffc0201000`；单步经 1314 行到达 1337 行 `do_aligned_access`；此时 `entry->addend = 0x70b98fe00000`，`haddr = 0x70b950001f08`；执行 1341 行 `ldub_p(haddr)` 后 `res = 0x44`；在宿主 GDB 中用 `x/1xb haddr` 检查该地址，结果同样为 `0x44`（图 10-9）。
+
+![图 10-9 数据 Load 命中：tlb_addr 与 addr 同页，haddr = addr + addend，读出 0x44 与内存检查一致](images/a-gdb-09-load-hit.png)
+
+*图 10-9 load_helper 的命中路径、宿主地址计算与读取结果*
+
+**分析。**
+
+- **命中判断。** `tlb_addr = 0xffffffffc0201000` 是 `addr` 的页号，因此第 1271 行判断命中，不调用 `tlb_fill`，程序经 1283 行（非 IO）、1314 行（访问不跨页）到达 1337 行的对齐访问。
+- **数据含义。** `0xffffffffc0201f08` 是 `dtb_init` 中 `cprintf("DTB Init\n")` 的格式串地址（反汇编 `addi a0,a0,-810 # ffffffffc0201f08`），内核镜像在该地址的内容为 `44 54 42 20 49 6e 69 74 0a`，第一个字节 `0x44` 即字符 `'D'`。`cprintf` 逐字节读取格式串，因此这是一次 1 字节的 load（`ldub_p`）。
+- **宿主地址计算。** `haddr = addr + addend = 0xffffffffc0201f08 + 0x70b98fe00000 = 0x70b950001f08`（按 64 位取模）。`addend` 的含义可以由线性映射推出：QEMU 把客户机物理内存 `0x80000000` 起的区域映射到宿主地址 `ram_base`；内核虚拟地址 `VA = PA + 0xFFFFFFFF40000000`；因此 `haddr = ram_base + (PA − 0x80000000) = VA + (ram_base + 0x40000000)`，即 `addend = ram_base + 0x40000000`。代入 `addend = 0x70b98fe00000` 得 `ram_base = 0x70b94fe00000`，物理地址 `0x80201f08` 对应的宿主地址为 `0x70b94fe00000 + 0x201f08 = 0x70b950001f08`，与 `haddr` 一致。由于所有内核页都使用同一线性映射，各个内核页表项的 `addend` 相同；取指实验中的 `0x80001fe00000` 是另一次 QEMU 运行时 `ram_base` 不同所致。
+- **为何能命中。** 该页此前没有被 load 过，命中所用的表项来自同一页上 `memset`（`0xffffffffc0201dfc`）的取指：`tlb_set_page_with_attrs` 一次写好读、写、取指三个字段，所以后续的数据读可以直接复用。
+- **数据一致性。** `ldub_p` 读出的 `res = 0x44`，与宿主 GDB 直接检查 `haddr` 的结果相同，也与内核镜像中格式串的首字节一致。这说明 QEMU 对客户机内存的读写，最终就是对宿主进程内存的直接读写。
+
+**结论。** 数据 load 命中时，QEMU 只做一次页号比较和一次加法：由 `entry->addend` 把客户机虚拟地址直接换算成宿主指针，而不再经过页表和物理地址。
+
+### 10.9 模拟 TLB 与真实 TLB 的逻辑区别
+
+| 方面 | QEMU 4.1.1 的软件 TLB（本实验观察） | 真实硬件 TLB |
+| --- | --- | --- |
+| 未开启分页时 | 仍先查 TLB，Miss 时经 `tlb_fill` 填入 VA = PA 的恒等表项（10.3 节） | M 模式和 Bare 模式下地址不经过翻译，TLB 不参与 |
+| 表的组织 | 每个特权级（`mmu_idx`）一张独立的表，复位时 `mmu_idx = 3`，内核运行时为 1 | 通常是一个 TLB，以 ASID、全局位等区分表项 |
+| 表项内容 | 页号与 `addend`，命中后直接得到宿主指针（10.6、10.8 节） | 物理页号与权限位 |
+| 粒度 | 固定 4 KiB：1 GiB 超级页也按 4 KiB 建立表项，访问超级页中的每个新 4 KiB 页都要再填入一次（10.6 节） | 通常可以用一个表项缓存整个大页 |
+| 结构 | 直接映射，按 `VPN & (表项数 − 1)` 定位，辅以 8 项 victim TLB；内核运行时 S 模式表为 64 项 | 组相联或全相联 |
+| 刷新 | `write_satp` 仅在 ASID 变化时刷新，开启分页时依靠 `sfence.vma`（10.4 节） | 由软件执行 `sfence.vma`，硬件可按 ASID 和地址选择性失效 |
+| 命中检查 | 软件比较页号：取指在 `get_page_addr_code`，数据在 `load_helper`/`store_helper`，默认 TCG 后端把数据访问的比较内联到生成代码中 | 硬件在流水线中并行比较 |
+| 写保护代码页 | 含已翻译代码的页，其 `addr_write` 带 `TLB_NOTDIRTY`，写操作必须走慢路径（10.6 节） | 无此机制 |
+| A/D 位 | `get_physical_address` 中由软件计算，并用 cmpxchg 写回 PTE | 由硬件更新，或交给软件处理 |
+
+### 10.10 调试中的其他发现
+
+- **代码页会被描述符数组挤出 TLB。** 运行中 `kern_init` 所在的代码页被重新填入了 5 次。在 `tlb_set_page_with_attrs` 写入表项前（cputlb.c:777）检查 0 号槽位原有的内容，第 2–4 次为 `0xffffffffc0340000`，第 5 次为 `0xffffffffc0240000`，二者都位于 `page_init()` 建立的描述符数组中（物理地址 `[0x80207000, 0x80347000)`）。S 模式表此时为 64 项直接映射，`0x...c0340 & 63 = 0x...c0240 & 63 = 0x...c0200 & 63 = 0`，因此初始化和检查描述符时访问的页与代码页争用同一个槽位；被挤出的表项先进入 8 项 victim TLB，随后又被冲掉，于是需要重新遍历页表（[refill-host-gdb.log](evidence/member-a-qemu-step/refill-host-gdb.log)）。
+- **调试器读内存同样会遍历页表。** 客户机 GDB 执行 `x/4i`、`x/4bx` 或插入断点时，QEMU 通过 `riscv_cpu_get_phys_page_debug` 调用同一个 `get_physical_address`，但不会把结果写入 TLB。统计翻译次数时，需要用调用者区分这两类遍历（[host-gdb.log](evidence/member-a-qemu-host-gdb/host-gdb.log)）。
+- **TCI 中翻译代码也经过 `load_helper`。** 在 `load_helper` 第 1271 行设置断点后，断点也会在 `code_read = true`、`access_type = MMU_INST_FETCH` 的 4 字节读上命中，例如地址 `0xffffffffc02000f2`：这是 TCI 在翻译基本块时读取客户机指令，使用的是表项的 `addr_code` 字段。数据读与取指读在 C 层面共用同一个函数，通过 `code_read` 选择比较的字段。
+
+### 10.11 丙：QEMU/GDB 主体调试
+
+<!-- 丙撰写：本人的宿主 GDB 调试过程与结果；现有材料见 member-c/First-Fit与QEMU-GDB实测.md 与 evidence/member-c/host-sv39-gdb.log。 -->
+
+## 11. SPEC、Prompt 与开发过程中的问题
+
+### 11.1 甲
+
+**SPEC 与 Prompt。** Page Init 的 SPEC 见 3.2 节，Buddy 见 7.3 节，Buddy 测试设计见第 8 节。Prompt 原文见 [prompt.md](prompt.md)：Page Init、Buddy 实现、Buddy 测试三段，是同一条四段式总控指令中的第二、三、四阶段，按 [PROMPT]/[RELY]/[GUARANTEE]/[SPECIFICATION] 组织，每个函数给出 Pre/Post-Condition、Case 与 Requirements。
+
+**开发过程中的问题与解决。** Page Init 与 Buddy 的生成代码在全部功能测试和预期 panic 测试中行为正确。开发过程中的问题集中在测试与调试环节：
+
+1. **小内存规格下内核无输出。** 自动测试以 32 MiB 启动时，没有任何串口输出（[日志](evidence/initial-qemu41-32M-no-output.log)）。128 MiB 运行记录的 DTB 地址为 `0x82200000`，已超出 32 MiB 内存的范围，因此把测试矩阵调整为 64/128/256 MiB，三种规格均通过。
+2. **GDB 表达式的类型问题。** 客户机 GDB 核对页表时，`boot_page_table_sv39` 是无类型的汇编符号，需要显式转换为 `char *`；`$pc` 参与位运算前需要转换为整数；`$satp` 需要按无符号数解释，否则 MODE 判断错误。三处问题的原始输出分别保留（[符号类型](evidence/initial-gdb-symbol-type-error.log)、[PC 运算](evidence/initial-gdb-pc-arithmetic-error.log)、[SATP 符号](evidence/initial-gdb-signed-satp-error.log)），修正脚本后核对通过，内核代码未做改动。
+3. **宿主调试环境的准备。** 系统中原本没有 x86-64 的宿主 GDB，课程 QEMU 也已剥离符号。解决办法是：使用 Ubuntu 官方的 gdb 12.1 软件包，并按指导书以 `--enable-debug` 重新编译 QEMU 4.1.1。
+4. **观察数据访问的 TLB 命中。** 默认 TCG 后端把数据访问的命中检查内联在生成代码中，C 层面的断点只能捕获 Miss。为此另外编译了启用 TCI 的调试版，使每次数据访问都经过 `load_helper`/`store_helper`（10.1 节）。
+5. **区分两类页表遍历。** 用条件断点统计翻译事件时，客户机 GDB 读内存触发的遍历会混入统计结果。改用 `$_caller_is("riscv_cpu_tlb_fill", 1)` 区分调用来源后，统计只包含真实访存引起的遍历。
+
+**与大模型的交互（调试要求 6）。** QEMU 调试中，大模型主要用于以下几方面：
+
+1. 定位 `cpu_helper.c` 与 `cputlb.c` 中和地址翻译相关的函数：`riscv_cpu_tlb_fill`、`get_physical_address`、`get_page_addr_code`、`load_helper`/`store_helper`、`write_satp`、`helper_tlb_flush`。
+2. 根据内核符号表和反汇编选定观察地址。
+3. 解释三个终端的启动次序。
+4. 设计条件断点，避免在 OpenSBI 阶段频繁停下。
+5. 分析“数据访问的命中为何在 C 层面不可见”，并据此提出用 TCI 构建观察。
+6. 针对“代码页被重新填入”提出直接映射冲突的假设，并设计断点验证。
+
+所有结论都以实际断点输出为准：取指的 Miss 与命中、页表遍历变量、数据 store 与 load 的命中路径，均在宿主 GDB 中逐一观察，并与客户机 GDB 的读数或内核镜像内容相互核对。
+
+### 11.2 乙
+
+<!-- 乙撰写：Best-Fit 与 SLUB 的 SPEC、Prompt（原文写入 prompt.md 乙的部分）、开发过程中的问题与解决。 -->
+
+### 11.3 丙
+
+<!-- 丙撰写：First-Fit 分析与 QEMU/GDB 调试中的 Prompt 及与大模型的交互过程。 -->
+
+## 12. 重要知识点与 OS 原理的对应
+
+| 实验中的知识点 | 对应的 OS 原理 | 含义、关系与差异 |
+| --- | --- | --- |
+| 设备树提供内存范围，`dtb_init` 解析 | 物理内存探测（如 x86 BIOS 的内存布局查询） | 都在启动早期确定“哪里有内存”。实验中 OpenSBI 把 DTB 传给内核；实际系统还有固件探测、多段内存和保留区等情况 |
+| 链接符号 `end`、Page Init 保留内核与描述符 | 内核映像常驻内存，不参与分配 | 链接器决定内核占用的范围，Page Init 将其排除在空闲区之外。实验中内核整体常驻；原理中内核也可以部分按需加载 |
+| `struct Page` 数组、Reserved/Property 标志 | 页框表与页框状态 | 每个物理页对应一个描述符；不同分配器复用描述符字段，例如 Buddy 使用私有 flags 位 |
+| `pmm_manager` 函数指针 | 机制与策略分离 | 内核提供统一的分配接口（机制），First-Fit、Best-Fit、Buddy 是可替换的策略，作用类似 C++ 的纯虚函数 |
+| First-Fit / Best-Fit | 连续内存分配、外部碎片 | 都维护按地址排序的空闲链表并合并相邻块，区别在于选择哪一块。Best-Fit 选择最小的满足块，容易留下难以利用的小碎片 |
+| Buddy System | 伙伴系统、内部碎片 | 块大小为 2 的幂，用 XOR 快速定位伙伴并合并，代价是向上取整造成的内部碎片 |
+| SLUB | slab / 对象缓存 | 在页分配器之上按对象大小分类缓存，用于小对象分配 |
+| `boot_page_table_sv39`、`satp` | 多级页表、页表基址寄存器 | Sv39 使用三级页表，`satp` 保存根页表的物理页号和模式 |
+| 第一级叶子 PTE | 大页 / 超级页 | 遍历在第一级结束，减少遍历次数和页表占用；QEMU 的软件 TLB 仍按 4 KiB 缓存 |
+| `tlb_fill`、`sfence.vma` | TLB、TLB 刷新 | Miss 后遍历页表并填入 TLB，修改页表或 `satp` 后需要刷新 |
+| 先 Bare 运行，再写 `satp` 进入 Sv39 | 开启分页的引导问题（类比 x86 从实模式进入保护模式） | MMU 依赖内存中的页表，上电后必须先以物理地址运行，建好页表再开启翻译 |
+| `va_pa_offset`、`KADDR`/`PADDR` | 内核的虚实地址映射 | 内核以固定偏移线性映射物理内存，分配器管理物理页，两者需要相互换算；QEMU 表项中的 `addend` 正是这一线性关系在宿主侧的体现 |
+
+## 13. OS 原理中重要但本实验未对应的知识点
+
+- 每个进程独立的页表与地址空间切换（本实验只有内核启动页表）；
+- 缺页异常处理、按需分页、写时复制；
+- 页面置换算法与交换区；
+- 用户态内存保护（PTE 的 U 位、`SUM` 位）以及内核与用户地址空间的隔离；
+- 多核下的 TLB 一致性（TLB shootdown）与分配器加锁；
+- 内核虚拟内存分配（如 vmalloc）与内存映射文件；
+- 内存回收与内存压力下的 OOM 处理；
+- NUMA、多段物理内存、固件保留区和 DMA 区域的管理。

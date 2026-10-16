@@ -112,6 +112,7 @@ def main():
             3: "buddy: free size must match request or capacity",
             4: "buddy: free requires an allocated block head",
             5: "buddy: invalid page descriptor",
+            6: "assertion failed: PageReserved(base + i)",
         }
         for negative, message in expected.items():
             image = build("buddy", negative, args.logs)

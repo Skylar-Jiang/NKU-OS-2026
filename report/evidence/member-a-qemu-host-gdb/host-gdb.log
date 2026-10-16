@@ -1,0 +1,245 @@
+Breakpoint 1 at 0x37d3d0: file ~/src/qemu-4.1.1/target/riscv/cpu_helper.c, line 438.
+Breakpoint 2 at 0x37cb70: file ~/src/qemu-4.1.1/target/riscv/cpu_helper.c, line 158.
+Breakpoint 3 at 0x37cbc7: file ~/src/qemu-4.1.1/target/riscv/cpu_helper.c, line 197.
+Breakpoint 4 at 0x37cdf9: file ~/src/qemu-4.1.1/target/riscv/cpu_helper.c, line 254.
+Breakpoint 5 at 0x37cfa8: file ~/src/qemu-4.1.1/target/riscv/cpu_helper.c, line 334.
+Breakpoint 6 at 0x37f520: write_satp. (2 locations)
+Breakpoint 7 at 0x37cae0: file ~/src/qemu-4.1.1/target/riscv/op_helper.c, line 145.
+Breakpoint 8 at 0x302b70: file ~/src/qemu-4.1.1/accel/tcg/cputlb.c, line 349.
+Breakpoint 9 at 0x3038f0: file ~/src/qemu-4.1.1/accel/tcg/cputlb.c, line 1024.
+Breakpoint 10 at 0x37d56d: file ~/src/qemu-4.1.1/target/riscv/cpu_helper.c, line 472.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff7989640 (LWP 9747)]
+[HOST tlb_flush #1]
+#0  tlb_flush (cpu=0x555556311300) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:349
+#1  0x0000555555849ea8 in listener_add_address_space (as=<optimized out>, listener=0x555556327808) at ~/src/qemu-4.1.1/memory.c:2706
+[New Thread 0x7ffff5107640 (LWP 9754)]
+[HOST tlb_flush #2]
+#0  tlb_flush (cpu=0x555556311300) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:349
+#1  0x00005555558d2404 in riscv_cpu_reset (cs=0x555556311300) at ~/src/qemu-4.1.1/target/riscv/cpu.c:292
+[HOST tlb_flush #3]
+#0  tlb_flush (cpu=0x555556311300) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:349
+#1  0x0000555555846d7e in memory_region_transaction_commit () at ~/src/qemu-4.1.1/memory.c:1094
+[HOST tlb_flush #4]
+#0  tlb_flush (cpu=0x555556311300) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:349
+#1  0x0000555555846d7e in memory_region_transaction_commit () at ~/src/qemu-4.1.1/memory.c:1094
+[HOST tlb_flush #5]
+#0  tlb_flush (cpu=0x555556311300) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:349
+#1  0x0000555555846d7e in memory_region_transaction_commit () at ~/src/qemu-4.1.1/memory.c:1094
+[HOST tlb_flush #6]
+#0  tlb_flush (cpu=0x555556311300) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:349
+#1  0x0000555555846d7e in memory_region_transaction_commit () at ~/src/qemu-4.1.1/memory.c:1094
+[HOST get_physical_address] satp.MODE=BARE (satp=0x0) VA=0x80200000 access_type=0 -> case VM_1_10_MBARE, physical = addr
+[HOST get_physical_address] satp.MODE=BARE (satp=0x0) VA=0x80200000 access_type=0 -> case VM_1_10_MBARE, physical = addr
+[HOST get_physical_address] satp.MODE=BARE (satp=0x0) VA=0x80200000 access_type=0 -> case VM_1_10_MBARE, physical = addr
+[Switching to Thread 0x7ffff5107640 (LWP 9754)]
+
+[HOST tlb_fill #1] VA=0x80000000 access_type=2(0=load,1=store,2=fetch) mmu_idx=3 priv=3 satp=0x0
+#0  riscv_cpu_tlb_fill (cs=0x555556311300, address=2147483648, size=0, access_type=MMU_INST_FETCH, mmu_idx=3, probe=false, retaddr=0) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:438
+#1  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=2147483648, size=size@entry=0, access_type=access_type@entry=MMU_INST_FETCH, mmu_idx=mmu_idx@entry=3, retaddr=retaddr@entry=0) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#2  0x0000555555857a15 in get_page_addr_code (env=0x555556319d10, addr=addr@entry=2147483648) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1032
+[HOST get_physical_address] M-mode VA=0x80000000 mmu_idx=3 -> 'mode == PRV_M' branch, physical = addr (no page table)
+
+[HOST write_satp] old satp=0x0 new=0x0 priv=3
+
+[HOST write_satp] old satp=0x0 new=0x0 priv=3
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+
+[HOST write_satp] old satp=0x0 new=0x0 priv=3
+
+[HOST write_satp] old satp=0x0 new=0x0 priv=3
+
+[HOST tlb_fill #2] VA=0x80200000 access_type=2(0=load,1=store,2=fetch) mmu_idx=1 priv=1 satp=0x0
+#0  riscv_cpu_tlb_fill (cs=0x555556311300, address=2149580800, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, probe=false, retaddr=0) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:438
+#1  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=2149580800, size=size@entry=0, access_type=access_type@entry=MMU_INST_FETCH, mmu_idx=mmu_idx@entry=1, retaddr=retaddr@entry=0) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#2  0x0000555555857a15 in get_page_addr_code (env=0x555556319d10, addr=addr@entry=2149580800) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1032
+[HOST get_physical_address] satp.MODE=BARE (satp=0x0) VA=0x80200000 access_type=2 -> case VM_1_10_MBARE, physical = addr
+[Switching to Thread 0x7ffff7c2ab00 (LWP 9726)]
+[HOST get_physical_address] satp.MODE=BARE (satp=0x0) VA=0x80200000 access_type=0 -> case VM_1_10_MBARE, physical = addr
+[HOST get_physical_address] satp.MODE=BARE (satp=0x0) VA=0x80200000 access_type=0 -> case VM_1_10_MBARE, physical = addr
+[Switching to Thread 0x7ffff5107640 (LWP 9754)]
+
+[HOST tlb_fill #3] VA=0x80206000 access_type=1(0=load,1=store,2=fetch) mmu_idx=1 priv=1 satp=0x0
+#0  riscv_cpu_tlb_fill (cs=0x555556311300, address=2149605376, size=8, access_type=MMU_DATA_STORE, mmu_idx=1, probe=false, retaddr=140737304887622) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:438
+#1  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=2149605376, size=size@entry=8, access_type=access_type@entry=MMU_DATA_STORE, mmu_idx=mmu_idx@entry=1, retaddr=retaddr@entry=140737304887622) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#2  0x0000555555859599 in store_helper (big_endian=false, size=8, retaddr=140737304887622, oi=49, val=0, addr=2149605376, env=0x555556319d10) at ~/src/qemu-4.1.1/include/exec/cpu-all.h:404
+[HOST get_physical_address] satp.MODE=BARE (satp=0x0) VA=0x80206000 access_type=1 -> case VM_1_10_MBARE, physical = addr
+
+[HOST write_satp] old satp=0x0 new=0x8000000000080205 priv=1
+
+[HOST write_satp] old satp=0x0 new=0x8000000000080205 priv=1
+[HOST helper_tlb_flush] sfence.vma executed, priv=1 satp=0x8000000000080205
+
+[HOST tlb_fill #4] VA=0xffffffffc02000d6 access_type=2(0=load,1=store,2=fetch) mmu_idx=1 priv=1 satp=0x8000000000080205
+#0  riscv_cpu_tlb_fill (cs=0x555556311300, address=18446744072637907158, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, probe=false, retaddr=0) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:438
+#1  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=18446744072637907158, size=size@entry=0, access_type=access_type@entry=MMU_INST_FETCH, mmu_idx=mmu_idx@entry=1, retaddr=retaddr@entry=0) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#2  0x0000555555857a15 in get_page_addr_code (env=0x555556319d10, addr=addr@entry=18446744072637907158) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1032
+[HOST Sv39 walk #1, from tlb_fill] VA=0xffffffffc02000d6 access_type=2 satp=0x8000000000080205 root=0x80205000 level_i=0 ptshift=18 VPN_idx=0x1ff pte_addr=0x80205ff8 PTE=0x200000cf
+#0  get_physical_address (env=env@entry=0x555556319d10, physical=physical@entry=0x7ffff5106290, prot=prot@entry=0x7ffff510628c, addr=addr@entry=18446744072637907158, access_type=access_type@entry=2, mmu_idx=mmu_idx@entry=1) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d1460 in riscv_cpu_tlb_fill (cs=0x555556311300, address=18446744072637907158, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, probe=<optimized out>, retaddr=0) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:451
+#2  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=18446744072637907158, size=size@entry=0, access_type=access_type@entry=MMU_INST_FETCH, mmu_idx=mmu_idx@entry=1, retaddr=retaddr@entry=0) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#3  0x0000555555857a15 in get_page_addr_code (env=0x555556319d10, addr=addr@entry=18446744072637907158) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1032
+[HOST Sv39 leaf] VA=0xffffffffc02000d6 PPN=0x80000 ptshift=18 -> PA_page=0x80200000 page_offset=0xd6 PA=0x802000d6
+[HOST tlb_set_page] VA page 0xffffffffc0200000 -> PA page 0x80200000 prot=7 (1=R 2=W 4=X) mmu_idx=1; enabling get_page_addr_code observer
+[HOST get_page_addr_code #1] VA=0xffffffffc02000d6 mmu_idx=1 tlb_index=0 entries=64 entry.addr_code=0xffffffffc0200000 entry.addend=0x80001fe00000 tlb_hit=1
+  host pointer = VA + addend = 0x7fffe00000d6 ; bytes there:
+0x7fffe00000d6:	0x17	0x65	0x00	0x00
+[HOST get_page_addr_code #2] VA=0xffffffffc02000d6 mmu_idx=1 tlb_index=0 entries=64 entry.addr_code=0xffffffffc0200000 entry.addend=0x80001fe00000 tlb_hit=1
+  host pointer = VA + addend = 0x7fffe00000d6 ; bytes there:
+0x7fffe00000d6:	0x17	0x65	0x00	0x00
+[Switching to Thread 0x7ffff7c2ab00 (LWP 9726)]
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc02000d6 PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5e0, prot=prot@entry=0x7fffffffa5dc, addr=addr@entry=18446744072637907158, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637907158) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f0364 in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa604, addr=18446744072637907158, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc0200000 PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5c0, prot=prot@entry=0x7fffffffa5bc, addr=addr@entry=18446744072637906944, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637906944) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f941c in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa634, addr=18446744072637906944, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc0200000 PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5c0, prot=prot@entry=0x7fffffffa5bc, addr=addr@entry=18446744072637906944, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637906944) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f941c in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa634, addr=18446744072637906944, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc0200000 PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5c0, prot=prot@entry=0x7fffffffa5bc, addr=addr@entry=18446744072637906944, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637906944) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f941c in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa634, addr=18446744072637906944, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc0200000 PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5c0, prot=prot@entry=0x7fffffffa5bc, addr=addr@entry=18446744072637906944, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637906944) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f941c in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa634, addr=18446744072637906944, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc0200000 PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5c0, prot=prot@entry=0x7fffffffa5bc, addr=addr@entry=18446744072637906944, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637906944) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f941c in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa634, addr=18446744072637906944, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc0200000 PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5c0, prot=prot@entry=0x7fffffffa5bc, addr=addr@entry=18446744072637906944, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637906944) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f941c in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa634, addr=18446744072637906944, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc02000ec PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5c0, prot=prot@entry=0x7fffffffa5bc, addr=addr@entry=18446744072637907180, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637907180) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f0364 in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa5e4, addr=18446744072637907180, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[Switching to Thread 0x7ffff5107640 (LWP 9754)]
+[HOST get_page_addr_code #3] VA=0xffffffffc02000d6 mmu_idx=1 tlb_index=0 entries=64 entry.addr_code=0xffffffffc0200000 entry.addend=0x80001fe00000 tlb_hit=1
+  host pointer = VA + addend = 0x7fffe00000d6 ; bytes there:
+0x7fffe00000d6:	0x17	0x65	0x00	0x00
+[Switching to Thread 0x7ffff7c2ab00 (LWP 9726)]
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc02000ec PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5e0, prot=prot@entry=0x7fffffffa5dc, addr=addr@entry=18446744072637907180, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637907180) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f0364 in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa604, addr=18446744072637907180, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc0200000 PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5c0, prot=prot@entry=0x7fffffffa5bc, addr=addr@entry=18446744072637906944, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637906944) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f941c in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa634, addr=18446744072637906944, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[Switching to Thread 0x7ffff5107640 (LWP 9754)]
+
+[HOST tlb_fill #5] VA=0xffffffffc0204ff8 access_type=1(0=load,1=store,2=fetch) mmu_idx=1 priv=1 satp=0x8000000000080205
+#0  riscv_cpu_tlb_fill (cs=0x555556311300, address=18446744072637927416, size=8, access_type=MMU_DATA_STORE, mmu_idx=1, probe=false, retaddr=140737304887621) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:438
+#1  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=18446744072637927416, size=size@entry=8, access_type=access_type@entry=MMU_DATA_STORE, mmu_idx=mmu_idx@entry=1, retaddr=retaddr@entry=140737304887621) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#2  0x0000555555859599 in store_helper (big_endian=false, size=8, retaddr=140737304887621, oi=49, val=2147486210, addr=18446744072637927416, env=0x555556319d10) at ~/src/qemu-4.1.1/include/exec/cpu-all.h:404
+[HOST Sv39 walk #2, from tlb_fill] VA=0xffffffffc0204ff8 access_type=1 satp=0x8000000000080205 root=0x80205000 level_i=0 ptshift=18 VPN_idx=0x1ff pte_addr=0x80205ff8 PTE=0x200000cf
+[HOST Sv39 leaf] VA=0xffffffffc0204ff8 PPN=0x80000 ptshift=18 -> PA_page=0x80204000 page_offset=0xff8 PA=0x80204ff8
+[Switching to Thread 0x7ffff7c2ab00 (LWP 9726)]
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc0204000 PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5c0, prot=prot@entry=0x7fffffffa5bc, addr=addr@entry=18446744072637923328, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637923328) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f941c in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa634, addr=18446744072637923328, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[HOST Sv39 walk, from debugger memory read, no TLB insert] VA=0xffffffffc0204000 PTE=0x200000cf
+#0  get_physical_address (env=0x555556319d10, physical=physical@entry=0x7fffffffa5c0, prot=prot@entry=0x7fffffffa5bc, addr=addr@entry=18446744072637923328, access_type=access_type@entry=0, mmu_idx=<optimized out>) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:254
+#1  0x00005555558d129f in riscv_cpu_get_phys_page_debug (cs=<optimized out>, addr=18446744072637923328) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:389
+#2  0x00005555557f941c in cpu_get_phys_page_attrs_debug (attrs=0x7fffffffa634, addr=18446744072637923328, cpu=0x555556311300) at ~/src/qemu-4.1.1/include/qom/cpu.h:607
+[Switching to Thread 0x7ffff5107640 (LWP 9754)]
+
+[HOST tlb_fill #6] VA=0xffffffffc0201dfc access_type=2(0=load,1=store,2=fetch) mmu_idx=1 priv=1 satp=0x8000000000080205
+#0  riscv_cpu_tlb_fill (cs=0x555556311300, address=18446744072637914620, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, probe=false, retaddr=0) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:438
+#1  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=18446744072637914620, size=size@entry=0, access_type=access_type@entry=MMU_INST_FETCH, mmu_idx=mmu_idx@entry=1, retaddr=retaddr@entry=0) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#2  0x0000555555857a15 in get_page_addr_code (env=0x555556319d10, addr=addr@entry=18446744072637914620) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:1032
+[HOST Sv39 walk #3, from tlb_fill] VA=0xffffffffc0201dfc access_type=2 satp=0x8000000000080205 root=0x80205000 level_i=0 ptshift=18 VPN_idx=0x1ff pte_addr=0x80205ff8 PTE=0x200000cf
+[HOST Sv39 leaf] VA=0xffffffffc0201dfc PPN=0x80000 ptshift=18 -> PA_page=0x80201000 page_offset=0xdfc PA=0x80201dfc
+
+[HOST tlb_fill #7] VA=0xffffffffc0206018 access_type=1(0=load,1=store,2=fetch) mmu_idx=1 priv=1 satp=0x8000000000080205
+#0  riscv_cpu_tlb_fill (cs=0x555556311300, address=18446744072637931544, size=1, access_type=MMU_DATA_STORE, mmu_idx=1, probe=false, retaddr=140737304888279) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:438
+#1  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=18446744072637931544, size=size@entry=1, access_type=access_type@entry=MMU_DATA_STORE, mmu_idx=mmu_idx@entry=1, retaddr=retaddr@entry=140737304888279) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#2  0x00005555558584fd in store_helper (big_endian=false, size=1, retaddr=140737304888279, oi=<optimized out>, val=0, addr=18446744072637931544, env=0x555556319d10) at ~/src/qemu-4.1.1/include/exec/cpu-all.h:404
+[HOST Sv39 walk #4, from tlb_fill] VA=0xffffffffc0206018 access_type=1 satp=0x8000000000080205 root=0x80205000 level_i=0 ptshift=18 VPN_idx=0x1ff pte_addr=0x80205ff8 PTE=0x200000cf
+[HOST Sv39 leaf] VA=0xffffffffc0206018 PPN=0x80000 ptshift=18 -> PA_page=0x80206000 page_offset=0x18 PA=0x80206018
+DTB Init
+HartID: 
+[HOST tlb_fill #8] VA=0xffffffffc0202a2c access_type=0(0=load,1=store,2=fetch) mmu_idx=1 priv=1 satp=0x8000000000080205
+#0  riscv_cpu_tlb_fill (cs=0x555556311300, address=18446744072637917740, size=4, access_type=MMU_DATA_LOAD, mmu_idx=1, probe=false, retaddr=140737304930830) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:438
+#1  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=18446744072637917740, size=size@entry=4, access_type=access_type@entry=MMU_DATA_LOAD, mmu_idx=mmu_idx@entry=1, retaddr=retaddr@entry=140737304930830) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#2  0x00005555558558c6 in load_helper (full_load=0x5555558556b0 <full_le_ldul_mmu>, code_read=false, big_endian=false, size=4, retaddr=140737304930830, oi=97, addr=18446744072637917740, env=0x555556319d10) at ~/src/qemu-4.1.1/include/exec/cpu-all.h:404
+[HOST Sv39 walk #5, from tlb_fill] VA=0xffffffffc0202a2c access_type=0 satp=0x8000000000080205 root=0x80205000 level_i=0 ptshift=18 VPN_idx=0x1ff pte_addr=0x80205ff8 PTE=0x200000cf
+[HOST Sv39 leaf] VA=0xffffffffc0202a2c PPN=0x80000 ptshift=18 -> PA_page=0x80202000 page_offset=0xa2c PA=0x80202a2c
+0
+DTB Address: 0x82200000
+
+[HOST tlb_fill #9] VA=0xffffffffc2200000 access_type=0(0=load,1=store,2=fetch) mmu_idx=1 priv=1 satp=0x8000000000080205
+#0  riscv_cpu_tlb_fill (cs=0x555556311300, address=18446744072671461376, size=4, access_type=MMU_DATA_LOAD, mmu_idx=1, probe=false, retaddr=140737304940113) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:438
+#1  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=18446744072671461376, size=size@entry=4, access_type=access_type@entry=MMU_DATA_LOAD, mmu_idx=mmu_idx@entry=1, retaddr=retaddr@entry=140737304940113) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#2  0x00005555558558c6 in load_helper (full_load=0x5555558556b0 <full_le_ldul_mmu>, code_read=false, big_endian=false, size=4, retaddr=140737304940113, oi=97, addr=18446744072671461376, env=0x555556319d10) at ~/src/qemu-4.1.1/include/exec/cpu-all.h:404
+[HOST Sv39 walk #6, from tlb_fill] VA=0xffffffffc2200000 access_type=0 satp=0x8000000000080205 root=0x80205000 level_i=0 ptshift=18 VPN_idx=0x1ff pte_addr=0x80205ff8 PTE=0x200000cf
+[HOST Sv39 leaf] VA=0xffffffffc2200000 PPN=0x80000 ptshift=18 -> PA_page=0x82200000 page_offset=0x0 PA=0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000008000000 (128 MB)
+  End:  0x0000000087ffffff
+DTB init completed
+(THU.CST) os is loading ...
+Special kernel symbols:
+  entry  0xffffffffc02000d6 (virtual)
+  etext  0xffffffffc0201e0e (virtual)
+  edata  0xffffffffc0206018 (virtual)
+  end    0xffffffffc02060ec (virtual)
+Kernel executable memory footprint: 25KB
+memory management: best_fit_pmm_manager
+
+[HOST tlb_fill #10] VA=0xffffffffc0207008 access_type=1(0=load,1=store,2=fetch) mmu_idx=1 priv=1 satp=0x8000000000080205
+#0  riscv_cpu_tlb_fill (cs=0x555556311300, address=18446744072637935624, size=8, access_type=MMU_DATA_STORE, mmu_idx=1, probe=false, retaddr=140737304976406) at ~/src/qemu-4.1.1/target/riscv/cpu_helper.c:438
+#1  0x0000555555854328 in tlb_fill (cpu=cpu@entry=0x555556311300, addr=addr@entry=18446744072637935624, size=size@entry=8, access_type=access_type@entry=MMU_DATA_STORE, mmu_idx=mmu_idx@entry=1, retaddr=retaddr@entry=140737304976406) at ~/src/qemu-4.1.1/accel/tcg/cputlb.c:878
+#2  0x0000555555859599 in store_helper (big_endian=false, size=8, retaddr=140737304976406, oi=49, val=1, addr=18446744072637935624, env=0x555556319d10) at ~/src/qemu-4.1.1/include/exec/cpu-all.h:404
+[HOST Sv39 walk #7, from tlb_fill] VA=0xffffffffc0207008 access_type=1 satp=0x8000000000080205 root=0x80205000 level_i=0 ptshift=18 VPN_idx=0x1ff pte_addr=0x80205ff8 PTE=0x200000cf
+[HOST Sv39 leaf] VA=0xffffffffc0207008 PPN=0x80000 ptshift=18 -> PA_page=0x80207000 page_offset=0x8 PA=0x80207008
+[HOST Sv39 walk #8, from tlb_fill] VA=0xffffffffc0208000 access_type=1 satp=0x8000000000080205 root=0x80205000 level_i=0 ptshift=18 VPN_idx=0x1ff pte_addr=0x80205ff8 PTE=0x200000cf
+[HOST Sv39 leaf] VA=0xffffffffc0208000 PPN=0x80000 ptshift=18 -> PA_page=0x80208000 page_offset=0x0 PA=0x80208000
+[HOST Sv39 leaf] VA=0xffffffffc0209000 PPN=0x80000 ptshift=18 -> PA_page=0x80209000 page_offset=0x0 PA=0x80209000
+[HOST Sv39 leaf] VA=0xffffffffc020a000 PPN=0x80000 ptshift=18 -> PA_page=0x8020a000 page_offset=0x0 PA=0x8020a000
+[HOST Sv39 leaf] VA=0xffffffffc020b008 PPN=0x80000 ptshift=18 -> PA_page=0x8020b000 page_offset=0x8 PA=0x8020b008
+[HOST Sv39 leaf] VA=0xffffffffc020c008 PPN=0x80000 ptshift=18 -> PA_page=0x8020c000 page_offset=0x8 PA=0x8020c008
+PMM: DTB [0x0000000080000000, 0x0000000088000000), managed end 0x0000000088000000
+[HOST tlb_set_page] VA page 0xffffffffc0200000 -> PA page 0x80200000 prot=7 (1=R 2=W 4=X) mmu_idx=1; enabling get_page_addr_code observer
+PMM: descriptors [0x0000000080207000, 0x0000000080347000), free [0x0000000080347000, 0x0000000088000000)
+[HOST tlb_set_page] VA page 0xffffffffc0200000 -> PA page 0x80200000 prot=7 (1=R 2=W 4=X) mmu_idx=1; enabling get_page_addr_code observer
+check_alloc_page() succeeded!
+satp virtual address: 0xffffffffc0205000
+satp physical address: 0x0000000080205000
+slub_check() succeeded!
+[HOST tlb_set_page] VA page 0xffffffffc0200000 -> PA page 0x80200000 prot=7 (1=R 2=W 4=X) mmu_idx=1; enabling get_page_addr_code observer
+
+Thread 1 "qemu-system-ris" received signal SIGTERM, Terminated.
+[Switching to Thread 0x7ffff7c2ab00 (LWP 9726)]
+0x00007ffff7b18e1e in ppoll () from /lib/x86_64-linux-gnu/libc.so.6
+HOST_GDB_EXIT=0

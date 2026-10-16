@@ -1,0 +1,31 @@
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc02000ec: file kern/init/init.c, line 29.
+
+Breakpoint 1, 0xffffffffc02000ec in kern_init () at kern/init/init.c:29
+29	int kern_init(void) {
+
+[GUEST C] pc=0xffffffffc02000ec sp=0xffffffffc0204ff0 store VA=0xffffffffc0204ff8
+=> 0xffffffffc02000ec <kern_init+22>:	sd	ra,8(sp)
+0xffffffffc02000ee	31	    memset(edata, 0, end - edata);
+[GUEST C] after stepi: *(VA 0xffffffffc0204ff8) = 0x80000a02, ra = 0x80000a02
+Hardware assisted breakpoint 2 at 0xffffffffc020023a: file kern/driver/dtb.c, line 107.
+
+Breakpoint 2, 0xffffffffc020023a in dtb_init () at kern/driver/dtb.c:107
+107	void dtb_init(void) {
+
+[GUEST D] pc=0xffffffffc020023a sp=0xffffffffc0204fc0 store VA=0xffffffffc0204fe8
+=> 0xffffffffc020023a <dtb_init+10>:	sd	ra,40(sp)
+0xffffffffc020023c	107	void dtb_init(void) {
+[GUEST D] after stepi: *(VA 0xffffffffc0204fe8) = 0xffffffffc02000f6, ra = 0xffffffffc02000f6
+Hardware assisted breakpoint 3 at 0xffffffffc0200246: file kern/driver/dtb.c, line 109.
+
+Breakpoint 3, 0xffffffffc0200246 in dtb_init () at kern/driver/dtb.c:109
+109	    cprintf("HartID: %ld\n", boot_hartid);
+
+[GUEST E] pc=0xffffffffc0200246 a1=0xffffffffc0206242 load VA=0xffffffffc0206000
+=> 0xffffffffc0200246 <dtb_init+22>:	ld	a1,-578(a1)
+0xffffffffc020024a	109	    cprintf("HartID: %ld\n", boot_hartid);
+[GUEST E] after stepi: a1 = 0x0 (boot_hartid = 0)
+[Inferior 1 (process 1) detached]
+GUEST_GDB_EXIT=0
