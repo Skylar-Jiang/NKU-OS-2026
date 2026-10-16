@@ -1,0 +1,42 @@
+0x0000000000001000 in ?? ()
+Breakpoint 1 at 0xffffffffc02012ce: file kern/mm/slub.c, line 130.
+
+Breakpoint 1, slub_alloc (size=size@entry=1025) at kern/mm/slub.c:130
+130	    if (!slub_ready || size == 0) {
+size = 1025
+0xffffffffc02014fa in slub_test () at kern/mm/slub_test.c:146
+146	    assert(slub_alloc(1025) == NULL);
+Value returned is $1 = (void *) 0x0
+$2 = 0x0
+Breakpoint 2 at 0xffffffffc02012ce: file kern/mm/slub.c, line 130.
+
+Breakpoint 2, slub_alloc (size=8) at kern/mm/slub.c:130
+130	    if (!slub_ready || size == 0) {
+size = 8
+#0  slub_alloc (size=8) at kern/mm/slub.c:130
+#1  0xffffffffc0201520 in slub_test_sizes () at kern/mm/slub_test.c:27
+#2  slub_test () at kern/mm/slub_test.c:147
+#3  0xffffffffc0200116 in kern_init () at kern/init/init.c:43
+0xffffffffc0201520 in slub_test_sizes () at kern/mm/slub_test.c:27
+27	        objects[i] = slub_alloc(sizes[i]);
+Value returned is $3 = (void *) 0xffffffffc0347ff0
+$4 = 0xffffffffc0347ff0
+Breakpoint 3 at 0xffffffffc020174c: file kern/mm/slub_test.c, line 135.
+
+Breakpoint 3, slub_test_memory_exhaustion () at kern/mm/slub_test.c:135
+135	    assert(pages_exhausted);
+before = 31929
+page_count = <optimized out>
+object_count = <optimized out>
+available_pages = <optimized out>
+held_pages = <optimized out>
+page = <optimized out>
+held_objects = <optimized out>
+pages_exhausted = 1
+reused_slot = <optimized out>
+objects_exhausted = 1
+pages_restored = 1
+object = 0xffffffffc0347840
+[Inferior 1 (process 1) detached]
+
+GDB_EXIT=0

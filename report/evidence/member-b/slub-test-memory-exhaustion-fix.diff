@@ -1,0 +1,91 @@
+diff --git a/code/kern/mm/slub_test.c b/code/kern/mm/slub_test.c
+index 0fa3216..fa8e832 100644
+--- a/code/kern/mm/slub_test.c
++++ b/code/kern/mm/slub_test.c
+@@ -50,16 +50,21 @@ slub_test_reuse(void) {
+     void *a = slub_alloc(32);
+     void *b = slub_alloc(32);
+     void *c = slub_alloc(32);
+-    assert(a != NULL && b != NULL && c != NULL);
+-    assert(a != b && a != c && b != c);
++    void *d = slub_alloc(32);
++    assert(a != NULL && b != NULL && c != NULL && d != NULL);
++    assert(a != b && a != c && a != d && b != c && b != d && c != d);
+
++    // 交替释放两个对象后，空闲槽应以链表顺序被再次使用。
+     slub_free(b);
+-    void *reused = slub_alloc(32);
+-    assert(reused == b);
++    slub_free(d);
++    void *reused_d = slub_alloc(32);
++    void *reused_b = slub_alloc(32);
++    assert(reused_d == d && reused_b == b);
+
+     slub_free(a);
+     slub_free(c);
+-    slub_free(reused);
++    slub_free(reused_d);
++    slub_free(reused_b);
+ }
+
+ static void
+@@ -79,33 +84,36 @@ static void
+ slub_test_memory_exhaustion(void) {
+     size_t before = nr_free_pages();
+     size_t page_count = 0, object_count = 0;
+-    size_t object_limit = npage;
++    size_t available_pages;
+     struct Page *held_pages = NULL;
+     struct Page *page;
+     void *held_objects = NULL;
+-    int pages_exhausted, objects_exhausted = 0, pages_restored;
+-
+-    if (object_limit > (size_t)-1 / SLUB_TEST_MAX_1024_OBJECTS_PER_PAGE) {
+-        object_limit = (size_t)-1;
+-    } else {
+-        object_limit *= SLUB_TEST_MAX_1024_OBJECTS_PER_PAGE;
+-    }
+-
+-    // 有上限地占用全部空闲物理页。
+-    while (page_count < before && (page = alloc_page()) != NULL) {
++    int pages_exhausted, reused_slot = 0, objects_exhausted = 0, pages_restored;
++
++    // 先留下一个已有 SLUB 页，验证物理页耗尽后仍可复用其中的槽位。
++    void *object = slub_alloc(1024);
++    assert(object != NULL);
++    *(void **)object = held_objects;
++    held_objects = object;
++    object_count ++;
++    available_pages = nr_free_pages();
++
++    // 有上限地占用其余全部空闲物理页。
++    while (page_count < available_pages && (page = alloc_page()) != NULL) {
+         page->page_link.next = held_pages == NULL ? NULL : &(held_pages->page_link);
+         held_pages = page;
+         page_count ++;
+     }
+-    pages_exhausted = page_count == before && nr_free_pages() == 0;
++    pages_exhausted = page_count == available_pages && nr_free_pages() == 0;
+
+-    // 耗尽已有 1024 字节槽位后，必须因没有物理页而分配失败。
+-    while (object_count < object_limit) {
+-        void *object = slub_alloc(1024);
++    // 先复用已有槽位；超过一页的最大槽位数后必须分配失败。
++    while (object_count <= SLUB_TEST_MAX_1024_OBJECTS_PER_PAGE) {
++        object = slub_alloc(1024);
+         if (object == NULL) {
+             objects_exhausted = 1;
+             break;
+         }
++        reused_slot = 1;
+         *(void **)object = held_objects;
+         held_objects = object;
+         object_count ++;
+@@ -125,6 +133,7 @@ slub_test_memory_exhaustion(void) {
+     pages_restored = nr_free_pages() == before;
+
+     assert(pages_exhausted);
++    assert(reused_slot);
+     assert(objects_exhausted);
+     assert(pages_restored);
+ }

@@ -1,0 +1,15 @@
+$ PATH=/home/lenovo/riscv-elf-toolchains/bin:$PATH python3 tools/check_a.py --qemu /home/lenovo/qemu-4.1.1/riscv64-softmmu/qemu-system-riscv64 --logs ../report/evidence/member-b/check-a
+page-init-64M: PASS
+page-init-128M: PASS
+page-init-256M: PASS
+buddy-64M: PASS
+buddy-128M: PASS
+buddy-256M: PASS
+buddy-negative-1: EXPECTED PANIC OBSERVED
+buddy-negative-2: EXPECTED PANIC OBSERVED
+buddy-negative-3: EXPECTED PANIC OBSERVED
+buddy-negative-4: EXPECTED PANIC OBSERVED
+buddy-negative-5: EXPECTED PANIC OBSERVED
+Raw build/boot evidence: ../report/evidence/member-b/check-a
+
+COMMAND_EXIT=0

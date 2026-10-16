@@ -1,0 +1,11 @@
+$ git branch --show-current
+codex/lab2-integration
+$ git rev-parse HEAD
+0d468f5bb8a07ce4da2404d3dcd63115e9507682
+$ git remote -v
+origin	https://github.com/Skylar-Jiang/NKU-OS-2026.git (fetch)
+origin	https://github.com/Skylar-Jiang/NKU-OS-2026.git (push)
+$ /home/lenovo/riscv-elf-toolchains/bin/riscv64-unknown-elf-gcc --version
+riscv64-unknown-elf-gcc (g1b306039ac4) 15.1.0
+$ /home/lenovo/qemu-4.1.1/riscv64-softmmu/qemu-system-riscv64 --version
+QEMU emulator version 4.1.1
