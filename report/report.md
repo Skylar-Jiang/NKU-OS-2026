@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |------|------|
 | **实验名称** | Lab 2：物理内存和页表 |
-| **小组成员** | 甲：蒋林静（学号待补）；乙：王麒萱（学号待补）；丙：马传志（2411788） |
+| **小组成员** | 甲：蒋林瀞（2413507）；乙：王麒萱（学号待补）；丙：马传志（2411788） |
 | **完成日期** | YYYY-MM-DD |
 
 ### 小组分工
@@ -14,7 +14,7 @@
 
 | 成员 | 负责的练习/模块 |
 |------|----------------|
-| 蒋林静（甲，学号待补） | 功能模块一：物理内存探测与页描述符初始化（`page_init`）；功能模块二任务三：Buddy System 及其测试；`pmm.c` 管理器接入；分支任务 QEMU/GDB 调试，并负责整理三人的调试素材；三人代码集成与回归验收 |
+| 蒋林瀞（甲，2413507） | 功能模块一：物理内存探测与页描述符初始化（`page_init`）；功能模块二任务三：Buddy System 及其测试；`pmm.c` 管理器接入；分支任务 QEMU/GDB 调试，并负责整理三人的调试素材；三人代码集成与回归验收 |
 | 王麒萱（乙，学号待补） | 功能模块二任务二：Best-Fit 分配器；Challenge：SLUB 分配器及测试，以及 `init.c` 中的 SLUB 接入；分支任务 QEMU/GDB 调试 |
 | 马传志（丙，2411788） | 功能模块二任务一：First-Fit 分析；Challenge：硬件可用物理内存范围的获取方法；分支任务 QEMU/GDB 调试及调试版 QEMU 构建 |
 
@@ -37,8 +37,8 @@
 
 | 成员 | AI 编程工具 | 底层模型 | 备注 |
 |------|------------|---------|------|
-| 学号1-甲 | Codex CLI（终端 Agent）；Claude Code（终端 Agent） | gpt-6.1-sol；Claude Opus 5.5 | Codex 用于 Page Init、Buddy 及其测试的生成；Claude Code 用于集成验收、QEMU 调试和报告整理 |
-| 学号2-乙 | | | |
+| 蒋林瀞（2413507，甲） | Codex CLI（终端 Agent）；Claude Code（终端 Agent） | gpt-6.1-sol；Claude Opus 5.5 | Codex 用于 Page Init、Buddy 及其测试的生成；Claude Code 用于集成验收、QEMU 调试和报告整理 |
+| 王麒萱（乙） | | | |
 | 马传志（2411788，丙） | Codex（桌面应用） | 当前会话记录未显示精确模型标识 | 用于 First-Fit 分析、QEMU/GDB 调试、证据核对和报告整理 |
 
 **说明：**
@@ -113,7 +113,7 @@ OpenSBI（M 模式）：地址不经过页表，直接作为物理地址
 
 #### 任务一：物理内存探测与页描述符初始化
 
-**负责人：** 学号1-甲
+**负责人：** 蒋林瀞（甲，2413507）
 
 ##### 模块功能描述
 
@@ -234,7 +234,7 @@ PMM: descriptors [0x0000000080207000, 0x0000000080347000), free [0x0000000080347
 
 #### Challenge：硬件的可用物理内存范围的获取方法
 
-**负责人：** 学号3-丙
+**负责人：** 马传志（丙，2411788）
 
 操作系统一般不通过向未知物理地址盲目读写来“试出” RAM 容量。这种做法的问题在于：目标地址可能不存在，可能是别名地址，也可能落在 MMIO 设备寄存器上而产生读写副作用。实际系统由固件或引导程序先枚举可用 RAM 和保留区，再通过标准接口交给内核：
 
@@ -248,7 +248,7 @@ PMM: descriptors [0x0000000080207000, 0x0000000080347000), free [0x0000000080347
 
 #### 任务一：理解 First-Fit 连续物理内存分配算法
 
-**负责人：** 学号3-丙
+**负责人：** 马传志（丙，2411788）
 
 First-Fit 位于 `kern/mm/default_pmm.c`。管理器只接收 `page_init()` 交给它的空闲描述符范围，用 `free_area_t` 中的循环双向链表 `free_list` 维护空闲块：块头 `Page` 的 `property` 保存块大小（页数），`PageProperty` 标记有效块头，`nr_free` 保存空闲页总数。链表按地址升序排列。
 
@@ -268,7 +268,7 @@ First-Fit 位于 `kern/mm/default_pmm.c`。管理器只接收 `page_init()` 交�
 
 #### 任务二：Best-Fit 连续物理内存分配算法
 
-**负责人：** 学号2-乙
+**负责人：** 王麒萱（乙）
 
 ##### 模块功能描述
 
@@ -312,7 +312,7 @@ const struct pmm_manager best_fit_pmm_manager;
 
 #### 任务三：Buddy System（伙伴系统）分配算法
 
-**负责人：** 学号1-甲
+**负责人：** 蒋林瀞（甲，2413507）
 
 ##### 模块功能描述
 
@@ -509,7 +509,7 @@ Buddy 测试内核比标准内核略大，因此初始空闲页为 31927，比�
 
 #### Challenge：任意大小的内存单元 SLUB 分配算法
 
-**负责人：** 学号2-乙
+**负责人：** 王麒萱（乙）
 
 ##### 模块功能描述
 
@@ -586,7 +586,7 @@ void slub_test(void);
 
 ### 分支任务：gdb 调试页表查询过程
 
-**负责人：** 学号1-甲、学号2-乙、学号3-丙各自独立调试，甲负责整理素材和撰写。（一）至（八）为甲的调试记录，（九）、（十）为乙、丙的补充观察，（十一）、（十二）为全组的共同结论，（十三）记录调试中与大模型的交互。
+**负责人：** 蒋林瀞（甲）、王麒萱（乙）、马传志（丙）各自独立调试，甲负责整理素材和撰写。（一）至（八）为甲的调试记录，（九）、（十）为乙、丙的补充观察，（十一）、（十二）为全组的共同结论，（十三）记录调试中与大模型的交互。
 
 #### （一）实验目的与方法
 
@@ -617,14 +617,33 @@ uCore 运行在 QEMU 模拟的 RISC-V 处理器上，地址翻译由 QEMU 的 C 
 
 *图 3 调试环境：调试版 QEMU 进程（上）与停在复位向量的客户机 GDB（下）*
 
-**观察对象。** 观察的地址来自内核符号表和反汇编：
+**观察对象。** 观察的地址都来自内核符号表和反汇编。之所以选择它们，是因为每个地址恰好代表地址翻译的一种典型情况：
 
-| 场景 | 虚拟地址 | 访问类型 | 对应的客户机指令或数据 |
-| --- | --- | --- | --- |
-| M 模式复位 | `0x1000` | 取指 | QEMU virt 复位向量（MROM） |
-| Sv39 取指 | `0xffffffffc02000d6` | 取指 | `kern_init` 第一条指令 |
-| Sv39 store | `0xffffffffc0206018`、`0xffffffffc0206019` | store | `memset` 清零 bss 的前两个字节（`sb a1,-1(a5)`） |
-| Sv39 load | `0xffffffffc0201f08` | load | `dtb_init` 中 `cprintf` 读取格式串 `"DTB Init\n"` |
+| 观察的地址 | 它是什么 | 为什么观察它 |
+| --- | --- | --- |
+| `0x1000` | QEMU virt 平台的复位向量，CPU 上电后执行的第一条指令所在位置 | 代表“页表尚未建立”时的访问（第（三）部分） |
+| `0xffffffffc02000d6` | `kern_init` 的入口（内核虚拟地址） | 开启 Sv39 后 CPU 跳到的第一个高地址，代表“第一次需要页表翻译”的取指（第（四）至（六）部分） |
+| `0xffffffffc0206018`、`0xffffffffc0206019` | bss 段的前两个字节，`memset` 用 `sb a1,-1(a5)` 逐字节清零 | 这一页之前从未被访问，第一个字节必然 Miss；第二个字节在同一页，必然命中。一次就能对比数据写的 Miss 与命中（第（七）部分） |
+| `0xffffffffc0201f08` | `dtb_init` 中 `cprintf("DTB Init\n")` 的格式串 | 一次数据读，用来观察数据读命中，并核对读出的值（第（八）部分） |
+
+翻译过程中还会出现几类地址，它们的作用各不相同：
+
+| 地址 | 含义 |
+| --- | --- |
+| `satp = 0x8000000000080205` | 页表基址寄存器：最高 4 位是模式（8 表示 Sv39），低 44 位是根页表的物理页号 `0x80205` |
+| `0x80205000` | 根页表（`boot_page_table_sv39`）的物理地址，由 `satp` 中的页号乘以 4096 得到 |
+| `0x80205ff8` | 根页表中第 `0x1ff` 项 PTE 的物理地址，翻译 `kern_init` 时要读的就是这一项 |
+| `0x802000d6` 等 `0x8...` 地址 | 翻译得到的客户机物理地址 |
+| `0x7fff...`、`0x70b9...` 等地址 | 宿主地址：QEMU 进程用自己的一块内存模拟客户机的物理内存，客户机的每个物理地址都对应其中的一个宿主地址 |
+
+**调试顺序。** 第（三）至（六）部分是在 `build-debug` 上的同一次运行，按内核启动的先后顺序依次观察：
+
+1. QEMU 以 `-S` 启动，停在复位向量；
+2. 宿主 GDB 设好断点后执行 `continue`，让 QEMU 进程运行；
+3. 客户机 GDB 执行 `continue`，让被模拟的 CPU 开始执行；
+4. 此后每次宿主断点命中，QEMU 都会暂停，记录完变量后在宿主 GDB 中再次 `continue`，CPU 就继续执行到下一个观察点。
+
+数据访问的观察需要 TCI 构建，因此第（七）、（八）部分换用 `build-debug-tci` 重新启动一次，步骤相同。
 
 #### （二）QEMU 地址翻译的源码路径
 
@@ -659,17 +678,33 @@ uCore 运行在 QEMU 模拟的 RISC-V 处理器上，地址翻译由 QEMU 的 C 
 
 #### （三）未开启分页时的取指：M 模式不经过页表
 
-**目的。** 观察 CPU 上电后、页表尚未建立时，QEMU 如何处理取指。
+**目的。** CPU 上电时内存中还没有页表。这一步观察：此时 CPU 发出的地址，QEMU 是怎样处理的。
 
-**方法。** 在 `riscv_cpu_tlb_fill` 和 `get_physical_address` 上设置断点，客户机 GDB 执行 `continue`。
+**方法。** 两个断点分别设在 TLB 填充的入口和地址翻译函数上：
 
-**观察。** 第一次命中发生在复位向量 `0x1000`（图 4）：`access_type = MMU_INST_FETCH`，`mmu_idx = 3`；调用栈为 `get_page_addr_code`（cputlb.c:1032）→ `tlb_fill` → `riscv_cpu_tlb_fill`。进入 `get_physical_address` 时，`addr = 0x1000`、`mmu_idx = 3`。
+- `riscv_cpu_tlb_fill`：只有 TLB 中查不到时才会进入，所以它停下就说明“这次访问在 TLB 中没找到”；
+- `get_physical_address`：负责把地址翻译成物理地址，停在这里可以看到翻译所用的参数。
+
+CPU 执行的第一件事就是取第一条指令，所以继续运行后，第一次命中的断点就对应第一次取指。
+
+**观察。** 图 4 上半部分是 `riscv_cpu_tlb_fill` 命中时的调用栈：
+
+- 第 #0 帧中 `address = 4096`（即 `0x1000`）、`access_type = MMU_INST_FETCH`、`mmu_idx = 3`，说明这是一次对 `0x1000` 的取指，发生在 `mmu_idx` 为 3 的模式下；
+- 第 #2 帧是 `get_page_addr_code`，位置 `cputlb.c:1032`。这一行正是“查 TLB 失败后调用 `tlb_fill`”的语句，说明这次填充是取指时 TLB Miss 引起的。
+
+下半部分是继续运行后在 `get_physical_address` 停下时的参数：`addr = 4096`、`access_type = 2`（取指）、`mmu_idx = 3`，与上半部分是同一次访问。
 
 ![图 4 复位向量取指的 TLB 填充：mmu_idx = 3（M 模式），由 get_page_addr_code 第 1032 行进入](images/a-gdb-02-mmode-fill.png)
 
 *图 4 复位向量 0x1000 取指时的调用栈（上）与 get_physical_address 的参数（下）*
 
-**分析。** RISC-V 的 `mmu_idx` 就是当前特权级（`riscv_cpu_mmu_index()` 返回 `env->priv`），3 表示 M 模式。`get_physical_address` 第 171 行判断 `mode == PRV_M` 成立，直接令 `*physical = addr`，不读取 `satp`，也不访问页表。用条件断点全程记录同一次启动时，可以看到 OpenSBI 入口和 `kern_entry` 也遵循同样的规律：前者在 M 模式下直接返回，后者处于 S 模式但 `satp.MODE = 0`（Bare），由第 196 行的 `VM_1_10_MBARE` 分支直接返回：
+**分析。** 由图 4 可以依次得出：
+
+1. **访问的是什么。** `0x1000` 是 QEMU virt 平台的复位向量，CPU 上电后执行的第一条指令就在这里，此时内存中还没有任何页表。
+2. **处于什么模式。** RISC-V 的 `riscv_cpu_mmu_index()` 直接返回当前特权级 `env->priv`，所以 `mmu_idx = 3` 表示 M 模式。
+3. **地址如何被翻译。** `get_physical_address` 第 171 行判断 `mode == PRV_M` 成立，直接令 `*physical = addr` 并返回，既不读取 `satp`，也不访问页表。因此 `0x1000` 被原样当作物理地址 `0x1000`。
+
+用条件断点全程记录同一次启动时，还可以看到后续两个阶段也是如此：OpenSBI 入口 `0x80000000` 同样走 M 模式分支；进入内核后，`kern_entry`（`0x80200000`）虽然已经处于 S 模式，但 `satp` 仍为 0（Bare 模式），于是由第 196 行的 `VM_1_10_MBARE` 分支直接返回：
 
 ```text
 [HOST get_physical_address] M-mode VA=0x80000000 mmu_idx=3 -> 'mode == PRV_M' branch, physical = addr (no page table)
@@ -677,43 +712,74 @@ uCore 运行在 QEMU 模拟的 RISC-V 处理器上，地址翻译由 QEMU 的 C 
 [HOST get_physical_address] satp.MODE=BARE (satp=0x0) VA=0x80206000 access_type=1 -> case VM_1_10_MBARE, physical = addr
 ```
 
-**结论。** 页表就绪之前，虚拟地址与物理地址相同；QEMU 仍然经由 `tlb_fill` 为这些地址建立 TLB 表项，但翻译本身不涉及页表。这正对应“实验整体逻辑分析”中所述“先以物理地址运行、再开启分页”的启动顺序。
+**结论。** 页表就绪之前，CPU 发出的地址就是物理地址。QEMU 仍然通过 `tlb_fill` 为这些地址建立 TLB 表项，但翻译本身不涉及页表。这对应“先以物理地址运行、再开启分页”的第一阶段。
+
+**下一步。** `kern_entry` 接下来写入 `satp`、执行 `sfence.vma`，然后跳到高地址的 `kern_init`。从这一刻起，地址必须经过页表翻译。下一部分观察第一次需要页表翻译的访问。
 
 #### （四）kern_init 取指：TLB Miss 进入 RISC-V 地址翻译
 
-**目的。** 观察开启 Sv39 后的第一次高地址取指如何触发 TLB Miss。
+**目的。** 观察开启 Sv39 后，第一次高地址取指如何触发 TLB Miss，并进入页表翻译。
 
-**方法。** 为排除 OpenSBI 阶段的大量访问，给两个断点加上条件，只关注内核高地址：
+**方法。** 如果不加条件，两个断点会在 OpenSBI 阶段命中成千上万次。内核代码位于 `0xffffffffc0200000` 起的高地址，并且运行在 S 模式（`mmu_idx = 1`），所以给两个断点加上条件，只在 S 模式访问内核高地址时停下：
 
 ```text
 (gdb) condition 1 mmu_idx == 1 && address >= 0xffffffffc0200000 && address < 0xffffffffc0300000
 (gdb) condition 2 mmu_idx == 1 && addr >= 0xffffffffc0200000 && addr < 0xffffffffc0300000
 ```
 
-**观察。** 断点在 `riscv_cpu_tlb_fill` 命中（图 5）：`address = 0xffffffffc02000d6`，即 `kern_init` 的入口；`access_type = MMU_INST_FETCH`，`mmu_idx = 1`（S 模式）。调用栈与复位取指相同，同样由 `get_page_addr_code` 第 1032 行调用 `tlb_fill`。
+设置后继续运行，`kern_entry` 跳到 `kern_init` 时，条件第一次被满足。
+
+**观察。** 图 5 是此时的调用栈和地址：
+
+- 第 #0 帧 `riscv_cpu_tlb_fill` 中，`address = 18446744072637907158`，用 `p/x` 打印为 `0xffffffffc02000d6`；`access_type = MMU_INST_FETCH`，`mmu_idx = 1`；
+- 第 #2 帧仍是 `get_page_addr_code`，位置 `cputlb.c:1032`。
+
+`0xffffffffc02000d6` 正是 `kern_init` 在内核符号表中的地址，所以这是 CPU 跳到 `kern_init` 后的第一次取指；`mmu_idx = 1` 说明此时处于 S 模式。调用栈的结构与（三）完全相同，同样是在 1032 行因 TLB Miss 而调用 `tlb_fill`。
 
 ![图 5 kern_init 取指 TLB Miss：address = 0xffffffffc02000d6，由 get_page_addr_code 第 1032 行调用 tlb_fill](images/a-gdb-03-fetch-miss.png)
 
 *图 5 kern_init 取指触发 TLB 填充的调用栈*
 
-**分析。** 发生 Miss 有两个原因。其一，`entry.S` 写入 `satp` 后执行了 `sfence.vma`；宿主 GDB 观察到它进入 `helper_tlb_flush`，软件 TLB 被整体清空。值得注意的是，QEMU 4.1.1 的 `write_satp()` 只在 ASID 变化时调用 `tlb_flush`，从 Bare 切换到 Sv39 时并不刷新，真正的刷新来自随后的 `sfence.vma`：
+**分析。** 这次访问 Miss 有两个原因。
+
+第一，TLB 刚被清空。`entry.S` 写入 `satp` 之后执行了 `sfence.vma`。条件断点的全程记录显示，`sfence.vma` 进入了 `helper_tlb_flush`，软件 TLB 被整体清空：
 
 ```text
 [HOST write_satp] old satp=0x0 new=0x8000000000080205 priv=1
 [HOST helper_tlb_flush] sfence.vma executed, priv=1 satp=0x8000000000080205
 ```
 
-其二，高地址页 `0xffffffffc0200000` 此前从未被访问过。因此第 1030 行的 `tlb_hit()` 为假，victim TLB 中也没有该页，只能调用 `tlb_fill` 进行页表遍历。逐行单步的记录显示，此时该页对应的表项（`index = 0`）中 `addr_code = 0xffffffffffffffff`，即无效表项。
+这里有一个细节：QEMU 4.1.1 的 `write_satp()` 只在 ASID 变化时才调用 `tlb_flush`。从 Bare 切换到 Sv39 时写 `satp` 本身并不刷新 TLB，真正的刷新来自随后的 `sfence.vma`。
 
-**结论。** 开启分页后的第一次取指确实经由“TLB 查询失败 → `tlb_fill` → `riscv_cpu_tlb_fill` → `get_physical_address`”进入 RISC-V 的地址翻译。
+第二，这一页从未被访问过。高地址页 `0xffffffffc0200000` 此前从未出现过，TLB 中本来就没有它的表项。逐行单步的记录也显示，查找时该页对应的表项（`index = 0`）中 `addr_code = 0xffffffffffffffff`，是一个无效表项。
+
+因此，第 1030 行的 `tlb_hit()` 为假，1031 行的 victim TLB 中也没有这一页，只能执行 1032 行的 `tlb_fill`，去遍历页表。
+
+**结论。** 开启分页后的第一次取指，确实经由“TLB 查询失败 → `tlb_fill` → `riscv_cpu_tlb_fill` → `get_physical_address`”进入 RISC-V 的地址翻译。
+
+**下一步。** `riscv_cpu_tlb_fill` 随即调用 `get_physical_address`。继续运行后，第二个断点在这里停下，`addr` 仍是 `0xffffffffc02000d6`。下一部分观察它如何遍历页表。
 
 #### （五）Sv39 页表遍历与超级页物理地址
 
-**目的。** 观察 `get_physical_address` 如何从 `satp` 出发找到 PTE，并计算物理地址。
+**目的。** 观察 `get_physical_address` 如何从 `satp` 出发找到 PTE，并算出物理地址。
 
-**方法。** 在第 254 行（PTE 刚由 `ldq_phys` 读出）设置临时断点，打印遍历变量；再在第 337 行（物理地址已计算）设置临时断点，打印 `*physical`。
+**方法。** `get_physical_address` 从第 237 行开始逐级循环，每一级都在第 252 行用 `ldq_phys` 从物理内存读出 PTE。因此设置两个临时断点：
 
-**观察。** 第一次停在 254 行时（图 6），`satp = 0x8000000000080205`，`base = 0x80205000`，`levels = 3`，`i = 0`，`ptshift = 18`，`idx = 0x1ff`，`pte_addr = 0x80205ff8`，`pte = 0x200000cf`。停在 337 行时（图 7），`*physical = 0x80200000`。
+- **第 254 行**：停在这里时，本级的索引 `idx`、PTE 的地址 `pte_addr` 和读出的 `pte` 都已经算好，可以一次打印出来；
+- **第 337 行**：这时第 334 行已经算出物理地址 `*physical`，可以直接看结果。
+
+**观察。** 第一次停在 254 行时，打印出的变量见图 6：
+
+| 变量 | 值 | 含义 |
+| --- | --- | --- |
+| `satp` | `0x8000000000080205` | 页表基址寄存器 |
+| `base` | `0x80205000` | 根页表的物理地址 |
+| `levels`、`i`、`ptshift` | 3、0、18 | Sv39 共三级，当前处于第一级（根级） |
+| `idx` | `0x1ff` | 本级索引，即读根页表的第 511 项 |
+| `pte_addr` | `0x80205ff8` | 这一项 PTE 在内存中的物理地址 |
+| `pte` | `0x200000cf` | 读出的 PTE 内容 |
+
+停在 337 行时（图 7），同一个 `addr` 下 `*physical = 0x80200000`。
 
 ![图 6 第一级页表遍历：idx = 0x1ff，pte_addr = 0x80205ff8，pte = 0x200000cf](images/a-gdb-04-sv39-walk.png)
 
@@ -723,7 +789,7 @@ uCore 运行在 QEMU 模拟的 RISC-V 处理器上，地址翻译由 QEMU 的 C 
 
 *图 7 第 337 行处得到的物理页基址*
 
-**分析。** 由这些变量可以完整重建地址计算过程：
+**分析。** 这些地址前后相接，构成一条完整的查找链：`satp` 给出根页表在哪里；`idx` 决定读根页表的第几项；`pte_addr` 是这一项所在的位置；读出的 `pte` 给出物理页号；最后算出物理地址。逐项推算如下：
 
 | 步骤 | 计算 | 结果 |
 | --- | --- | --- |
@@ -736,7 +802,11 @@ uCore 运行在 QEMU 模拟的 RISC-V 处理器上，地址翻译由 QEMU 的 C 
 | 物理页基址 | `(ppn \| (vpn & 0x3ffff)) << 12`，`vpn = VA >> 12` | `vpn & 0x3ffff = 0x200`，`(0x80000 \| 0x200) << 12 = 0x80200000` |
 | 物理地址 | 物理页基址 + 页内偏移 `0xd6` | `0x802000d6 = VA − 0xFFFFFFFF40000000` |
 
-超级页之所以能提前结束遍历，是因为 Sv39 规定：任一级 PTE 只要 R/W/X 不全为 0，就是叶子。第一级叶子覆盖 2^30 字节，VA 的低 30 位直接成为物理地址的低 30 位；QEMU 在第 334 行把这低 30 位中的页号部分（`vpn` 的低 18 位）并入 `ppn`，合成一个“虚拟的 4 KiB 叶子”，供 TLB 使用。权限方面，取指要求 X 位（第 286 行），PTE 满足；由于 D 位已置位，第 345–347 行同时授予写权限，最终 `prot = 7`（读、写、执行）。
+**为什么一级就结束了。** Sv39 规定：任一级 PTE 只要 R/W/X 不全为 0，就是叶子。根级的叶子覆盖 2^30 字节（1 GiB），VA 的低 30 位直接成为物理地址的低 30 位，不需要再往下查。
+
+**为什么结果是 `0x80200000` 而不是 `0x80000000`。** 1 GiB 映射的起点是 `0x80000000`，但 QEMU 的 TLB 以 4 KiB 为单位。所以第 334 行把 VA 低 30 位中的页号部分（`vpn` 的低 18 位，这里是 `0x200`）并入 `ppn`，得到当前访问所在 4 KiB 页的物理基址 `0x80200000`，相当于合成了一个“虚拟的 4 KiB 叶子”供 TLB 使用。
+
+**权限。** 取指要求 X 位（第 286 行），PTE 满足；由于 D 位已置位，第 345–347 行同时授予写权限，最终 `prot = 7`（读、写、执行）。
 
 逐行单步的完整记录（[fetch-host-gdb.log](evidence/member-a-qemu-step/fetch-host-gdb.log)）显示，这次遍历依次经过：
 
@@ -753,11 +823,18 @@ uCore 运行在 QEMU 模拟的 RISC-V 处理器上，地址翻译由 QEMU 的 C 
 
 客户机 GDB 从页表层面做的独立核对得到同样的结果：根页表第 511 项为 `0x200000cf`，按它计算出的物理地址等于“虚拟地址减固定偏移”（[gdb-guest-translation.log](evidence/member-a-round2/debug_a/gdb-guest-translation.log)）。
 
-**结论。** `0xffffffffc02000d6` 经一级 Sv39 遍历翻译为物理地址 `0x802000d6`，翻译结果与启动页表的线性映射一致。
+**结论。** `0xffffffffc02000d6` 经过一级 Sv39 遍历，被翻译为物理地址 `0x802000d6`。这与启动页表“虚拟地址 = 物理地址 + `0xFFFFFFFF40000000`”的线性映射一致。
+
+**下一步。** 翻译成功后，`get_physical_address` 返回 `riscv_cpu_tlb_fill`，后者在第 472 行调用 `tlb_set_page`，把结果写入 TLB。下一部分观察写入的表项，以及它怎样被后续访问使用。
 
 #### （六）TLB 填入与取指命中
 
-**目的。** 观察翻译结果如何写入 TLB，以及之后再次访问同一页时 QEMU 跳过哪些代码。
+**目的。** 观察翻译结果如何写入 TLB，以及之后再次访问同一页时，QEMU 跳过了哪些代码。
+
+**方法。** 分两步：
+
+1. 逐行单步 `tlb_set_page_with_attrs`，看表项的各个字段如何写入；
+2. 在 `get_page_addr_code` 的第 1030 行（TLB 查询的判断处）设断点，然后继续运行。因为 `kern_init` 所在的页已经填入 TLB，QEMU 下一次查找这一页的代码时就会在这里停下；此时单步一行，就能看出它走的是哪个分支。
 
 **观察一：TLB 填入。** `riscv_cpu_tlb_fill` 第 472 行调用 `tlb_set_page`，进入 `tlb_set_page_with_attrs`。逐行单步记录了表项的建立过程（节选）：
 
@@ -779,31 +856,52 @@ uCore 运行在 QEMU 模拟的 RISC-V 处理器上，地址翻译由 QEMU 的 C 
                 tn.addr_write = 0xffffffffc0200400
 ```
 
-表项按 4 KiB（`size = 0x1000`）建立，虽然页表中是 1 GiB 超级页。一次填入同时写好 `addr_read`、`addr_code`、`addr_write` 三个字段，以及 `addend`。`addr_write` 带有 `TLB_NOTDIRTY` 标志（`0x...0400`），因为这一页包含已翻译的代码，写这一页需要走慢路径，以便让翻译结果失效。
+这段记录中的几个值各有用途：
 
-**观察二：取指命中。** 在 `get_page_addr_code` 第 1030 行设置断点，继续执行后再次在 `addr = 0xffffffffc02000d6` 处停下（图 8）。执行 `next` 后，程序从 1030 行直接到达 1039 行。
+- `vaddr = 0xffffffffc0200000`：虚拟页基址，表项以它为“标签”，后续查找时拿访问地址的页号与它比较；
+- `paddr = 0x80200000`：物理页基址，即（五）中翻译得到的结果；
+- `size = 0x1000`：表项按 4 KiB 建立，虽然页表中是 1 GiB 超级页；
+- `addend = 0x80001fe00000`：虚拟地址与宿主指针之间的差值，命中后用它直接算出客户机内存在 QEMU 进程中的位置。
+
+一次填入同时写好了 `addr_read`、`addr_code`、`addr_write` 三个字段。其中 `addr_write` 带有 `TLB_NOTDIRTY` 标志（`0x...0400`），这是因为这一页包含已经翻译过的代码，写这一页必须走慢路径，以便让翻译结果失效。
+
+**观察二：取指命中。** 继续运行后，断点再次在 `get_page_addr_code` 第 1030 行停下，`addr` 仍是 `0xffffffffc02000d6`（图 8 上半部分）。执行一次 `next`，下一行是 1039，而不是 1031（图 8 下半部分）。
 
 ![图 8 取指 TLB 命中：next 从第 1030 行直接到达第 1039 行](images/a-gdb-06-fetch-hit.png)
 
 *图 8 再次查找 kern_init 所在页时跳过 TLB Miss 处理分支*
 
-**分析。** `tlb_hit()` 比较页号，并要求表项没有无效标志：
+**分析。** 第 1031–1037 行是 Miss 分支：1031 行查 victim TLB，1032 行调用 `tlb_fill`。`next` 直接到达 1039 行，说明 1030 行的条件 `!tlb_hit(...)` 为假，也就是 `tlb_hit` 为真。`tlb_hit()` 比较的是页号，并要求表项没有无效标志：
 
 ```c
 tlb_hit(tlb_addr, addr)  ⇔  (addr & TARGET_PAGE_MASK) == (tlb_addr & (TARGET_PAGE_MASK | TLB_INVALID_MASK))
 ```
 
-此时表项的 `addr_code = 0xffffffffc0200000`，正是 `addr` 的页号，所以 `tlb_hit` 为真，第 1031–1037 行的 Miss 处理分支（victim TLB 查询和 `tlb_fill`）被整体跳过。随后第 1051 行计算 `addr + entry->addend = 0x7fffe00000d6`，得到模拟内存在 QEMU 进程中的宿主指针。在该地址读到的 4 个字节是 `17 65 00 00`，与客户机 GDB 在 `kern_init` 处执行 `x/4bx $pc` 的结果相同（[fetch-host-gdb.log](evidence/member-a-qemu-step/fetch-host-gdb.log)、[fetch-guest-gdb.log](evidence/member-a-qemu-step/fetch-guest-gdb.log)）。
+此时表项的 `addr_code = 0xffffffffc0200000`，正是 `addr` 的页号，所以判断成立，整段 Miss 处理被跳过。
 
-**结论。** 一次 Miss 建立的 TLB 表项被后续取指复用；命中时 QEMU 既不遍历页表，也不经过物理地址，而是直接用 `addend` 由虚拟地址得到宿主指针。
+随后第 1051 行计算 `addr + entry->addend = 0x7fffe00000d6`。这个地址就是 `kern_init` 第一条指令在 QEMU 进程内存中的存放位置。在该地址读到的 4 个字节是 `17 65 00 00`（`auipc a0, 0x6`），与客户机 GDB 在 `kern_init` 处执行 `x/4bx $pc` 的结果相同（[fetch-host-gdb.log](evidence/member-a-qemu-step/fetch-host-gdb.log)、[fetch-guest-gdb.log](evidence/member-a-qemu-step/fetch-guest-gdb.log)）。
+
+**结论。** 一次 Miss 建立的 TLB 表项会被后续取指复用。命中时，QEMU 既不遍历页表，也不经过物理地址，而是直接用 `addend` 把虚拟地址换算成宿主指针。
+
+**下一步。** 以上都是取指。数据访问的命中检查在默认构建中被编译进了生成代码，C 层面的断点看不到（第（一）部分）。因此第（七）、（八）部分换用 TCI 构建重新启动，观察数据的写和读。
 
 #### （七）数据 Store：Miss 与命中
 
 **目的。** 观察数据写操作的 TLB 查询，并与取指路径对比。
 
-**方法。** 使用 TCI 构建，在 `store_helper` 第 1519 行设置条件断点（地址位于内核高地址范围），配合 `riscv_cpu_tlb_fill` 上的条件断点 `address == 0xffffffffc0206018`。
+**方法。** 使用 TCI 构建重新启动，断点设置如下：
 
-**观察一：Store Miss。** `memset` 清零 bss 时，第一次写入 `0xffffffffc0206018`（`size = 1`，`val = 0`）。此时 `tlb_addr = 0xffffffffffffffff`；`next` 依次到达 1520 行（victim TLB）和 1522 行（`tlb_fill`）；随后 `riscv_cpu_tlb_fill` 命中，`address = 0xffffffffc0206018`，`access_type = MMU_DATA_STORE`（图 9）。调用栈为：
+- 在 `store_helper` 第 1519 行（数据写的 TLB 判断处）设条件断点，只在内核高地址处停下；
+- 在 `riscv_cpu_tlb_fill` 上设条件断点 `address == 0xffffffffc0206018`，用来确认这次 Miss 确实进入了地址翻译。
+
+选择 `memset` 清零 bss 的写操作，是因为 bss 页此前从未被访问，第一个字节必然 Miss；而 `memset` 逐字节写入，第二个字节就在同一页，必然命中。一次运行就能对比两种情况。
+
+**观察一：Store Miss。** 断点停在 `memset` 写 bss 第一个字节时（图 9 上半部分）：
+
+- `addr = 0xffffffffc0206018`、`size = 1`、`val = 0`：向 bss 起点写入 1 字节的 0，正是 `memset` 在清零；
+- `tlb_addr = 0xffffffffffffffff`：该页对应的表项是无效值。
+
+连续执行 `next`，程序依次到达 1520 行（查 victim TLB）和 1522 行（调用 `tlb_fill`），走的是 Miss 分支（图 9 中部）。继续运行后，`riscv_cpu_tlb_fill` 的断点命中，`address = 0xffffffffc0206018`，`access_type = MMU_DATA_STORE`（图 9 下半部分）。此时的调用栈为：
 
 ```text
 #0  riscv_cpu_tlb_fill (..., address=18446744072637931544, size=1, access_type=MMU_DATA_STORE, mmu_idx=1, ...) at target/riscv/cpu_helper.c:438
@@ -818,32 +916,43 @@ tlb_hit(tlb_addr, addr)  ⇔  (addr & TARGET_PAGE_MASK) == (tlb_addr & (TARGET_P
 
 *图 9 store_helper 的 Miss 路径（上、中）与随后进入的 riscv_cpu_tlb_fill（下）*
 
-**观察二：Store 命中。** 紧接着写入下一个字节 `0xffffffffc0206019` 时，`tlb_addr = 0xffffffffc0206000`；`next` 从 1519 行直接到达 1531 行（图 10）。
+**观察二：Store 命中。** 继续运行，断点停在 `memset` 写下一个字节时（图 10）：`addr = 0xffffffffc0206019`，`tlb_addr = 0xffffffffc0206000`。执行 `next`，程序从 1519 行直接到达 1531 行。
 
 ![图 10 数据 Store 命中：tlb_addr = 0xffffffffc0206000，next 从第 1519 行直接到达第 1531 行](images/a-gdb-08-store-hit.png)
 
 *图 10 同一页上的下一次 store 跳过 Miss 处理分支*
 
-**分析。** 调用栈表明，在 TCI 构建中，RISC-V 的 `sb` 指令由解释器 `tcg_qemu_tb_exec` 执行，经 `helper_ret_stb_mmu` 进入 `store_helper`。数据访问使用的是表项中的 `addr_write` 字段，判断方式与取指相同。第一次写入时，该页对应的表项无效，因此走 1520–1527 行的 Miss 分支，由 `tlb_fill` 以 `MMU_DATA_STORE` 类型完成翻译；`get_physical_address` 在 291–295 行同时检查并更新 A/D 位。填入后，同一页的下一次写入在 1519 行判断命中，直接跳到 1531 行的 IO 检查，随后在 1607 行用 `addend` 计算宿主地址并写入。两次写入只相差 1 字节，命中正是因为二者位于同一个 4 KiB 页 `0xffffffffc0206000`。
+**分析。**
 
-**结论。** 数据写操作与取指遵循同一套“页号比较 → victim TLB → `tlb_fill`”逻辑，区别只在于比较的是 `addr_write` 字段，以及调用 `tlb_fill` 时传入的访问类型。
+1. **调用路径。** 由调用栈从下往上看：TCI 解释器 `tcg_qemu_tb_exec` 执行客户机的 `sb` 指令，经 `helper_ret_stb_mmu` 进入 `store_helper`，在 1522 行调用 `tlb_fill`，再进入 RISC-V 的 `riscv_cpu_tlb_fill`。这条路径的后半段与取指完全相同，只是入口从 `get_page_addr_code` 换成了 `store_helper`，比较的字段从 `addr_code` 换成了 `addr_write`。
+2. **第一次为什么 Miss。** `tlb_addr` 是无效值，说明这一页从未被填入。于是走 1520–1527 行的 Miss 分支，由 `tlb_fill` 以 `MMU_DATA_STORE` 类型完成翻译。翻译过程与（五）相同，`get_physical_address` 还会在第 291–295 行检查并更新 A/D 位。
+3. **第二次为什么命中。** 一个地址的页号就是把它的低 12 位清零。`0xffffffffc0206018` 和 `0xffffffffc0206019` 的页号都是 `0xffffffffc0206000`。第一次写入已经把这一页填入 TLB，所以第二次比较时，`tlb_addr` 的页号与 `addr` 的页号相等，1519 行判断命中，直接跳到 1531 行的 IO 检查，随后在 1607 行用 `addend` 计算宿主地址并写入。
+
+**结论。** 数据写与取指遵循同一套“页号比较 → victim TLB → `tlb_fill`”逻辑，区别只在于比较的是 `addr_write` 字段，以及调用 `tlb_fill` 时传入的访问类型。同一页内的访问只需翻译一次。
+
+**下一步。** 写操作已经同时看到了 Miss 和命中。下一部分观察一次读操作的命中，并沿着 `addend` 一直追到真正读出的数据。
 
 #### （八）数据 Load 命中：由 addend 得到宿主地址并读出数据
 
-**目的。** 观察一次数据读的 TLB 命中，并验证 `entry->addend` 的作用。
+**目的。** 观察一次数据读的 TLB 命中，并验证 `entry->addend` 的作用：它算出的宿主地址里，存放的是否就是客户机要读的数据。
 
-**方法。** 在 `load_helper` 第 1271 行设置断点。TCI 中，翻译代码时读取指令同样经过 `load_helper`（此时 `code_read = true`，`access_type = MMU_INST_FETCH`），因此先确认 `access_type = MMU_DATA_LOAD`、`code_read = false`，再单步观察。
+**方法。** 在 `load_helper` 第 1271 行（数据读的 TLB 判断处）设断点。TCI 在翻译代码时读取指令，同样会经过 `load_helper`，此时 `code_read = true`、`access_type = MMU_INST_FETCH`，这类读并不是数据读。因此每次停下时先检查这两个变量，遇到取指读就继续运行，直到第一次出现 `access_type = MMU_DATA_LOAD`、`code_read = false` 的数据读，再逐行单步。
 
-**观察。** 停下时 `addr = 0xffffffffc0201f08`，`tlb_addr = 0xffffffffc0201000`；单步经 1314 行到达 1337 行 `do_aligned_access`；此时 `entry->addend = 0x70b98fe00000`，`haddr = 0x70b950001f08`；执行 1341 行 `ldub_p(haddr)` 后 `res = 0x44`；在宿主 GDB 中用 `x/1xb haddr` 检查该地址，结果同样为 `0x44`（图 11）。
+**观察。** 图 11 自上而下记录了这次数据读：
+
+1. 停下时 `access_type = MMU_DATA_LOAD`、`code_read = false`，确认是一次数据读；`addr = 0xffffffffc0201f08`，`tlb_addr = 0xffffffffc0201000`；
+2. 单步经 1314 行到达 1337 行 `do_aligned_access`，没有进入 Miss 分支；
+3. 此时 `entry->addend = 0x70b98fe00000`，算出的 `haddr = 0x70b950001f08`；
+4. 执行 1341 行 `ldub_p(haddr)` 后 `res = 0x44`；在宿主 GDB 中用 `x/1xb haddr` 直接检查该地址，结果同样是 `0x44`。
 
 ![图 11 数据 Load 命中：tlb_addr 与 addr 同页，haddr = addr + addend，读出 0x44 与内存检查一致](images/a-gdb-09-load-hit.png)
 
 *图 11 load_helper 的命中路径、宿主地址计算与读取结果*
 
-**分析。**
+**分析。** 图中几个地址的作用依次是：`addr` 是客户机要读的虚拟地址；`tlb_addr` 是表项记录的页号，用来判断是否命中；`addend` 是换算差值；`haddr` 是数据在 QEMU 进程中的实际位置；`res` 是读出的值。
 
-- **命中判断。** `tlb_addr = 0xffffffffc0201000` 是 `addr` 的页号，因此第 1271 行判断命中，不调用 `tlb_fill`，程序经 1283 行（非 IO）、1314 行（访问不跨页）到达 1337 行的对齐访问。
-- **数据含义。** `0xffffffffc0201f08` 是 `dtb_init` 中 `cprintf("DTB Init\n")` 的格式串地址（反汇编 `addi a0,a0,-810 # ffffffffc0201f08`），内核镜像在该地址的内容为 `44 54 42 20 49 6e 69 74 0a`，第一个字节 `0x44` 即字符 `'D'`。`cprintf` 逐字节读取格式串，因此这是一次 1 字节的 load（`ldub_p`）。
+- **命中判断。** `addr = 0xffffffffc0201f08` 的页号是 `0xffffffffc0201000`，与 `tlb_addr` 相等，所以第 1271 行判断命中，不调用 `tlb_fill`。程序经 1283 行（不是 IO 访问）、1314 行（访问不跨页）到达 1337 行的对齐访问。
+- **为何能命中。** 这一页此前没有被 load 过。命中所用的表项来自同一页上 `memset`（`0xffffffffc0201dfc`）的取指：`tlb_set_page_with_attrs` 一次就写好了读、写、取指三个字段，所以后续的数据读可以直接复用。
 - **宿主地址计算。** `haddr = addr + addend = 0xffffffffc0201f08 + 0x70b98fe00000 = 0x70b950001f08`（按 64 位取模）。`addend` 的含义可以由线性映射推出：
 
   ```text
@@ -853,13 +962,15 @@ tlb_hit(tlb_addr, addr)  ⇔  (addr & TARGET_PAGE_MASK) == (tlb_addr & (TARGET_P
   ⇒ haddr = VA + (ram_base + 0x40000000)，即 addend = ram_base + 0x40000000
   ```
 
-  代入 `addend = 0x70b98fe00000`，得 `ram_base = 0x70b94fe00000`；物理地址 `0x80201f08` 对应的宿主地址为 `0x70b94fe00000 + 0x201f08 = 0x70b950001f08`，与 `haddr` 一致。所有内核页使用同一线性映射，因此各内核页表项的 `addend` 相同。取指实验中的 `addend` 是 `0x80001fe00000`，不同之处只在于那是另一次 QEMU 运行，`ram_base` 不同。
-- **为何能命中。** 该页此前没有被 load 过，命中所用的表项来自同一页上 `memset`（`0xffffffffc0201dfc`）的取指：`tlb_set_page_with_attrs` 一次写好读、写、取指三个字段，所以后续的数据读可以直接复用。
-- **数据一致性。** `ldub_p` 读出的 `res = 0x44`，与宿主 GDB 直接检查 `haddr` 的结果相同，也与内核镜像中格式串的首字节一致。这说明 QEMU 对客户机内存的读写，最终就是对宿主进程内存的直接读写。
+  代入 `addend = 0x70b98fe00000`，得 `ram_base = 0x70b94fe00000`；物理地址 `0x80201f08` 对应的宿主地址为 `0x70b94fe00000 + 0x201f08 = 0x70b950001f08`，与 `haddr` 一致。所有内核页使用同一个线性映射，因此各内核页表项的 `addend` 相同。取指实验中的 `addend` 是 `0x80001fe00000`，只因为那是另一次 QEMU 运行，`ram_base` 不同。
+- **读出的是什么。** `0xffffffffc0201f08` 是 `dtb_init` 中 `cprintf("DTB Init\n")` 的格式串地址（反汇编为 `addi a0,a0,-810 # ffffffffc0201f08`）。内核镜像在该地址的内容是 `44 54 42 20 49 6e 69 74 0a`，第一个字节 `0x44` 就是字符 `'D'`。`cprintf` 逐字节读取格式串，所以这是一次 1 字节的 load（`ldub_p`）。
+- **数据一致。** `ldub_p` 读出的 `res = 0x44`，与宿主 GDB 直接检查 `haddr` 的结果相同，也与内核镜像中格式串的首字节一致。这说明 QEMU 对客户机内存的读写，最终就是对宿主进程内存的直接读写。
 
-**结论。** 数据 load 命中时，QEMU 只做一次页号比较和一次加法：由 `entry->addend` 把客户机虚拟地址直接换算成宿主指针，而不再经过页表和物理地址。
+**结论。** 数据读命中时，QEMU 只做一次页号比较和一次加法：用 `entry->addend` 把客户机虚拟地址直接换算成宿主指针，不再经过页表和物理地址。至此，甲的观察覆盖了取指和数据读写在 TLB 中 Miss 与命中两种情况的完整处理过程。
 
 #### （九）乙的调试观察：数据 store 的 TLB 填充
+
+第（九）、（十）部分是乙、丙在各自环境中独立完成的调试。他们观察的访问与甲不同，可以从其他角度印证（三）至（八）的结论。
 
 乙用宿主 GDB 附加课程环境中的 QEMU 4.1.1，在 `riscv_cpu_tlb_fill()` 与 `get_physical_address()` 上设置断点，观察 `kern_init` 中 `sd ra,8(sp)` 对栈地址 `0xffffffffc0204ff8` 的写入，结果与（四）至（六）部分相互印证：
 
