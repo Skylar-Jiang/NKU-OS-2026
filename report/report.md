@@ -161,6 +161,23 @@ static void page_init(void);
 
 `page_init()` 把设备树给出的物理内存范围转换为 `struct Page` 描述符数组，设置 `va_pa_offset`、`npage`、`pages`，并只把真正空闲的完整页交给当前 `pmm_manager`。它位于 `dtb_init()` 与分配器之间：输入是 DTB 解析出的 base/size 和链接符号 `end`，输出是一次 `init_memmap()` 调用；之后所有页分配策略都只在这段空闲区内工作。
 
+##### 核心函数理解
+
+Page Init 不是孤立的一个函数，而是 `pmm_init()` 初始化流程中承上启下的一环。相关函数各自的作用如下：
+
+| 函数 | 位置 | 作用 |
+| --- | --- | --- |
+| `pmm_init()` | `pmm.c` | 物理内存管理的总入口，按固定顺序调用：先 `init_pmm_manager()` 选定分配器，再 `page_init()` 建立页描述符，最后 `check_alloc_page()` 运行分配器自检 |
+| `init_pmm_manager()` | `pmm.c` | 决定使用哪种分配策略：把全局指针 `pmm_manager` 指向 First-Fit、Best-Fit 或 Buddy 的管理器结构，并调用其 `init()` 清空空闲链表 |
+| `get_memory_base()`、`get_memory_size()` | `dtb.c` | 返回 `dtb_init()` 从设备树中解析出的物理内存起点和大小，是 `page_init()` 的输入 |
+| `page_init()` | `pmm.c` | 本任务的核心：确定可管理的物理内存范围，在内核之后放置 `Page` 数组，把所有页先标记为 Reserved，再把剩余的完整空闲页一次性交给分配器 |
+| `init_memmap()` | `pmm.c` | 一层转发：调用 `pmm_manager->init_memmap()`，由具体策略把这段空闲页组织成自己的空闲块 |
+| `pa2page()`、`page2pa()` | `pmm.h` | 物理地址与 `Page` 描述符之间的换算：`pages[i]` 对应物理页号 `nbase + i`，`page_init()` 正是按这个约定布局描述符数组 |
+| `alloc_pages()`、`free_pages()`、`nr_free_pages()` | `pmm.c` | 内核其他部分使用的统一接口，内部都通过 `pmm_manager` 的函数指针转给当前策略，体现“机制与策略分离” |
+| `page_init_test()` | `page_init_test.c` | 测试配置中的检查函数：逐个核对描述符的保留状态、地址往返和空闲页数，并调用官方的 `test_page_init()` |
+
+可以把这条流程理解为三层：`dtb_init()` 回答“内存在哪里”；`page_init()` 回答“哪些页可以分配”；`pmm_manager` 回答“具体怎么分配”。`page_init()` 只负责中间这一层，它不关心分配策略，因此同一份实现可以同时服务 First-Fit、Best-Fit 和 Buddy。
+
 ##### 问题与物理布局
 
 实现位于 [pmm.c](../code/kern/mm/pmm.c) 的 `//lab2 function1 YOUR CODE` 标记之后。
@@ -367,6 +384,25 @@ void buddy_test(void);
 ```
 
 **功能说明：** Buddy 以 `pmm_manager` 接口实现，可以替代 First-Fit/Best-Fit 管理 `page_init()` 注册的空闲区。它把空闲区组织为 2 的幂大小的块，分配时逐级拆分，释放时与伙伴逐级合并。Buddy 只支持整块释放，而官方 First-Fit 自检会释放一个块的一部分，因此 Buddy 在独立的测试配置中运行，标准配置使用 Best-Fit。
+
+##### 核心函数理解
+
+Buddy 对外提供 `pmm_manager` 要求的六个回调，内部再用几个辅助函数完成拆分、合并与检查。各函数的作用如下：
+
+| 函数 | 作用 |
+| --- | --- |
+| `buddy_init()` | 初始化 0–15 阶共 16 条空闲链表，空闲页数清零 |
+| `buddy_init_memmap(base, n)` | 接管 `page_init()` 交来的一段空闲页：先检查整段输入是否合法，再按“起点对齐、不超过剩余长度”的原则切成若干 2 的幂大小的块，逐块挂入链表 |
+| `buddy_alloc_pages(n)` | 分配：把请求向上取到 2 的幂，从满足大小的最小非空阶取块；块太大就逐级对半拆分，右半块挂回低一阶链表；最后在块头记录原请求页数和实际容量 |
+| `buddy_free_pages(base, n)` | 释放：先确认传入的是一个已分配块的块头、页数与记录相符，然后把整块交给 `insert_block()` 归还并合并 |
+| `buddy_nr_free_pages()` | 返回当前空闲页总数（按实际容量计算） |
+| `buddy_check()` | 分配器自检入口，调用 `buddy_validate()` 并打印结果 |
+| `insert_block()`（内部） | 归还一个块：用 `ppn ^ (1 << order)` 找到伙伴，伙伴空闲且同阶就合并、阶数加一，循环直到无法合并，再挂入对应阶的链表 |
+| `descriptor_index()`（内部） | 检查一个 `Page` 指针是否确实指向描述符数组中的某一项，用于拒绝非法地址 |
+| `buddy_validate()` | 只读的一致性检查：空闲块对齐、链表容量之和等于空闲计数、没有遗留未合并的空闲伙伴、已分配块的元数据正确 |
+| `buddy_test()` | 独立测试入口：在真实空闲区上构造各种场景，验证拆分、合并、边界和非法释放（见“独立测试”） |
+
+这些函数的配合方式是：`buddy_init_memmap()` 和 `buddy_free_pages()` 都通过 `insert_block()` 把块放回链表，所以“与伙伴合并”的逻辑只写在一处；`buddy_alloc_pages()` 则是它的反过程，负责拆分。分配和释放互为逆操作，因此一个块被分配后再完整释放，空闲链表会恢复原状，这正是测试中“恢复完整初始空闲区”所检验的性质。
 
 ##### 数据组织与释放契约
 
