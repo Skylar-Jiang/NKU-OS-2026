@@ -532,17 +532,139 @@ void slub_test(void);
 
 这是一个保留 SLUB 主体思想的简化实现：大小类固定、每个 slab 固定一页，不涉及每 CPU 缓存和多核并发，符合实验“可简化实现，能够体现其主体思想”的要求。
 
+##### SLUB 实现 Prompt
+
+`````text
+## [PROMPT]
+
+在物理页分配器之上实现简化 SLUB，分别管理整页和页内对象。
+
+- 新增 `kern/mm/slub.c`、`kern/mm/slub.h`，必要时在 `kern/init/init.c` 接入初始化。
+- 保留 pmm.c、Best-Fit、Buddy、官方测试、Makefile 和评分脚本。
+- 使用现有页分配接口，禁止调用标准库 malloc/free。
+- 先完成分配器，测试代码另行编写。
+
+## [RELY]
+
+- `pmm.h`、`memlayout.h`、`mmu.h`、`defs.h`、`init.c`
+- `alloc_page()`、`free_page()`，即单页的 alloc_pages/free_pages
+- `page2pa(page) + va_pa_offset`、PGSIZE 及内核地址映射
+
+## [GUARANTEE]
+
+- `void slub_init(void);`
+- `void *slub_alloc(size_t size);`
+- `void slub_free(void *obj);`
+- 16、32、64、128、256、512、1024 字节大小类，16 字节对齐
+- 可定义私有 cache、slab 和空闲槽辅助结构
+
+## [SPECIFICATION]
+
+### slub_init()
+
+**Pre-Condition：** pmm_init 已完成。
+
+**Post-Condition：** 首次调用建立全部大小类，partial 链表为空；重复调用保留已有分配状态。初始化放在 pmm_init 之后。
+
+### slub_alloc(size)
+
+**Post-Condition：** 成功返回至少容纳 size 字节、16 字节对齐且与存活对象不重叠的内核虚拟地址；失败返回 NULL，已有分配保持不变。
+
+**Case 1：无效请求**
+
+未初始化、size 为 0 或超过 1024 时返回 NULL；其他请求选择不小于 size 的最小大小类，8 字节请求使用 16 字节类。
+
+**Case 2：已有空闲槽**
+
+优先复用已有 slab 的槽位；物理空闲页为零时，只要还有槽位仍可分配。
+
+**Case 3：需要新页**
+
+无可用槽时才申请整页。页首保存元数据，其后对齐划分槽位，容量扣除元数据所占空间；建页失败时归还已申请资源。
+
+**Case 4：slab 用满**
+
+更新 inuse 和槽链表，用满时从 partial 链表移除。
+
+### slub_free(obj)
+
+**Pre-Condition：** obj 为本分配器返回的有效存活对象或 NULL。
+
+**Post-Condition：** 对象回到所属 slab；满 slab 释放首个对象后重入 partial；最后一个对象释放后移除 slab 并归还整页。
+
+**Case 1：空指针或尚未初始化**
+
+直接返回，不改变状态。
+
+**Case 2：槽位校验**
+
+对仍有效的 slab 检查 magic、对象范围、对齐及空闲链表，拒绝已在空闲链表中的重复槽，避免 inuse 下溢。
+
+不要求检测任意未映射地址，或页回收、再利用后的陈旧指针。
+`````
+
+##### SLUB 测试 Prompt
+
+`````text
+## [PROMPT]
+
+为 SLUB 编写独立测试，新增 `kern/mm/slub_test.c`。
+
+- 必要时仅修改 slub.h 和 init.c，声明并调用 slub_test。
+- 保留 SLUB 算法、Best-Fit、Buddy、pmm.c、Makefile 和评分脚本。
+- 调用顺序为 `pmm_init() -> slub_init() -> slub_test()`。
+- 只编写测试代码，编译、QEMU 和评分由我运行。
+
+## [RELY]
+
+- `slub.c`、`slub.h`、`pmm.h`、`init.c`
+- `assert`、`cprintf`、PGSIZE、nr_free_pages
+- 分配器的大小类、槽位链表和整页释放规则
+
+## [GUARANTEE]
+
+- `void slub_test(void);`
+- 大小与对齐、不重叠、槽位复用、整页回收及内存耗尽检查函数
+- 全部断言通过后输出 `slub_check() succeeded!`
+
+## [SPECIFICATION]
+
+**Pre-Condition：** SLUB 已初始化，没有其他使用者并发分配；测试只释放自己申请的资源。
+
+**Post-Condition：** 所有临时对象和物理页已归还，nr_free_pages 恢复测试前值。
+
+**Case 1：不同大小与不重叠**
+
+同时申请 8、24、32、64、100、128、512、513、1024 字节对象，检查非空、16 字节对齐，并按大小类长度检查两两区间不重叠。
+
+**Case 2：释放与复用**
+
+连续分配同类对象，释放部分后重新申请，检查槽位复用且未影响仍存活的对象。
+
+**Case 3：整页回收**
+
+该类无现存 slab 时，申请一个 1024 字节对象使空闲页减少一页；释放全部对象后恢复。
+
+**Case 4：请求边界**
+
+slub_alloc(0) 和 slub_alloc(1025) 返回 NULL，空闲页计数不变。
+
+**Case 5：耗尽与清理**
+
+区分物理页耗尽与对象槽耗尽，循环有上限，每次成功分配均有记录。先保存结果、清理全部资源，再执行最终断言。
+`````
+
 ##### 测试设计
 
-`slub_test()` 在 `slub_init()` 之后运行，开始时记录 `nr_free_pages()`，结束时要求它恢复原值，最后输出 `slub_check() succeeded!`。
+`slub_test()` 在 `slub_init()` 之后运行，开始时记录 `nr_free_pages()`，结束时要求它恢复原值，最后输出 `slub_check() succeeded!`。测试在内核启动阶段独立运行，前面的用例会释放全部对象，因此整页回收和耗尽用例开始时，1024 字节类没有其他存活 slab。
 
 | 测试 | 检查内容 | 为什么能检验实现 |
 | --- | --- | --- |
 | 边界请求 | `slub_alloc(0)` 与 `slub_alloc(1025)` 返回 `NULL` | 覆盖大小类查找的两个失败分支 |
 | 不同大小（`slub_test_sizes`） | 8、24、32、64、100、128、512、513、1024 字节，其中 24、100、513 不是 2 的幂；检查非空、16 字节对齐、同时存活的对象两两不重叠 | 检验大小类映射、对齐与 slab 切分是否正确 |
 | 交替释放与复用（`slub_test_reuse`） | 申请 4 个 32 字节对象，释放第 2、4 个，再申请两次，必须依次得到第 4 个、第 2 个 | 检验空闲链表按后进先出复用槽位 |
-| 整页回收（`slub_test_page_reclaim`） | 申请 1024 字节对象后空闲页数减一，释放后恢复 | 检验 `inuse` 归零时归还物理页 |
-| 两层耗尽（`slub_test_memory_exhaustion`） | 先保留一个 1024 字节 slab，再占满剩余全部物理页；此时仍能从已有 slab 分配（`reused_slot`），超过一页的对象数后必须返回 `NULL`；先释放对象和临时占用的页，再检查三个结果 | 区分“物理页耗尽”与“对象槽位耗尽”两层空间不足，并验证测试结束后页分配器状态完全恢复 |
+| 整页回收（`slub_test_page_reclaim`） | 该大小类无现存 slab 时，申请 1024 字节对象后空闲页数减一，释放后恢复 | 检验 `inuse` 归零时归还物理页 |
+| 两层耗尽（`slub_test_memory_exhaustion`） | 先保留一个 1024 字节 slab，再占满其余物理页；确认已有槽仍可复用，并在有限次数内继续申请至 `NULL`；清理后分别断言页耗尽、槽复用、对象耗尽和页数恢复四项结果 | 区分“物理页耗尽”与“对象槽位耗尽”，同时检查失败处理和测试资源清理 |
 
 内核侧调试的观察如图 2 所示：`slub_alloc(1025)` 用 `finish` 返回 `0x0`；`slub_alloc(8)` 返回 `0xffffffffc0347ff0`；耗尽测试结束时 `pages_exhausted = 1`、`objects_exhausted = 1`、`pages_restored = 1`。8 字节请求落在 16 字节类，返回地址可以由布局推出：该类每页容量为 `(4096 − 64) / 16 = 252`，空闲链表按后进先出组织，第一次分配得到最后一个槽位，其页内偏移为 `64 + 251 × 16 = 0xff0`；所在页 `0xffffffffc0347000` 对应物理页 `0x80347000`，正是 `page_init()` 注册的第一个空闲页。
 
