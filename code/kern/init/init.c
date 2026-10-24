@@ -39,6 +39,7 @@ int kern_init(void) {
 
     // grade_backtrace();
     pmm_init();  // init physical memory management
+    //lab2 challenge SLUB integration 2412096
     slub_init(); // init simplified SLUB allocator
     slub_test(); // run SLUB allocator checks
 

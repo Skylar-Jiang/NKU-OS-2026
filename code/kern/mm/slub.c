@@ -3,6 +3,7 @@
 #include <mmu.h>
 #include <memlayout.h>
 
+//lab2 challenge SLUB 2412096
 #define SLUB_ALIGN              16
 #define SLUB_MAGIC              0x534C5542UL
 #define SLUB_CACHE_COUNT        7

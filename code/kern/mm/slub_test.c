@@ -3,6 +3,7 @@
 #include <slub.h>
 #include <stdio.h>
 
+//lab2 challenge SLUB test 2412096
 #define SLUB_TEST_ALIGN 16
 
 static size_t
