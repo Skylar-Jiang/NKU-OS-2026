@@ -1,0 +1,18 @@
+# after (this branch)
+$ riscv64-unknown-elf-objdump -h bin/kernel; nm bin/kernel | grep boot_page_table_sv39
+  0 .text         00001f10  ffffffffc0200000  ffffffffc0200000  00001000  2**2
+  1 .rodata       00001060  ffffffffc0201f10  ffffffffc0201f10  00002f10  2**3
+  2 .srodata.nbase 00000008  ffffffffc0202f70  ffffffffc0202f70  00003f70  2**3
+  3 .data         00003010  ffffffffc0203000  ffffffffc0203000  00004000  2**12
+  4 .sdata        00000018  ffffffffc0206010  ffffffffc0206010  00007010  2**3
+  5 .bss          00000478  ffffffffc0206028  ffffffffc0206028  00007028  2**3
+ffffffffc0205000 D boot_page_table_sv39
+
+# baseline HEAD 056ad6a, same toolchain and DEFS
+  0 .text         00001f30  ffffffffc0200000  ffffffffc0200000  00001000  2**2
+  1 .rodata       000010a0  ffffffffc0201f30  ffffffffc0201f30  00002f30  2**3
+  2 .srodata.nbase 00000008  ffffffffc0202fd0  ffffffffc0202fd0  00003fd0  2**3
+  3 .data         00003010  ffffffffc0203000  ffffffffc0203000  00004000  2**12
+  4 .sdata        00000018  ffffffffc0206010  ffffffffc0206010  00007010  2**3
+  5 .bss          00000478  ffffffffc0206028  ffffffffc0206028  00007028  2**3
+ffffffffc0205000 D boot_page_table_sv39

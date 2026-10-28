@@ -1,0 +1,7 @@
+PASS  build
+PASS  normal run: 10 x '100 ticks', QEMU exited by itself (rc=0)
+PASS  gdb timer flow (35 assertions)
+PASS  gdb isolated dispatch (17 assertions)
+PASS  dispatch labels match IRQ_* codes 0-4, 6-11
+PASS  unknown codes 12 and 16 print the trapframe
+PASS  DEBUG_GRADE: panic after the first '100 ticks'

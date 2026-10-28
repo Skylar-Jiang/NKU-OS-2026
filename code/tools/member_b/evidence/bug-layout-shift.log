@@ -1,0 +1,25 @@
+# first attempt: one case per IRQ_* with corrected labels (reconstructed in a scratch copy)
+$ make grade QEMU=$Q DEFS=-Dsbadaddr=stval
+>>>>>>>>>> here_make>>>>>>>>>>>
+>>>>>>>>>> here_make>>>>>>>>>>>
+<<<<<<<<<<<<<<< here_run_qemu <<<<<<<<<<<<<<<<<<
+try to run qemu
+qemu pid=39038
+<<<<<<<<<<<<<<< here_run_check <<<<<<<<<<<<<<<<<<
+  -check physical_memory_map_information:    OK
+  -check_best_fit:                           WRONG
+   -e !! error: missing 'satp virtual address: 0xffffffffc0205000'
+   !! error: missing 'satp physical address: 0x0000000080205000'
+
+  -check ticks:                              OK
+Total Score: 10/30
+make: *** [Makefile:207: grade] Error 1
+$ objdump -h / nm
+  0 .text         00001f6c  ffffffffc0200000  ffffffffc0200000  00001000  2**2
+  1 .rodata       00001140  ffffffffc0201f70  ffffffffc0201f70  00002f70  2**3
+  2 .srodata.nbase 00000008  ffffffffc02030b0  ffffffffc02030b0  000040b0  2**3
+  3 .data         00003010  ffffffffc0204000  ffffffffc0204000  00005000  2**12
+ffffffffc0206000 D boot_page_table_sv39
+$ grep satp .qemu.out
+satp virtual address: 0xffffffffc0206000
+satp physical address: 0x0000000080206000
