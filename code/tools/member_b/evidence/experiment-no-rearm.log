@@ -1,0 +1,16 @@
+# experiment (scratch copy): interrupt_handler without clock_set_next_event()
+116:            /* clock_set_next_event(); removed for experiment */          // (1) 经 SBI 预约下一次时钟事件，并清除 STIP
+$ timeout 30 make qemu
+++ setup timer interrupts
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+System shutdown after 10 prints.
+exit=0 elapsed=.089917915s
