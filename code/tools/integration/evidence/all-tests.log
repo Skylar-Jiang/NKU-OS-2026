@@ -1,0 +1,63 @@
+RUN compiler.log
+RUN qemu-version.log
+RUN clean.log
+RUN build-default.log
+RUN gdb-timer.log
+RUN make-grade.log
+>>>>>>>>>> here_make>>>>>>>>>>>
+gmake[1]: Warning: File 'obj/libs/readline.d' has modification time 0.015 s in the future
+gmake[1]: warning:  Clock skew detected.  Your build may be incomplete.
+gmake[1]: Entering directory '/mnt/d/NKU-OS-2026/lab3/code' + cc kern/init/entry.S + cc kern/init/init.c + cc kern/libs/stdio.c + cc kern/debug/kdebug.c + cc kern/debug/kmonitor.c + cc kern/debug/panic.c + cc kern/driver/clock.c + cc kern/driver/console.c + cc kern/driver/dtb.c + cc kern/driver/intr.c + cc kern/trap/trap.c + cc kern/trap/trapentry.S + cc kern/mm/best_fit_pmm.c + cc kern/mm/default_pmm.c + cc kern/mm/pmm.c + cc libs/printfmt.c + cc libs/readline.c + cc libs/sbi.c + cc libs/string.c + ld bin/kernel riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img gmake[1]: Leaving directory '/mnt/d/NKU-OS-2026/lab3/code'
+>>>>>>>>>> here_make>>>>>>>>>>>
+<<<<<<<<<<<<<<< here_run_qemu <<<<<<<<<<<<<<<<<<
+try to run qemu
+qemu pid=689760
+<<<<<<<<<<<<<<< here_run_check <<<<<<<<<<<<<<<<<<
+  -check physical_memory_map_information:    OK
+  -check_best_fit:                           OK
+  -check ticks:                              OK
+Total Score: 30/30
+
+RUN build-isolated.log
+RUN gdb-context.log
+RUN memory-64M.log
+RUN memory-256M.log
+{
+  "default_build": "PASS",
+  "gdb_timer": "PASS",
+  "provided_make_grade": "PASS",
+  "isolated_build": "PASS",
+  "gdb_context": "PASS",
+  "memory_64M": "PASS",
+  "memory_256M": "PASS",
+  "scope_and_framework_integrity": "PASS"
+}
+PASS  build
+PASS  normal run: 10 x '100 ticks', QEMU exited by itself (rc=0)
+PASS  gdb timer flow (35 assertions)
+PASS  gdb isolated dispatch (17 assertions)
+PASS  dispatch labels match IRQ_* codes 0-4, 6-11
+PASS  unknown interrupts 12/16 and C instruction-fault fallback print trapframes
+PASS  DEBUG_GRADE: panic after the first '100 ticks'
+MEMBER_C_ALL_PASS
+{
+  "exception_1": "PASS",
+  "exception_2": "PASS",
+  "exception_3": "PASS",
+  "exception_4": "PASS",
+  "fallback_fetch_load": "PASS",
+  "consecutive_exceptions": "PASS",
+  "register_restore": "PASS"
+}
+>>>>>>>>>> here_make>>>>>>>>>>>
+gmake[1]: Entering directory '/mnt/d/NKU-OS-2026/lab3/code' + cc kern/init/entry.S + cc kern/init/init.c + cc kern/libs/stdio.c + cc kern/debug/kdebug.c + cc kern/debug/kmonitor.c + cc kern/debug/panic.c + cc kern/driver/clock.c + cc kern/driver/console.c + cc kern/driver/dtb.c + cc kern/driver/intr.c + cc kern/trap/trap.c + cc kern/trap/trapentry.S + cc kern/mm/best_fit_pmm.c + cc kern/mm/default_pmm.c + cc kern/mm/pmm.c + cc libs/printfmt.c + cc libs/readline.c + cc libs/sbi.c + cc libs/string.c + ld bin/kernel /home/lenovo/riscv-elf-toolchains/bin/riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img gmake[1]: Leaving directory '/mnt/d/NKU-OS-2026/lab3/code'
+>>>>>>>>>> here_make>>>>>>>>>>>
+<<<<<<<<<<<<<<< here_run_qemu <<<<<<<<<<<<<<<<<<
+try to run qemu
+qemu pid=691447
+<<<<<<<<<<<<<<< here_run_check <<<<<<<<<<<<<<<<<<
+  -check physical_memory_map_information:    OK
+  -check_best_fit:                           OK
+  -check ticks:                              OK
+Total Score: 30/30
+LAB3_INTEGRATION_ALL_PASS

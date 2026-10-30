@@ -1,0 +1,14 @@
+$ make grade QEMU=/usr/local/bin/qemu-system-riscv64
+>>>>>>>>>> here_make>>>>>>>>>>>
+gmake[1]: Warning: File 'obj/libs/readline.d' has modification time 0.015 s in the future
+gmake[1]: warning:  Clock skew detected.  Your build may be incomplete.
+gmake[1]: Entering directory '/mnt/d/NKU-OS-2026/lab3/code' + cc kern/init/entry.S + cc kern/init/init.c + cc kern/libs/stdio.c + cc kern/debug/kdebug.c + cc kern/debug/kmonitor.c + cc kern/debug/panic.c + cc kern/driver/clock.c + cc kern/driver/console.c + cc kern/driver/dtb.c + cc kern/driver/intr.c + cc kern/trap/trap.c + cc kern/trap/trapentry.S + cc kern/mm/best_fit_pmm.c + cc kern/mm/default_pmm.c + cc kern/mm/pmm.c + cc libs/printfmt.c + cc libs/readline.c + cc libs/sbi.c + cc libs/string.c + ld bin/kernel riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img gmake[1]: Leaving directory '/mnt/d/NKU-OS-2026/lab3/code'
+>>>>>>>>>> here_make>>>>>>>>>>>
+<<<<<<<<<<<<<<< here_run_qemu <<<<<<<<<<<<<<<<<<
+try to run qemu
+qemu pid=689760
+<<<<<<<<<<<<<<< here_run_check <<<<<<<<<<<<<<<<<<
+  -check physical_memory_map_information:    OK
+  -check_best_fit:                           OK
+  -check ticks:                              OK
+Total Score: 30/30

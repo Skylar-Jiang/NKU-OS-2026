@@ -46,6 +46,22 @@ struct trapframe {
     uintptr_t cause;
 };
 
+/* LAB3 A 2411788 -- detect C/assembly layout drift at build time. */
+_Static_assert(sizeof(struct pushregs) == 32 * sizeof(uintptr_t),
+               "SAVE_ALL requires 32 contiguous GPR slots");
+_Static_assert(__builtin_offsetof(struct trapframe, gpr.sp) == 2 * sizeof(uintptr_t),
+               "the saved original sp must occupy slot 2");
+_Static_assert(__builtin_offsetof(struct trapframe, status) == 32 * sizeof(uintptr_t),
+               "sstatus must occupy slot 32");
+_Static_assert(__builtin_offsetof(struct trapframe, epc) == 33 * sizeof(uintptr_t),
+               "sepc must occupy slot 33");
+_Static_assert(__builtin_offsetof(struct trapframe, badvaddr) == 34 * sizeof(uintptr_t),
+               "stval must occupy slot 34");
+_Static_assert(__builtin_offsetof(struct trapframe, cause) == 35 * sizeof(uintptr_t),
+               "scause must occupy slot 35");
+_Static_assert(sizeof(struct trapframe) == 36 * sizeof(uintptr_t),
+               "SAVE_ALL reserves exactly 36 register-width slots");
+
 void trap(struct trapframe *tf);
 void idt_init(void);
 void print_trapframe(struct trapframe *tf);

@@ -1,0 +1,99 @@
+$ /home/lenovo/riscv-elf-toolchains/bin/riscv64-unknown-elf-gdb -q -nx -batch bin/kernel -x /mnt/d/NKU-OS-2026/lab3/code/tools/member_c/evidence/exceptions.gdb
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc0200b3a: file kern/trap/trap.c, line 145.
+
+Breakpoint 1, exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:145
+145	    switch (tf->cause) {
+CASE1 ENTRY scause=0x3 cause=0x3 sepc=0xffffffffc020009e original_epc=0xffffffffc020009e encoding=0x100073
+Hardware assisted breakpoint 2 at 0xffffffffc0200bb8: file kern/trap/trap.c, line 155.
+Hardware assisted breakpoint 3 at 0xffffffffc0200b70: file kern/trap/trap.c, line 166.
+
+Breakpoint 3, exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:166
+166	            tf->epc += trap_instruction_length(tf->epc); //跳过触发断点的指令
+trap_instruction_length (epc=18446744072637907102) at kern/trap/trap.c:29
+29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b76	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b78	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b7c	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b7e	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b82	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b84 in exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:166
+166	            tf->epc += trap_instruction_length(tf->epc); //跳过触发断点的指令
+0xffffffffc0200b86	182	}
+0xffffffffc0200b88	166	            tf->epc += trap_instruction_length(tf->epc); //跳过触发断点的指令
+167	            break;
+CASE1 original_epc=0xffffffffc020009e modified_epc=0xffffffffc02000a2 delta=0x4 steps=10
+RESULT: PASS CASE1
+Hardware assisted breakpoint 4 at 0xffffffffc0200b3a: file kern/trap/trap.c, line 145.
+
+Breakpoint 4, exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:145
+145	    switch (tf->cause) {
+CASE2 ENTRY scause=0x3 cause=0x3 sepc=0xffffffffc02000a4 original_epc=0xffffffffc02000a4 encoding=0x9002
+Hardware assisted breakpoint 5 at 0xffffffffc0200bb8: file kern/trap/trap.c, line 155.
+Hardware assisted breakpoint 6 at 0xffffffffc0200b70: file kern/trap/trap.c, line 166.
+
+Breakpoint 6, exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:166
+166	            tf->epc += trap_instruction_length(tf->epc); //跳过触发断点的指令
+trap_instruction_length (epc=18446744072637907108) at kern/trap/trap.c:29
+29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b76	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b78	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b7c	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b7e	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200b84 in exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:166
+166	            tf->epc += trap_instruction_length(tf->epc); //跳过触发断点的指令
+0xffffffffc0200b86	182	}
+0xffffffffc0200b88	166	            tf->epc += trap_instruction_length(tf->epc); //跳过触发断点的指令
+167	            break;
+CASE2 original_epc=0xffffffffc02000a4 modified_epc=0xffffffffc02000a6 delta=0x2 steps=9
+RESULT: PASS CASE2
+Hardware assisted breakpoint 7 at 0xffffffffc0200b3a: file kern/trap/trap.c, line 145.
+
+Breakpoint 7, exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:145
+145	    switch (tf->cause) {
+CASE3 ENTRY scause=0x2 cause=0x2 sepc=0xffffffffc02000a8 original_epc=0xffffffffc02000a8 encoding=0x0
+Hardware assisted breakpoint 8 at 0xffffffffc0200bb8: file kern/trap/trap.c, line 155.
+Hardware assisted breakpoint 9 at 0xffffffffc0200b70: file kern/trap/trap.c, line 166.
+
+Breakpoint 8, exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:155
+155	            tf->epc += trap_instruction_length(tf->epc); //跳过触发异常的指令
+trap_instruction_length (epc=18446744072637907112) at kern/trap/trap.c:29
+29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bbe	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bc0	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bc4	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bc6	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bcc in exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:155
+155	            tf->epc += trap_instruction_length(tf->epc); //跳过触发异常的指令
+0xffffffffc0200bce	182	}
+0xffffffffc0200bd0	155	            tf->epc += trap_instruction_length(tf->epc); //跳过触发异常的指令
+156	            break;
+CASE3 original_epc=0xffffffffc02000a8 modified_epc=0xffffffffc02000aa delta=0x2 steps=9
+RESULT: PASS CASE3
+Hardware assisted breakpoint 10 at 0xffffffffc0200b3a: file kern/trap/trap.c, line 145.
+
+Breakpoint 10, exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:145
+145	    switch (tf->cause) {
+CASE4 ENTRY scause=0x2 cause=0x2 sepc=0xffffffffc02000ac original_epc=0xffffffffc02000ac encoding=0x200101b
+Hardware assisted breakpoint 11 at 0xffffffffc0200bb8: file kern/trap/trap.c, line 155.
+Hardware assisted breakpoint 12 at 0xffffffffc0200b70: file kern/trap/trap.c, line 166.
+
+Breakpoint 11, exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:155
+155	            tf->epc += trap_instruction_length(tf->epc); //跳过触发异常的指令
+trap_instruction_length (epc=18446744072637907116) at kern/trap/trap.c:29
+29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bbe	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bc0	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bc4	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bc6	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bca	29	    return ((*instruction & 0x3) == 0x3) ? 4 : 2;
+0xffffffffc0200bcc in exception_handler (tf=0xffffffffc0205ec0) at kern/trap/trap.c:155
+155	            tf->epc += trap_instruction_length(tf->epc); //跳过触发异常的指令
+0xffffffffc0200bce	182	}
+0xffffffffc0200bd0	155	            tf->epc += trap_instruction_length(tf->epc); //跳过触发异常的指令
+156	            break;
+CASE4 original_epc=0xffffffffc02000ac modified_epc=0xffffffffc02000b0 delta=0x4 steps=10
+RESULT: PASS CASE4
+GDB_EXCEPTION_ALL_PASS
+[Inferior 1 (process 1) detached]

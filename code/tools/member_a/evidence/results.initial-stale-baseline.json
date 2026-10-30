@@ -1,0 +1,10 @@
+{
+  "default_build": "PASS",
+  "gdb_timer": "PASS",
+  "provided_make_grade": "PASS",
+  "isolated_build": "PASS",
+  "gdb_context": "PASS",
+  "memory_64M": "PASS",
+  "memory_256M": "PASS",
+  "error": "out-of-scope logic modification kern/driver/clock.c"
+}

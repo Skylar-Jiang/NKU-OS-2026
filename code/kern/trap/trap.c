@@ -8,10 +8,11 @@
 #include <riscv.h>
 #include <stdio.h>
 #include <trap.h>
-#include <sbi.h>          // 2313508
+#include <sbi.h>
 
 static uint32_t print_cnt = 0;
 #define TICK_NUM 100
+#define SHUTDOWN_AFTER 10  // shut down after printing "100 ticks" 10 times
 
 static void print_ticks() {
     cprintf("%d ticks\n", TICK_NUM);
@@ -21,34 +22,20 @@ static void print_ticks() {
 #endif
 }
 
+/* LAB3 C 2412096: 依据实际指令编码判断异常指令长度。 */
 /* RISC-V compressed instructions have low bits other than 0b11. */
 static size_t trap_instruction_length(uintptr_t epc) {
     const volatile uint16_t *instruction = (const volatile uint16_t *)epc;
     return ((*instruction & 0x3) == 0x3) ? 4 : 2;
 }
 
-/* idt_init - initialize IDT to each of the entry points in kern/trap/vectors.S
+/* idt_init - point stvec at the single trap entry __alltraps
+ * (the name is inherited from x86 ucore; RISC-V has no IDT/lidt).
  */
 void idt_init(void) {
-    /* LAB3 YOUR CODE : STEP 2 */
-    /* (1) Where are the entry addrs of each Interrupt Service Routine (ISR)?
-     *     All ISR's entry addrs are stored in __vectors. where is uintptr_t
-     * __vectors[] ?
-     *     __vectors[] is in kern/trap/vector.S which is produced by
-     * tools/vector.c
-     *     (try "make" command in lab3, then you will find vector.S in kern/trap
-     * DIR)
-     *     You can use  "extern uintptr_t __vectors[];" to define this extern
-     * variable which will be used later.
-     * (2) Now you should setup the entries of ISR in Interrupt Description
-     * Table (IDT).
-     *     Can you see idt[256] in this file? Yes, it's IDT! you can use SETGATE
-     * macro to setup each item of IDT
-     * (3) After setup the contents of IDT, you will let CPU know where is the
-     * IDT by using 'lidt' instruction.
-     *     You don't know the meaning of this instruction? just google it! and
-     * check the libs/x86.h to know more.
-     *     Notice: the argument of lidt is idt_pd. try to find it!
+    /* LAB3 A 2411788: STEP 2，安装统一 Trap 入口。 */
+    /* stvec uses Direct mode: __alltraps is 4-byte aligned, so its low two
+     * bits (MODE) are 0 and every interrupt/exception enters __alltraps.
      */
 
     extern void __alltraps(void);
@@ -108,23 +95,19 @@ void print_regs(struct pushregs *gpr) {
     cprintf("  t6       0x%08x\n", gpr->t6);
 }
 
+/* LAB3 B 2413507: 按中断原因输出特权级和类型。 */
+static const char *const irq_level[] = {"User", "Supervisor", "Hypervisor", "Machine"};
+static const char *const irq_type[] = {"software", "timer", "external"};
+
 void interrupt_handler(struct trapframe *tf) {
+    // scause bit 63 is the interrupt flag; clear it to get the cause code
     intptr_t cause = (tf->cause << 1) >> 1;
     switch (cause) {
-        case IRQ_U_SOFT:
-            cprintf("User software interrupt\n");
-            break;
-        case IRQ_S_SOFT:
-            cprintf("Supervisor software interrupt\n");
-            break;
-        case IRQ_H_SOFT:
-            cprintf("Hypervisor software interrupt\n");
-            break;
-        case IRQ_M_SOFT:
-            cprintf("Machine software interrupt\n");
-            break;
-        case IRQ_U_TIMER:
-            cprintf("User Timer interrupt\n");
+        case IRQ_U_SOFT: case IRQ_S_SOFT: case IRQ_H_SOFT: case IRQ_M_SOFT:
+        case IRQ_U_TIMER:                 case IRQ_H_TIMER: case IRQ_M_TIMER:
+        case IRQ_U_EXT:  case IRQ_S_EXT:  case IRQ_H_EXT:  case IRQ_M_EXT:
+            // codes 0-11 are 4 * type + privilege level (U/S/H/M)
+            cprintf("%s %s interrupt\n", irq_level[cause & 3], irq_type[cause >> 2]);
             break;
         case IRQ_S_TIMER:
             // "All bits besides SSIP and USIP in the sip register are
@@ -132,42 +115,24 @@ void interrupt_handler(struct trapframe *tf) {
             // In fact, Call sbi_set_timer will clear STIP, or you can clear it
             // directly.
             // cprintf("Supervisor timer interrupt\n");
-             /* LAB3 EXERCISE1   YOUR CODE : 2313508 */
+            /* LAB3 EXERCISE1 B 2413507: 时钟事件、计数和关机。 */
             /*(1)设置下次时钟中断- clock_set_next_event()
              *(2)计数器（ticks）加一
              *(3)当计数器加到100的时候，我们会输出一个`100ticks`表示我们触发了100次时钟中断，同时打印次数（num）加一
             * (4)判断打印次数，当打印次数为10时，调用<sbi.h>中的关机函数关机
             */
-            /* LAB3 EXERCISE1 完整实现 */
-            clock_set_next_event();          // (1) 设置下一次时钟中断
-            ticks++;                         // (2) 计数器 +1
+            clock_set_next_event();          // (1) 经 SBI 预约下一次时钟事件，并清除 STIP
+            ticks++;                         // (2) 每次时钟中断计数一次
 
             if (ticks % TICK_NUM == 0) {     // (3) 每 100 次打印一次
                 print_ticks();
                 print_cnt++;
-                if (print_cnt >= 10) {       // (4) 打印 10 行后关机
-                    cprintf("System shutdown after 10 prints.\n");
+                if (print_cnt >= SHUTDOWN_AFTER) {  // (4) 打印 10 行后关机
+                    cprintf("System shutdown after %d prints.\n", SHUTDOWN_AFTER);
                     sbi_shutdown();
                 }
             }
-            break;
-        case IRQ_H_TIMER:
-            cprintf("Hypervisor software interrupt\n");
-            break;
-        case IRQ_M_TIMER:
-            cprintf("Machine software interrupt\n");
-            break;
-        case IRQ_U_EXT:
-            cprintf("User software interrupt\n");
-            break;
-        case IRQ_S_EXT:
-            cprintf("Supervisor external interrupt\n");
-            break;
-        case IRQ_H_EXT:
-            cprintf("Hypervisor software interrupt\n");
-            break;
-        case IRQ_M_EXT:
-            cprintf("Machine software interrupt\n");
+            // 中断的 sepc 指向被打断的指令，不修改 tf->epc
             break;
         default:
             print_trapframe(tf);
@@ -175,11 +140,12 @@ void interrupt_handler(struct trapframe *tf) {
     }
 }
 
+/* LAB3 C 2412096: 异常分类、返回地址调整和兜底输出。 */
 void exception_handler(struct trapframe *tf) {
     switch (tf->cause) {
         case CAUSE_ILLEGAL_INSTRUCTION:
              // 非法指令异常处理
-             /* LAB3 CHALLENGE3   YOUR CODE :  2313508*/
+             /* LAB3 C 2412096: 非法指令异常处理。 */
             /*(1)输出指令异常类型（ Illegal instruction）
              *(2)输出异常指令地址
              *(3)更新 tf->epc寄存器
@@ -190,7 +156,7 @@ void exception_handler(struct trapframe *tf) {
             break;
         case CAUSE_BREAKPOINT:
             //断点异常处理
-            /* LAB3 CHALLLENGE3   YOUR CODE :2313508  */
+            /* LAB3 C 2412096: 断点异常处理。 */
             /*(1)输出指令异常类型（ breakpoint）
              *(2)输出异常指令地址
              *(3)更新 tf->epc寄存器
@@ -229,7 +195,7 @@ static inline void trap_dispatch(struct trapframe *tf) {
  * trap - handles or dispatches an exception/interrupt. if and when trap()
  * returns,
  * the code in kern/trap/trapentry.S restores the old CPU state saved in the
- * trapframe and then uses the iret instruction to return from the exception.
+ * trapframe and then uses the sret instruction to return from the trap.
  * */
 void trap(struct trapframe *tf) {
     // dispatch based on what type of trap occurred

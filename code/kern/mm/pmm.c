@@ -35,7 +35,8 @@ static void check_alloc_page(void);
 
 // init_pmm_manager - initialize a pmm_manager instance
 static void init_pmm_manager(void) {
-    pmm_manager = &default_pmm_manager;
+    /* LAB3 A 2411788 -- continue using the Lab2 Best-Fit allocator. */
+    pmm_manager = &best_fit_pmm_manager;
     cprintf("memory management: %s\n", pmm_manager->name);
     pmm_manager->init();
 }
@@ -82,12 +83,16 @@ size_t nr_free_pages(void) {
 }
 
 static void page_init(void) {
+    /* LAB3 A 2411788 -- Page Init from origin/lab2 at 8b06753. */
+    extern char end[];
     va_pa_offset = PHYSICAL_MEMORY_OFFSET;
 
     uint64_t mem_begin = get_memory_base();
     uint64_t mem_size  = get_memory_size();
-    if (mem_size == 0) {
-        panic("DTB memory info not available");
+    if (mem_size == 0 || mem_begin < DRAM_BASE ||
+        mem_begin > KERNEL_BEGIN_PADDR ||
+        mem_size > ~(uint64_t)0 - mem_begin) {
+        panic("page_init: invalid DTB memory range");
     }
     uint64_t mem_end   = mem_begin + mem_size;
 
@@ -95,27 +100,33 @@ static void page_init(void) {
     cprintf("  memory: 0x%016lx, [0x%016lx, 0x%016lx].\n", mem_size, mem_begin,
             mem_end - 1);
 
-    uint64_t maxpa = mem_end;
-
-    if (maxpa > KERNTOP) {
-        maxpa = KERNTOP;
+    uintptr_t maxpa = mem_end < PHYSICAL_MEMORY_END
+                          ? mem_end : PHYSICAL_MEMORY_END;
+    maxpa = ROUNDDOWN(maxpa, PGSIZE);
+    uintptr_t kernel_end = PADDR((uintptr_t)end);
+    if (kernel_end < KERNEL_BEGIN_PADDR || kernel_end >= maxpa) {
+        panic("page_init: memory does not contain the kernel");
     }
 
-    extern char end[];
-
+    /* npage is the exclusive physical PPN bound, not the descriptor count. */
     npage = maxpa / PGSIZE;
-    pages = (struct Page *)ROUNDUP((void *)end, PGSIZE);
-
-    for (size_t i = 0; i < npage - nbase; i++) {
-        SetPageReserved(pages + i);
+    size_t count = npage - nbase;
+    uintptr_t pages_pa = ROUNDUP(kernel_end, PGSIZE);
+    if (pages_pa > maxpa || count > (maxpa - pages_pa) / sizeof(struct Page)) {
+        panic("page_init: no room for page descriptors");
+    }
+    pages = (struct Page *)(pages_pa + va_pa_offset);
+    for (size_t i = 0; i < count; i++) {
+        pages[i].flags = 0;
+        SetPageReserved(&pages[i]);
+        pages[i].property = 0;
+        set_page_ref(&pages[i], 0);
+        list_init(&pages[i].page_link);
     }
 
-    uintptr_t freemem = PADDR((uintptr_t)pages + sizeof(struct Page) * (npage - nbase));
-
-    mem_begin = ROUNDUP(freemem, PGSIZE);
-    mem_end = ROUNDDOWN(mem_end, PGSIZE);
-    if (freemem < mem_end) {
-        init_memmap(pa2page(mem_begin), (mem_end - mem_begin) / PGSIZE);
+    uintptr_t free_start = ROUNDUP(pages_pa + count * sizeof(struct Page), PGSIZE);
+    if (free_start < maxpa) {
+        init_memmap(pa2page(free_start), (maxpa - free_start) / PGSIZE);
     }
 }
 

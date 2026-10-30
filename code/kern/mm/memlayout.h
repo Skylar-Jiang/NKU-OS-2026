@@ -10,6 +10,8 @@
 #define KERNTOP             (KERNBASE + KMEMSIZE) // 0x88000000对应的虚拟地址
 
 #define PHYSICAL_MEMORY_OFFSET      0xFFFFFFFF40000000
+#define PHYSICAL_MEMORY_END         0x88000000
+#define KERNEL_BEGIN_PADDR           0x80200000
 
 
 #define KSTACKPAGE          2                           // # of pages in kernel stack

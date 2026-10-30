@@ -1,0 +1,6 @@
+$ /home/lenovo/riscv-elf-toolchains/bin/riscv64-unknown-elf-gdb -q -nx -batch bin/kernel -x /mnt/d/Documents/ChatGPT/OS/lab3-integration-20261030/candidate/code/tools/member_c/evidence/exceptions.gdb
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+/mnt/d/Documents/ChatGPT/OS/lab3-integration-20261030/candidate/code/tools/member_c/evidence/exceptions.gdb:43: Error in sourced command file:
+Scripting in the "Python" language is not supported in this copy of GDB.
+[Inferior 1 (process 1) detached]

@@ -1,0 +1,7 @@
+$ make QEMU=/home/jianglinjing/src/qemu-4.1.1/build-debug/riscv64-softmmu/qemu-system-riscv64   # no DEFS workaround, GCC 15.1 / binutils
+GNU assembler (GNU Binutils) 2.45
+kern/trap/trapentry.S: Assembler messages:
+kern/trap/trapentry.S:47: Error: unknown CSR `sbadaddr'
+kern/trap/trapentry.S:110:  Info: macro invoked from here
+make: *** [Makefile:118: obj/kern/trap/trapentry.o] Error 1
+exit=2

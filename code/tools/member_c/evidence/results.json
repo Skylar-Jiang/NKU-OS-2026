@@ -1,0 +1,9 @@
+{
+  "exception_1": "PASS",
+  "exception_2": "PASS",
+  "exception_3": "PASS",
+  "exception_4": "PASS",
+  "fallback_fetch_load": "PASS",
+  "consecutive_exceptions": "PASS",
+  "register_restore": "PASS"
+}

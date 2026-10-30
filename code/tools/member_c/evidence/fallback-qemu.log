@@ -1,0 +1,137 @@
+$ /usr/local/bin/qemu-system-riscv64 -machine virt -nographic -bios default -device loader,file=bin/ucore.img,addr=0x80200000
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+DTB Init
+HartID: 0
+DTB Address: 0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000008000000 (128 MB)
+  End:  0x0000000087ffffff
+DTB init completed
+(THU.CST) os is loading ...
+Special kernel symbols:
+  entry  0xffffffffc0200054 (virtual)
+  etext  0xffffffffc0202024 (virtual)
+  edata  0xffffffffc0207028 (virtual)
+  end    0xffffffffc02074a0 (virtual)
+Kernel executable memory footprint: 30KB
+memory management: best_fit_pmm_manager
+physcial memory map:
+  memory: 0x0000000008000000, [0x0000000080000000, 0x0000000087ffffff].
+check_alloc_page() succeeded!
+satp virtual address: 0xffffffffc0206000
+satp physical address: 0x0000000080206000
+[LAB3-FALLBACK-TEST] begin
+[LAB3-FALLBACK-TEST] fetch-fault begin: expect trapframe output
+trapframe at 0xffffffffc0205ea0
+  zero     0x00000000
+  ra       0x00000000
+  sp       0x00000000
+  gp       0x00000000
+  tp       0x00000000
+  t0       0x00000000
+  t1       0x00000000
+  t2       0x00000000
+  s0       0x00000000
+  s1       0x00000000
+  a0       0x00000000
+  a1       0x00000000
+  a2       0x00000000
+  a3       0x00000000
+  a4       0x00000000
+  a5       0x00000000
+  a6       0x00000000
+  a7       0x00000000
+  s2       0x00000000
+  s3       0x00000000
+  s4       0x00000000
+  s5       0x00000000
+  s6       0x00000000
+  s7       0x00000000
+  s8       0x00000000
+  s9       0x00000000
+  s10      0x00000000
+  s11      0x00000000
+  t3       0x00000000
+  t4       0x00000000
+  t5       0x00000000
+  t6       0x00000000
+  status   0x00000000
+  epc      0xc0204000
+  badvaddr 0x40000000
+  cause    0x00000001
+[LAB3-FALLBACK-TEST] fetch-fault epc before=0xffffffffc0204000 after=0xffffffffc0204000
+[LAB3-FALLBACK-TEST] fetch-fault PASS epc unchanged
+[LAB3-FALLBACK-TEST] load-fault begin: expect trapframe output
+trapframe at 0xffffffffc0205ea0
+  zero     0x00000000
+  ra       0x00000000
+  sp       0x00000000
+  gp       0x00000000
+  tp       0x00000000
+  t0       0x00000000
+  t1       0x00000000
+  t2       0x00000000
+  s0       0x00000000
+  s1       0x00000000
+  a0       0x00000000
+  a1       0x00000000
+  a2       0x00000000
+  a3       0x00000000
+  a4       0x00000000
+  a5       0x00000000
+  a6       0x00000000
+  a7       0x00000000
+  s2       0x00000000
+  s3       0x00000000
+  s4       0x00000000
+  s5       0x00000000
+  s6       0x00000000
+  s7       0x00000000
+  s8       0x00000000
+  s9       0x00000000
+  s10      0x00000000
+  s11      0x00000000
+  t3       0x00000000
+  t4       0x00000000
+  t5       0x00000000
+  t6       0x00000000
+  status   0x00000000
+  epc      0xc0204000
+  badvaddr 0x8ffff000
+  cause    0x00000005
+[LAB3-FALLBACK-TEST] load-fault epc before=0xffffffffc0204000 after=0xffffffffc0204000
+[LAB3-FALLBACK-TEST] load-fault PASS epc unchanged
+[LAB3-FALLBACK-TEST] all cases passed
+++ setup timer interrupts
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+System shutdown after 10 prints.

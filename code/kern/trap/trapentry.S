@@ -1,5 +1,6 @@
 #include <riscv.h>
 
+    # LAB3 A 2411788: 保存通用寄存器和 CSR 到 trapframe。
     .macro SAVE_ALL
 
     csrw sscratch, sp
@@ -54,15 +55,20 @@
     STORE s4, 35*REGBYTES(sp)
     .endm
 
+    # LAB3 A 2411788: 恢复 CSR 和通用寄存器，最后恢复 sp。
     .macro RESTORE_ALL
 
+    # LAB3 EXERCISE1 : 2411788
+    # Offsets must match SAVE_ALL and struct trapframe.
+    # Restore the handler-updated epc, not a locally computed return address.
     LOAD s1, 32*REGBYTES(sp)
     LOAD s2, 33*REGBYTES(sp)
 
     csrw sstatus, s1
     csrw sepc, s2
 
-    # restore x registers
+    # s1/s2 have finished carrying the CSR values and can now be restored.
+    # x0 is hard-wired to zero; badvaddr/cause are diagnostic snapshots.
     LOAD x1, 1*REGBYTES(sp)
     LOAD x3, 3*REGBYTES(sp)
     LOAD x4, 4*REGBYTES(sp)
@@ -93,21 +99,30 @@
     LOAD x29, 29*REGBYTES(sp)
     LOAD x30, 30*REGBYTES(sp)
     LOAD x31, 31*REGBYTES(sp)
-    # restore sp last
+    # SAVE_ALL stored the pre-Trap sp through sscratch in slot 2.
+    # Restore it last: every preceding load still addresses the Trap frame.
     LOAD x2, 2*REGBYTES(sp)
     .endm
 
+    # LAB3 A 2411788: 将 trapframe 传给 C 层并通过 sret 返回。
     .globl __alltraps
-    .align(2)
+    .type __alltraps, @function
+    .align 2
 __alltraps:
+    # LAB3 EXERCISE1 : 2411788
     SAVE_ALL
 
-    move  a0, sp
-    jal trap
+    # RV64: 36 slots * 8 bytes = 288 bytes, preserving 16-byte alignment.
+    # a0 is the first C argument; call overwrites ra only after SAVE_ALL.
+    mv a0, sp
+    call trap
     # sp should be the same as before "jal trap"
 
     .globl __trapret
+    .type __trapret, @function
 __trapret:
     RESTORE_ALL
     # return from supervisor call
     sret
+    .size __trapret, .-__trapret
+    .size __alltraps, .-__alltraps

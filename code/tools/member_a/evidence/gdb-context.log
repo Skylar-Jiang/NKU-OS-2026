@@ -1,0 +1,92 @@
+$ /home/lenovo/riscv-elf-toolchains/bin/riscv64-unknown-elf-gdb -q -nx -batch bin/kernel -x /mnt/d/NKU-OS-2026/lab3/code/tools/member_a/evidence/context.gdb
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc0200432: file kern/debug/member_a_context.S, line 28.
+
+Breakpoint 1, 0xffffffffc0200432 in lab3_a_context_probe () at kern/debug/member_a_context.S:28
+28	    li x\reg, 0x100 + \reg
+=== BEFORE EXPLICIT 32-BIT EBREAK ===
+=> 0xffffffffc0200432 <lab3_a_context_probe+162>:	ebreak
+Hardware assisted breakpoint 2 at 0xffffffffc0201aa0: file kern/trap/trapentry.S, line 113.
+
+Breakpoint 2, __alltraps () at kern/trap/trapentry.S:113
+113	    SAVE_ALL
+=== HARDWARE TRAP ENTRY ===
+pc             0xffffffffc0201aa0	0xffffffffc0201aa0 <__alltraps>
+sp             0xffffffffc0206cf0	0xffffffffc0206cf0
+sstatus        0x8000000000006100	-9223372036854750976
+sepc           0xffffffffc0200432	-1071643598
+scause         0x3	3
+Hardware assisted breakpoint 3 at 0xffffffffc0201a94: file kern/trap/trap.c, line 185.
+
+Breakpoint 3, trap_dispatch (tf=0xffffffffc0206bd0) at kern/trap/trap.c:185
+185	    if ((intptr_t)tf->cause < 0) {
+=== C TRAP FRAME ===
+$1 = 0xffffffffc0206bd0
+$2 = 288
+$3 = {
+  gpr = {
+    zero = 0x0,
+    ra = 0x101,
+    sp = 0xffffffffc0206cf0,
+    gp = 0x103,
+    tp = 0x104,
+    t0 = 0x105,
+    t1 = 0x106,
+    t2 = 0x107,
+    s0 = 0x108,
+    s1 = 0x109,
+    a0 = 0x10a,
+    a1 = 0x10b,
+    a2 = 0x10c,
+    a3 = 0x10d,
+    a4 = 0x10e,
+    a5 = 0x10f,
+    a6 = 0x110,
+    a7 = 0x111,
+    s2 = 0x112,
+    s3 = 0x113,
+    s4 = 0x114,
+    s5 = 0x115,
+    s6 = 0x116,
+    s7 = 0x117,
+    s8 = 0x118,
+    s9 = 0x119,
+    s10 = 0x11a,
+    s11 = 0x11b,
+    t3 = 0x11c,
+    t4 = 0x11d,
+    t5 = 0x11e,
+    t6 = 0x11f
+  },
+  status = 0x8000000000006100,
+  epc = 0xffffffffc0200432,
+  badvaddr = 0x0,
+  cause = 0x3
+}
+Hardware assisted breakpoint 4 at 0xffffffffc0201b08: file kern/trap/trapentry.S, line 124.
+
+Breakpoint 4, __trapret () at kern/trap/trapentry.S:124
+124	    RESTORE_ALL
+=== BEFORE RESTORE_ALL ===
+pc             0xffffffffc0201b08	0xffffffffc0201b08 <__trapret>
+sp             0xffffffffc0206bd0	0xffffffffc0206bd0
+sstatus        0x8000000000006100	-9223372036854750976
+sepc           0xffffffffc0200432	-1071643598
+$4 = 0xffffffffc0200436
+Poison all 30 writable GPRs except SP before RESTORE_ALL.
+Hardware assisted breakpoint 5 at 0xffffffffc0200436: file kern/debug/member_a_context.S, line 37.
+
+Breakpoint 5, lab3_a_context_probe () at kern/debug/member_a_context.S:37
+37	    STORE x\reg, \reg * REGBYTES(sp)
+=== AFTER SRET ===
+pc             0xffffffffc0200436	0xffffffffc0200436 <lab3_a_context_probe+166>
+sp             0xffffffffc0206cf0	0xffffffffc0206cf0
+sstatus        0x8000000000006000	-9223372036854751232
+sepc           0xffffffffc0200436	-1071643594
+Hardware assisted breakpoint 6 at 0xffffffffc0200e5c: file kern/debug/member_a_tests.c, line 229.
+
+Breakpoint 6, lab3_a_test_done () at kern/debug/member_a_tests.c:229
+229	    cprintf("LAB3_A_ALL_TESTS_PASS\n");
+GDB_CONTEXT_ALL_PASS
+[Inferior 1 (process 1) detached]

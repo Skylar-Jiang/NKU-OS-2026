@@ -1,0 +1,36 @@
+{
+  "branch": "lab3",
+  "A_source_commit": "056ad6a3043e2bd1c87daa3e4607567745ae2f1b",
+  "B_source_commit": "8a914e5e32afaf84212001eefc2401a43ae5d877",
+  "formal_exit": 0,
+  "make_grade": "30/30",
+  "A": {
+    "default_build": "PASS",
+    "gdb_timer": "PASS",
+    "provided_make_grade": "PASS",
+    "isolated_build": "PASS",
+    "gdb_context": "PASS",
+    "memory_64M": "PASS",
+    "memory_256M": "PASS",
+    "scope_and_framework_integrity": "PASS"
+  },
+  "B": {
+    "timer_assertions": 35,
+    "dispatch_assertions": 17,
+    "normal_clock_outputs": 10
+  },
+  "C": {
+    "exception_1": "PASS",
+    "exception_2": "PASS",
+    "exception_3": "PASS",
+    "exception_4": "PASS",
+    "fallback_fetch_load": "PASS",
+    "consecutive_exceptions": "PASS",
+    "register_restore": "PASS"
+  },
+  "prompts": {
+    "A": 2,
+    "B": 6,
+    "C": 5
+  }
+}

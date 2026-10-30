@@ -1,0 +1,5 @@
+<<<<<<<<<<<<<<< here_run_check <<<<<<<<<<<<<<<<<<
+  -check physical_memory_map_information:    OK
+  -check_best_fit:                           OK
+  -check ticks:                              OK
+Total Score: 30/30

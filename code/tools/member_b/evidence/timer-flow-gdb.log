@@ -1,0 +1,159 @@
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc0200054: file kern/init/init.c, line 19.
+
+Breakpoint 1, kern_init () at kern/init/init.c:19
+19	    memset(edata, 0, end - edata);
+
+=== 1. kern_init entry (before idt_init) ===
+$1 = 0x80200000
+$2 = 0x0
+$3 = 0x8000000000006000
+Hardware assisted breakpoint 2 at 0xffffffffc020173e: file kern/mm/pmm.c, line 39.
+
+Breakpoint 2, pmm_init () at kern/mm/pmm.c:140
+140	    init_pmm_manager();
+
+=== 2. after idt_init (stopped at pmm_init) ===
+$4 = 0xffffffffc0200b40
+__alltraps in section .text
+PASS: "stvec = &__alltraps"
+PASS: "stvec MODE = Direct (low 2 bits 0)"
+PASS: "sscratch = 0 (trap from kernel)"
+Hardware assisted breakpoint 3 at 0xffffffffc02003e2: file kern/driver/clock.c, line 38.
+
+Breakpoint 3, clock_init () at kern/driver/clock.c:38
+38	    set_csr(sie, MIP_STIP);
+
+=== 3. before clock_init ===
+$5 = 0x0
+$6 = 0x8000000000006000
+PASS: "sie.STIE = 0 before clock_init"
+PASS: "sstatus.SIE = 0 before intr_enable"
+Hardware assisted breakpoint 4 at 0xffffffffc0200778: file kern/driver/intr.c, line 5.
+
+Breakpoint 4, intr_enable () at kern/driver/intr.c:5
+5	void intr_enable(void) { set_csr(sstatus, SSTATUS_SIE); }
+
+=== 4. after clock_init, before intr_enable ===
+$7 = 0x20
+$8 = 0x8000000000006000
+$9 = 0
+PASS: "clock_init set sie.STIE (bit 5)"
+PASS: "sstatus.SIE still 0 before intr_enable"
+PASS: "ticks = 0 after clock_init"
+kern_init () at kern/init/init.c:39
+39	    while (1)
+
+=== 5. after intr_enable returns ===
+$10 = 0x8000000000006002
+PASS: "intr_enable set sstatus.SIE"
+PASS: "intr_enable changed no other sstatus bit"
+
+=== 6. first observed timer interrupt: hardware entry ===
+Hardware assisted breakpoint 5 at 0xffffffffc0200b40: file kern/trap/trapentry.S, line 113.
+
+Breakpoint 5, __alltraps () at kern/trap/trapentry.S:113
+113	    SAVE_ALL
+pc             0xffffffffc0200b40	0xffffffffc0200b40 <__alltraps>
+sstatus        0x8000000000006120	-9223372036854750944
+sepc           0xffffffffc0200098	-1071644520
+scause         0x8000000000000005	-9223372036854775803
+kern_init + 68 in section .text
+PASS: "scause bit 63 = 1 (interrupt)"
+PASS: "scause code = 5 (IRQ_S_TIMER)"
+PASS: "hardware cleared sstatus.SIE on trap entry"
+PASS: "sstatus.SPIE = 1 (SIE was 1 before trap)"
+PASS: "sstatus.SPP = 1 (trap came from S-mode)"
+PASS: "sepc = idle loop in kern_init"
+Hardware assisted breakpoint 6 at 0xffffffffc0200b34: file kern/trap/trap.c, line 185.
+
+Breakpoint 6, trap (tf=0xffffffffc0204ed0) at kern/trap/trap.c:202
+202	    trap_dispatch(tf);
+
+=== 7. trap(tf) ===
+$11 = 0x8000000000000005
+$12 = 0xffffffffc0200098
+PASS: "tf->cause = scause"
+PASS: "tf->epc = sepc"
+Hardware assisted breakpoint 7 at 0xffffffffc02009c6: interrupt_handler. (2 locations)
+
+Breakpoint 7.1, interrupt_handler (tf=0xffffffffc0204ed0) at kern/trap/trap.c:104
+104	    intptr_t cause = (tf->cause << 1) >> 1;
+
+=== 8. interrupt_handler(tf) ===
+#0  interrupt_handler (tf=0xffffffffc0204ed0) at kern/trap/trap.c:104
+#1  0xffffffffc0200ba8 in __alltraps () at kern/trap/trapentry.S:118
+Backtrace stopped: frame did not save the PC
+PASS: "same trapframe passed to interrupt_handler"
+PASS: "ticks unchanged since observed hardware entry"
+Hardware assisted breakpoint 8 at 0xffffffffc0200ba8: file kern/trap/trapentry.S, line 124.
+
+Breakpoint 8, __trapret () at kern/trap/trapentry.S:124
+124	    RESTORE_ALL
+
+=== 9. __trapret (handler returned) ===
+$13 = 1
+$14 = 0xffffffffc0200098
+PASS: "ticks incremented exactly once"
+PASS: "timer handler did not modify tf->epc"
+Hardware assisted breakpoint 9 at 0xffffffffc0200098: file kern/init/init.c, line 39.
+
+Breakpoint 9, kern_init () at kern/init/init.c:39
+39	    while (1)
+
+=== 10. after sret ===
+pc             0xffffffffc0200098	0xffffffffc0200098 <kern_init+68>
+sstatus        0x8000000000006002	-9223372036854751230
+PASS: "sret resumed at the interrupted instruction"
+PASS: "sret restored sstatus.SIE = 1"
+
+=== 11. consecutive interrupts ===
+Hardware assisted breakpoint 10 at 0xffffffffc0200ba8: file kern/trap/trapentry.S, line 124.
+
+Breakpoint 10, __trapret () at kern/trap/trapentry.S:124
+124	    RESTORE_ALL
+interrupt #2: ticks=2 scause=0x8000000000000005 sepc=0xffffffffc0200098
+PASS: "ticks follows interrupt count"
+PASS: "still a supervisor timer interrupt"
+Hardware assisted breakpoint 11 at 0xffffffffc0200ba8: file kern/trap/trapentry.S, line 124.
+
+Breakpoint 11, __trapret () at kern/trap/trapentry.S:124
+124	    RESTORE_ALL
+interrupt #3: ticks=3 scause=0x8000000000000005 sepc=0xffffffffc0200098
+PASS: "ticks follows interrupt count"
+PASS: "still a supervisor timer interrupt"
+Hardware assisted breakpoint 12 at 0xffffffffc0200ba8: file kern/trap/trapentry.S, line 124.
+
+Breakpoint 12, __trapret () at kern/trap/trapentry.S:124
+124	    RESTORE_ALL
+interrupt #4: ticks=4 scause=0x8000000000000005 sepc=0xffffffffc0200098
+PASS: "ticks follows interrupt count"
+PASS: "still a supervisor timer interrupt"
+Hardware assisted breakpoint 13 at 0xffffffffc0200ba8: file kern/trap/trapentry.S, line 124.
+
+Breakpoint 13, __trapret () at kern/trap/trapentry.S:124
+124	    RESTORE_ALL
+interrupt #5: ticks=5 scause=0x8000000000000005 sepc=0xffffffffc0200098
+PASS: "ticks follows interrupt count"
+PASS: "still a supervisor timer interrupt"
+Hardware assisted breakpoint 14 at 0xffffffffc0200ba8: file kern/trap/trapentry.S, line 124.
+
+Breakpoint 14, __trapret () at kern/trap/trapentry.S:124
+124	    RESTORE_ALL
+interrupt #6: ticks=6 scause=0x8000000000000005 sepc=0xffffffffc0200098
+PASS: "ticks follows interrupt count"
+PASS: "still a supervisor timer interrupt"
+
+=== 12. 100th interrupt prints "100 ticks" ===
+Hardware assisted breakpoint 15 at 0xffffffffc0200a5a: file kern/trap/trap.c, line 18.
+
+Breakpoint 15, print_ticks () at kern/trap/trap.c:18
+18	    cprintf("%d ticks\n", TICK_NUM);
+$15 = 100
+#0  print_ticks () at kern/trap/trap.c:18
+#1  interrupt_handler (tf=<optimized out>) at kern/trap/trap.c:128
+#2  interrupt_handler (tf=<optimized out>) at kern/trap/trap.c:102
+PASS: "print_ticks reached at ticks = 100"
+GDB_TIMER_FLOW_ALL_PASS
+[Inferior 1 (process 1) killed]

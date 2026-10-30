@@ -1,0 +1,58 @@
+$ /usr/local/bin/qemu-system-riscv64 -machine virt -m 64M -nographic -bios default -device loader,file=bin/ucore.img,addr=0x80200000
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+DTB Init
+HartID: 0
+DTB Address: 0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000004000000 (64 MB)
+  End:  0x0000000083ffffff
+DTB init completed
+(THU.CST) os is loading ...
+Special kernel symbols:
+  entry  0xffffffffc0200054 (virtual)
+  etext  0xffffffffc0202eac (virtual)
+  edata  0xffffffffc0208028 (virtual)
+  end    0xffffffffc0208ee0 (virtual)
+Kernel executable memory footprint: 36KB
+A_ALLOC: initialization/order/exact/tie/split/fragmentation PASS
+A_ALLOC: empty/no-neighbour/left/right/both coalescing PASS
+A_ALLOC: 3000 deterministic operations vs bitmap oracle PASS
+memory management: best_fit_pmm_manager
+physcial memory map:
+  memory: 0x0000000004000000, [0x0000000080000000, 0x0000000083ffffff].
+check_alloc_page() succeeded!
+satp virtual address: 0xffffffffc0207000
+satp physical address: 0x0000000080207000
+A_PAGE_INIT: managed_end=0x0000000084000000 free_start=0x00000000802a9000 pages=15703 PASS
+A_IRQ: do-while macro and alloc/free preserve prior SIE=0/1 PASS
+Exception: Breakpoint
+  Bad instruction address: 0xffffffffc0200432
+A_CONTEXT: 32 GPR slots/original SP/sret status round 1 PASS
+Exception: Breakpoint
+  Bad instruction address: 0xffffffffc0200432
+A_CONTEXT: 32 GPR slots/original SP/sret status round 2 PASS
+Exception: Breakpoint
+  Bad instruction address: 0xffffffffc0200432
+A_CONTEXT: 32 GPR slots/original SP/sret status round 3 PASS
+LAB3_A_ALL_TESTS_PASS

@@ -1,0 +1,39 @@
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc0200778: file kern/driver/intr.c, line 5.
+
+Breakpoint 1, intr_enable () at kern/driver/intr.c:5
+5	void intr_enable(void) { set_csr(sstatus, SSTATUS_SIE); }
+PASS: "sstatus.SIE = 0 during the isolated calls"
+PASS: "fake trapframe is >4 KB below sp"
+call trap(tf) with tf->cause = 0x8000000000000000
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x8000000000000001
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x8000000000000002
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x8000000000000003
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x8000000000000004
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x8000000000000006
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x8000000000000007
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x8000000000000008
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x8000000000000009
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x800000000000000a
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x800000000000000b
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x800000000000000c
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x8000000000000010
+PASS: "tf->epc unchanged"
+call trap(tf) with tf->cause = 0x1
+PASS: "tf->epc unchanged"
+PASS: "no isolated call touched ticks"
+GDB_DISPATCH_ALL_PASS
+[Inferior 1 (process 1) killed]
