@@ -26,14 +26,6 @@ sh tools/run_integration.sh
 
 测试日志分别保存在 `tools/member_a/evidence/`、`tools/member_b/evidence/` 和 `tools/member_c/evidence/`。
 
-## 整合来源
-
-- A：`Skylar-Jiang/NKU-OS-2026` 的 `lab3`，提交 `056ad6a3043e2bd1c87daa3e4607567745ae2f1b`。
-- B：同仓库 `feature/timer-interrupt`，提交 `8a914e5e32afaf84212001eefc2401a43ae5d877`。
-- C：本地已经完成的异常处理、三个宏控制的临时测试及 GDB 截图。
-
-整合时保留 C 的异常处理，采用 A 的内存管理和布局断言、B 的中断分发及初始化顺序。Trap 入口读取 `0x143`（`stval`）以兼容现有工具链。B 的隔离测试同时检查 C 对取指错误的现场输出；课程评分脚本保留原检查规则。
-
 ## 报告
 
-`../report/` 保存本次报告和提示词的 Word 文件及对应 Markdown；`images/` 保存图片，`materials/` 保存 A、B 的原始材料。三人的提示词分别收录各项原始任务。
+`../report/` 保存实验报告 `report.md` 和提示词 `prompt.md`；`images/` 保存图片。
