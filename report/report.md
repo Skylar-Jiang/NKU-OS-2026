@@ -47,7 +47,7 @@ Lab3：断，都可以断（中断和异常）
 | 成员 | AI 编程工具 | 底层模型 | 备注 |
 | --- | --- | --- | --- |
 | A 2411788-马传志 | Codex | gpt-6.1-sol | 用于 Lab2 继承、Trap 入口核对及独立验证脚本 |
-| B 2413507-蒋林瀞 | Claude Code | Claude Opus 5.5 | 用于基线审查、中断与时钟代码修改、GDB 测试脚本及 B 部分报告 |
+| B 2413507-蒋林瀞 | Claude Code | Claude Opus 5.5 | 用于基线审查、中断与时钟代码修改、GDB 测试脚本 |
 | C 2412096-王麒萱 | Codex | gpt-6.1-sol | 用于异常处理、异常测试与 GDB 调试 |
 
 ## 三、实验整体逻辑与原理
@@ -110,7 +110,7 @@ struct trapframe {
 
 继承 Lab2 中的 page_init() 和 Best-Fit 页分配实现，完成物理内存探测、Page 描述符初始化和空闲页管理。检查 kern_init() 的初始化顺序：清零 BSS，读取设备树，初始化控制台和 Trap 入口，执行 pmm_init()，设置时钟并开启中断。
 
-调用 idt_init()，将 sscratch 清零，把 __alltraps 的地址写入 stvec；执行 pmm_init() 初始化物理内存；接着执行 clock_init() 和 intr_enable()。基线代码在 pmm_init() 前后各调用一次 idt_init()，pmm_init() 不修改 stvec，第二次调用没有作用，B 已将其删除（见 4.3.5）。通过 QEMU 启动输出和 make grade 检查初始化结果。
+调用 idt_init()，将 sscratch 清零，把 __alltraps 的地址写入 stvec；执行 pmm_init() 初始化物理内存；接着执行 clock_init() 和 intr_enable()。基线代码在 pmm_init() 前后各调用一次 idt_init()，pmm_init() 不修改 stvec，第二次调用没有作用，我们将其删除（见 4.3.5）。通过 QEMU 启动输出和 make grade 检查初始化结果。
 
 ### 4.2 完成 Trap 入口
 
@@ -405,9 +405,6 @@ default:
 #### 4.3.5 核对初始化顺序
 
 `kern_init()` 的顺序为：`idt_init()` 设置 `stvec`，`pmm_init()` 初始化内存，`clock_init()` 置位 `sie.STIE` 并预约第一次事件，最后 `intr_enable()` 置位 `sstatus.SIE`。`stvec` 最先就绪，内存初始化期间发生的任何 Trap 都能进入本内核入口；全局中断最后打开，前面的准备步骤不会被提前打断。基线在 `pmm_init()` 之后重复调用了一次 `idt_init()`，已删除。`intr_enable()`/`intr_disable()` 只置位或清除 `sstatus.SIE`，GDB 核对其他状态位不受影响。
-
-函数名 `idt_init` 和原注释中的 IDT、`lidt`、`iret`、8253 时钟都继承自 x86 版 ucore。RISC-V 没有 IDT，本次把这些注释改为 `stvec`、`sret` 和 SBI 定时器的实际机制。
-
 #### 4.3.6 最终提示词
 
 以下为中断识别与分发的最终提示词（B2）；基线审查（B1）、时钟初始化（B3）、测试与 GDB（B4）、Git 交付（B5）的提示词见 `prompt.md`。
@@ -1033,4 +1030,3 @@ OpenSBI 在 M 态定时器到期时置位 `sip.STIP`，该位只在下一次 `sb
 3. 把环境差异写进提示词。QEMU 4.1.1 的 SPIE 行为、新版 binutils 不认 `sbadaddr`，都是代码之外的差异；在 Requirements 中写明实际版本，AI 才会按真实环境验证。
 4. 区分内核问题和测试工具问题。GDB 脚本中指针取模、带引号参数、有符号 CSR 比较等错误都出在 AI 写的测试脚本上，修正脚本即可。每个失败都先定位到具体来源。
 5. 用实测结果检验结论。指导书说不重设时钟只会收到一次中断，实测却是中断风暴。让 AI 设计对照实验，比直接采用文档描述更能理解机制。
-6. 在提示词中写清分工边界。`trap.c` 由 B、C 共同修改，提示词明确“不修改其他成员负责的函数”，并按成员标记学号，集成时没有出现覆盖对方代码的冲突。
