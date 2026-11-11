@@ -243,6 +243,112 @@ alloc_proc(void)
     return proc;
 }
 
+// The trapframe sits at the top of a page-aligned kernel stack, so its size
+// must keep the frame (and therefore the first-run sp) 16-byte aligned.
+_Static_assert(sizeof(struct trapframe) % 16 == 0,
+               "trapframe must keep the kernel stack 16-byte aligned");
+
+// kernel_thread - create a kernel thread that runs fn(arg).
+// The temporary trapframe only lives during do_fork; copy_thread copies it
+// onto the new thread's own kernel stack.
+int kernel_thread(int (*fn)(void *), void *arg, uint32_t clone_flags)
+{
+    struct trapframe tf;
+    memset(&tf, 0, sizeof(struct trapframe));
+    // kernel_thread_entry: a0 <- s1 (arg), then jalr s0 (fn).
+    tf.gpr.s0 = (uintptr_t)fn;
+    tf.gpr.s1 = (uintptr_t)arg;
+    // sret returns to S-mode (SPP=1) and enables interrupts there (SPIE=1);
+    // SIE stays clear until sret actually happens.
+    tf.status = (read_csr(sstatus) | SSTATUS_SPP | SSTATUS_SPIE) & ~SSTATUS_SIE;
+    tf.epc = (uintptr_t)kernel_thread_entry;
+    // Kernel threads share the kernel address space.
+    return do_fork(clone_flags | CLONE_VM, 0, &tf);
+}
+
+// copy_mm - Lab4 only creates kernel threads, which have no user mm.
+// A non-NULL user mm needs the Lab5 duplication/sharing code, which does not
+// exist yet, so it is rejected instead of being reported as copied.
+static int
+copy_mm(uint32_t clone_flags, struct proc_struct *proc)
+{
+    if (current == NULL || current->mm == NULL)
+    {
+        proc->mm = NULL;
+        return 0;
+    }
+    return -E_INVAL;
+}
+
+// copy_thread - place the trapframe at the top of proc's kernel stack and
+// make the first switch_to land in forkret with sp pointing at that frame.
+static void
+copy_thread(struct proc_struct *proc, uintptr_t esp, struct trapframe *tf)
+{
+    proc->tf = (struct trapframe *)(proc->kstack + KSTACKSIZE) - 1;
+    *(proc->tf) = *tf;
+    // Child observes 0 as the fork return value.
+    proc->tf->gpr.a0 = 0;
+    // esp == 0 means a kernel thread: after __trapret its sp is the top of its
+    // own stack area (the frame is dead by then), never 0.
+    proc->tf->gpr.sp = (esp == 0) ? (uintptr_t)proc->tf : esp;
+
+    proc->context.ra = (uintptr_t)forkret;
+    proc->context.sp = (uintptr_t)(proc->tf);
+}
+
+// do_fork - create a child of current with its own PCB and kernel stack.
+// Returns the child's PID, or a negative error after releasing everything
+// this call allocated.
+int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf)
+{
+    int ret = -E_NO_FREE_PROC;
+    struct proc_struct *proc;
+    if (nr_process >= MAX_PROCESS)
+    {
+        goto fork_out;
+    }
+    ret = -E_NO_MEM;
+    if ((proc = alloc_proc()) == NULL)
+    {
+        goto fork_out;
+    }
+    proc->parent = current;
+
+    if ((ret = setup_kstack(proc)) != 0)
+    {
+        goto bad_fork_cleanup_proc;
+    }
+    if ((ret = copy_mm(clone_flags, proc)) != 0)
+    {
+        goto bad_fork_cleanup_kstack;
+    }
+    copy_thread(proc, stack, tf);
+
+    // PID allocation scans proc_list, so allocation and registration form one
+    // critical section; the child becomes RUNNABLE only once fully built.
+    bool intr_flag;
+    local_intr_save(intr_flag);
+    {
+        proc->pid = get_pid();
+        hash_proc(proc);
+        list_add(&proc_list, &(proc->list_link));
+        nr_process++;
+        wakeup_proc(proc);
+        ret = proc->pid;
+    }
+    local_intr_restore(intr_flag);
+
+fork_out:
+    return ret;
+
+bad_fork_cleanup_kstack:
+    put_kstack(proc);
+bad_fork_cleanup_proc:
+    kfree(proc);
+    goto fork_out;
+}
+
 
 //LAB4 function3 2411788
 
