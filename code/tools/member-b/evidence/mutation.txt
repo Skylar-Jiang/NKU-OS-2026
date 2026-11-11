@@ -1,0 +1,24 @@
+killed   pcb-no-pid-init: checks: pass=60 fail=1; [member-b] SUMMARY pass=60 fail=1
+           [member-b] FAIL alloc_proc state/pid
+killed   rollback-no-kfree: checks: pass=59 fail=2; [member-b] SUMMARY pass=59 fail=2
+           [member-b] FAIL kstack failure frees the PCB
+           [member-b] FAIL copy_mm failure frees kstack and PCB
+killed   rollback-no-kstack: checks: pass=60 fail=1; [member-b] SUMMARY pass=60 fail=1
+           [member-b] FAIL copy_mm failure frees kstack and PCB
+killed   kthread-null-sp: checks: pass=47 fail=2; SUMMARY MISSING
+           [member-b] FAIL init trapframe at stack top, context ra=forkret sp=tf
+           [member-b] FAIL new threads registered with parent/frame/state
+killed   child-a0-kept: checks: pass=60 fail=1; [member-b] SUMMARY pass=60 fail=1
+           [member-b] FAIL copy_thread keeps nonzero esp, a0=0
+killed   status-keeps-sie: checks: pass=60 fail=1; [member-b] SUMMARY pass=60 fail=1
+           [member-b] FAIL kernel_thread clears SIE even when caller has SIE=1
+killed   copy_mm-fake-ok: checks: pass=46 fail=3; SUMMARY MISSING
+           [member-b] FAIL copy_mm rejects non-NULL user mm
+           [member-b] FAIL copy_mm failure frees kstack and PCB
+killed   nr_process-no-inc: checks: pass=58 fail=3; [member-b] SUMMARY pass=58 fail=3
+           [member-b] FAIL nr_process == 2 after proc_init
+           [member-b] FAIL nr_process counts new threads
+killed   idle-in-proc_list: checks: pass=59 fail=2; [member-b] SUMMARY pass=59 fail=2
+           [member-b] FAIL idle not in proc_list or hash
+           [member-b] FAIL nr_process == 2 after proc_init
+mutants killed=9 survived=0
