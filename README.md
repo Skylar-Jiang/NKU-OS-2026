@@ -1,38 +1,45 @@
 # 操作系统 Lab4：进程管理
 
-本分支 `lab4` 从 `main` 的 `9e725207f870e1ed2faba0ab0d9399f9f7747b56` 创建，不继承 Lab3 的实验实现。分支只保留本次实验的代码与资料；历史 Lab1 材料仍保留在 `main`。
+RISC-V RV64（Sv39）uCore Lab4：在 Lab2/Lab3 的物理内存管理、页表与中断处理基础上，实现内核线程的创建、初始化、调度与上下文切换。
 
-## 阅读入口
+## 目录
 
-- [Lab4 完整实验要求](docs/lab4/requirements.md)：前置任务、3 个功能模块 / 12 个函数、Challenge、报告与提交要求，附课程原文。
-- [指导书全文](docs/lab4/guide-full.md)：全部 16 个页面的正文、代码示例、表格与图片。
-- [离线 HTML 指导书](docs/lab4/guide/index.html)：下载后直接用浏览器打开，支持目录跳转和本地图片。
-- [资料来源、校验与构建状态](docs/lab4/README.md)。
-- [Lab2 / Lab3 前置迁移与实测](docs/lab4/prerequisite-migration.md)。
+| 路径 | 内容 |
+| --- | --- |
+| `code/` | 实验源码（以课程提供的 `lab4` 代码为基础） |
+| `report/` | 实验报告与提示词记录 |
+| `code/tools/member-b/`、`code/tools/member-c/` | 成员独立测试脚本与运行日志 |
+| `docs/lab4/` | 课程指导书归档与 Lab2/Lab3 前置迁移记录 |
 
-## 代码状态
+## 分工与实现位置
 
-`code/` 以用户提供的 `lab4.zip` 内 `lab4_new/` 为基底，已完成 Lab2 / Lab3 共享前置迁移、A 的 `page_insert` / `page_remove`，并保留队长仓库 `lab4` 分支中 C 的调度和上下文切换实现。起始 ZIP 原件仍保留于 `docs/lab4/source/`；B 的进程创建及初始化模块仍待补齐。
+| 成员 | 模块 | 函数 | 位置 |
+| --- | --- | --- | --- |
+| 甲 | 虚拟内存页操作 | `page_insert`、`page_remove` | `code/kern/mm/pmm.c` |
+| 乙（2413507） | 进程创建与初始化 | `alloc_proc`、`proc_init`、`kernel_thread`、`do_fork`、`copy_thread`、`copy_mm` | `code/kern/process/proc.c`（`LAB4 function2 2413507`） |
+| 丙（2411788） | 调度与上下文切换 | `cpu_idle`、`proc_run`、`schedule`、`switch_to` | `proc.c`（`LAB4 function3 2411788`）、`code/kern/schedule/sched.c`、`code/kern/process/switch.S` |
 
-源码自带 `Makefile`、`tools/grade.sh`、`tools/inject.py`、`tools/test_lab4.c`，原有框架测试保持原样。C 的三个实现文件、`code/tools/member-c/`、`report/report.md` 和 `report/prompt.md` 保留队长分支版本，不覆盖队友工作。当前不是 Lab4 全部完成的状态。
+Lab2（物理内存管理、页表初始化）和 Lab3（中断入口与处理）的前置代码已迁入 `code/`，迁移说明见 `docs/lab4/prerequisite-migration.md`。
 
-使用已有 RISC-V 工具链，在 `code/` 下运行 `make`；后续完成实现后再运行 `make qemu`、`make grade`。2026-11-11 合并复核中，A/C 的四个对象文件强制重编译退出 0；整项目 `make` 返回 2，链接阶段仅报告尚未实现的 `proc_init`。原有 `check_pgdir`、`check_boot_pgdir` 和正式评分尚待运行。历史前置专项测试及 C 的独立测试记录不等于合并后完整内核验收通过。
+## 构建与运行
 
-## 复核与更新资料
-
-在分支根目录运行（Python 3，仅标准库）：
-
-```sh
-python tools/verify_lab4_import.py
-python tools/archive_lab4.py
-```
-
-第一条用于 A/C 新增实现之前的历史迁移快照：它固定核对迁移阶段的摘要，当前 A/C 实现及新增测试会超出该清单，不能把清单不匹配解释成实现错误。`--starter-only` 用于显式比较未迁移的 ZIP 基线。第二条会重新抓取课程站点；仅从已保存页面重新生成阅读版时使用 `python tools/archive_lab4.py --from-cache`。
-
-在已有 RISC-V 工具链与 QEMU 的 Linux / WSL 环境中，执行前置专项测试（不修改真实 `code/`）：
+环境：WSL2 Ubuntu，QEMU 4.1.1，指导书推荐的 SiFive 预编译工具链 `riscv64-unknown-elf-gcc 10.1.0`。
 
 ```sh
-python3 tools/test_lab23_prereqs.py --output-dir /tmp/lab4-prereq-evidence
+cd code
+make            # 构建 bin/ucore.img
+make qemu       # 启动内核
+make grade      # 官方评分：注入测试后运行 QEMU
 ```
 
-实验实现完成后按 `AGENTS.md` 整理 `report/report.md`、`report/prompt.md` 和图片；本次未生成虚构的完成报告。
+工具链不在 PATH 中时，可用 `make grade GCCPREFIX=<工具链目录>/bin/riscv64-unknown-elf-` 指定。
+
+> 说明：GCC 14 及以上版本把“不兼容的函数指针类型”默认作为错误。官方测试 `tools/test_lab4.c` 中
+> 向 `kernel_thread` 传入了 `void (*)(void *)` 类型的函数，因此用新版 GCC 时评分用测试内核无法编译。
+> 请使用 GCC 10 等较早版本（此时仅为警告），我们没有修改评分脚本或测试代码。
+
+## 当前结果
+
+- `make grade`（GCC 10.1、QEMU 4.1.1）：`check PMM`、`check Process Create`、`check Schedule` 全部 OK，**Total Score: 30/30**。
+- `make qemu` 输出 `this initproc, pid = 1, name = "init"` 等三行后进入 `do_exit` 中的框架 `panic` 占位，这是本实验框架的预期行为（进程退出在后续实验实现）。
+- 各成员的独立测试与日志见 `code/tools/member-b/README.md`、`code/tools/member-c/README.md`。
