@@ -349,6 +349,53 @@ bad_fork_cleanup_proc:
     goto fork_out;
 }
 
+// proc_init - wrap the boot execution flow as idleproc (pid 0) and create
+// the first ordinary kernel thread initproc (pid 1) running init_main.
+void proc_init(void)
+{
+    int i;
+
+    list_init(&proc_list);
+    for (i = 0; i < HASH_LIST_SIZE; i++)
+    {
+        list_init(hash_list + i);
+    }
+
+    if ((idleproc = alloc_proc()) == NULL)
+    {
+        panic("cannot alloc idleproc.\n");
+    }
+
+    // idleproc is the code already running on bootstack, not a forked
+    // thread. It is neither hashed nor put on proc_list: schedule() uses it
+    // only as the fallback when no ordinary thread is runnable.
+    idleproc->pid = 0;
+    idleproc->state = PROC_RUNNABLE;
+    idleproc->kstack = (uintptr_t)bootstack;
+    idleproc->need_resched = 1;
+    set_proc_name(idleproc, "idle");
+    nr_process++;
+
+    current = idleproc;
+
+    int pid = kernel_thread(init_main, "Hello world!!", 0);
+    if (pid <= 0)
+    {
+        panic("create init_main failed.\n");
+    }
+
+    initproc = find_proc(pid);
+    if (initproc == NULL)
+    {
+        panic("initproc pid %d not found.\n", pid);
+    }
+    set_proc_name(initproc, "init");
+
+    assert(idleproc != NULL && idleproc->pid == 0);
+    assert(initproc != NULL && initproc->pid == 1);
+    assert(initproc->parent == idleproc && initproc->mm == NULL);
+}
+
 
 //LAB4 function3 2411788
 
