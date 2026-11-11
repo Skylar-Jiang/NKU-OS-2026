@@ -48,7 +48,7 @@
 ## 验证结果（2026-11-11）
 
 工具：QEMU 4.1.1（worktree 的 `.envrc` 局部 PATH）；指导书推荐的 SiFive 预编译工具链
-`riscv64-unknown-elf-gcc 10.1.0 (2020.08.2)`，安装在 `~/opt/sifive/`，以 `GCCPREFIX=` 命令行参数临时使用。
+`riscv64-unknown-elf-gcc 10.1.0 (2020.08.2)`，安装在 `~/opt/sifive/`，由本地 `.envrc` 只在本工作区内生效。
 
 | 层级 | 结果 | 证据 |
 | --- | --- | --- |
@@ -70,15 +70,24 @@
 
 ## 复现
 
+本地工作区根目录的 `.envrc`（不提交，由 direnv 加载）只在该目录内把 QEMU 4.1.1 和 SiFive GCC 10.1 放到 PATH 前面，
+离开目录后恢复原有工具链：
+
 ```bash
-GP=$HOME/opt/sifive/riscv64-unknown-elf-gcc-10.1.0-2020.08.2-x86_64-linux-ubuntu14/bin/riscv64-unknown-elf-
-cd code
-make grade GCCPREFIX=$GP
-GCCPREFIX=$GP bash tools/member-b/tests/run.sh        # 乙测试 + 官方注入测试，日志写入 evidence/
-GCCPREFIX=$GP bash tools/member-b/tests/mutation.sh   # 变异测试
+PATH_add "$HOME/src/qemu-4.1.1/build-debug/riscv64-softmmu"
+PATH_add "$HOME/opt/sifive/riscv64-unknown-elf-gcc-10.1.0-2020.08.2-x86_64-linux-ubuntu14/bin"
 ```
 
-GDB 首次运行现场：`make GCCPREFIX=$GP` 后，启动
+在该目录内直接运行（没有 direnv 时，可给每条命令加 `GCCPREFIX=<工具链>/bin/riscv64-unknown-elf-`）：
+
+```bash
+cd code
+make grade
+bash tools/member-b/tests/run.sh        # 乙测试 + 官方注入测试，日志写入 evidence/
+bash tools/member-b/tests/mutation.sh   # 变异测试
+```
+
+GDB 首次运行现场：`make` 后，启动
 `qemu-system-riscv64 -machine virt -nographic -bios default -device loader,file=bin/ucore.img,addr=0x80200000 -S -gdb tcp:127.0.0.1:12507`，
 另一终端运行 `riscv64-unknown-elf-gdb -batch -nx -x tools/member-b/tests/first-run.gdb bin/kernel`。
 
