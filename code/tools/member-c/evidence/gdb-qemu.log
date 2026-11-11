@@ -1,0 +1,4 @@
+PASS empty list uses idle
+PASS skip all non-runnable states
+PASS only current runnable selected on wrap
+PASS three threads yield and sleqemu-system-riscv64: terminating on signal 1

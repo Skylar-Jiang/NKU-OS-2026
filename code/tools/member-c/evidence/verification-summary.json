@@ -1,0 +1,11 @@
+{
+  "source_changes": [
+    "kern/process/proc.c",
+    "kern/process/switch.S",
+    "kern/schedule/sched.c"
+  ],
+  "m_mode_checks": 12,
+  "s_mode_checks": 12,
+  "gdb_save_restore_comparisons": 4,
+  "full_lab4_grade": "not run: inherited/A/B code incomplete; inject.py absent"
+}

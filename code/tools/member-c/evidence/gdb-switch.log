@@ -1,0 +1,22 @@
+0x0000000000001000 in ?? ()
+Breakpoint 1 at 0x80000848: file ../../kern/process/switch.S, line 9.
+
+Breakpoint 1, switch_to () at ../../kern/process/switch.S:9
+9	    STORE ra, 0*REGBYTES(a0)
+C switch entry: S-mode harness, a0/from, a1/to, current pid
+$1 = 0x80001050
+$2 = 0x8000b038
+$3 = 1
+$4 = 0x8000000000080002
+$5 = 0x0
+$6 = 0x80000696
+$7 = 0x80007000
+24	    LOAD ra, 0*REGBYTES(a1)
+Saved old SP and RA must match entry
+$8 = 1
+$9 = 1
+38	    ret
+Restored target SP and RA must match target context
+$10 = 1
+$11 = 1
+[Inferior 1 (process 1) detached]

@@ -1,0 +1,13 @@
+PASS empty list uses idle
+PASS skip all non-runnable states
+PASS only current runnable selected on wrap
+PASS three threads yield and sleep back to idle
+PASS round robin ordering across list head
+PASS disabled interrupt state preserved
+PASS s0-s11 and stack return across real context switches
+PASS enabled interrupt state restored on resume
+PASS nested restore keeps outer critical section disabled
+PASS outer restore re-enables interrupts
+PASS proc_run current is a no-op
+PASS cpu_idle observes need_resched and schedules worker
+ALL C ISOLATED TESTS PASS (M-mode harness; full Lab4 pending)
