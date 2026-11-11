@@ -12,12 +12,12 @@
 
 | 提交 | 内容 |
 | --- | --- |
-| `0da5d80` docs(lab4-b): audit process module and define verification plan | 基线审计 |
-| `7d23050` feat(lab4-b): initialize safe process control blocks | `alloc_proc` |
-| `330aff3` feat(lab4-b): create runnable kernel threads with rollback | `kernel_thread`、`copy_mm`、`copy_thread`、`do_fork` |
-| `9dbd0f1` feat(lab4-b): initialize idle and init kernel processes | `proc_init` |
-| `806391c` test(lab4-b): cover process initialization and failure rollback | 测试与证据 |
-| 本文所在提交 docs(lab4-b): hand off tested process module and evidence | 交接、GDB 证据、Challenge 复核 |
+| `b089aae` docs(lab4-b): audit process module and define verification plan | 基线审计 |
+| `50c9998` feat(lab4-b): initialize safe process control blocks | `alloc_proc` |
+| `a37767d` feat(lab4-b): create runnable kernel threads with rollback | `kernel_thread`、`copy_mm`、`copy_thread`、`do_fork` |
+| `7a724b5` feat(lab4-b): initialize idle and init kernel processes | `proc_init` |
+| `55f6d8e` test(lab4-b): cover process initialization and failure rollback | 测试与证据 |
+| `38e1fea` docs(lab4-b): hand off tested process module and evidence | 交接、GDB 证据、Challenge 复核 |
 
 生产代码只改动 `code/kern/process/proc.c` 中 `//LAB4 function2 2413507` 注释之后、`//LAB4 function3 2411788` 之前的区域。
 丙的区域、`sched.c`、`switch.S`、`pmm.c`、评分脚本与 `test_lab4.c` 均未修改。
