@@ -15,3 +15,6 @@ docs/lab4/guide/** -text
 *.py text eol=lf
 *.json text eol=lf
 *.txt text eol=lf
+
+# Keep teammate C's existing evidence and test files byte-identical.
+code/tools/member-c/** -text whitespace=cr-at-eol

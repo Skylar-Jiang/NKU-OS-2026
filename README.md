@@ -12,11 +12,11 @@
 
 ## 代码状态
 
-`code/` 以用户提供的 `lab4.zip` 内 `lab4_new/` 为基底，68 个文件中 63 个仍与附件逐字节一致，5 个完成 Lab2 / Lab3 前置迁移及必要接口适配。起始 ZIP 原件仍保留于 `docs/lab4/source/`；Lab4 新增的 12 个函数尚未填写。
+`code/` 以用户提供的 `lab4.zip` 内 `lab4_new/` 为基底，已完成 Lab2 / Lab3 共享前置迁移、A 的 `page_insert` / `page_remove`，并保留队长仓库 `lab4` 分支中 C 的调度和上下文切换实现。起始 ZIP 原件仍保留于 `docs/lab4/source/`；B 的进程创建及初始化模块仍待补齐。
 
-源码自带 `Makefile`、`tools/grade.sh`、`tools/inject.py`、`tools/test_lab4.c`，原有框架测试保持原样。当前阶段完成分支初始化、要求归档和前置迁移，并非完成 Lab4。
+源码自带 `Makefile`、`tools/grade.sh`、`tools/inject.py`、`tools/test_lab4.c`，原有框架测试保持原样。C 的三个实现文件、`code/tools/member-c/`、`report/report.md` 和 `report/prompt.md` 保留队长分支版本，不覆盖队友工作。当前不是 Lab4 全部完成的状态。
 
-使用已有 RISC-V 工具链，在 `code/` 下运行 `make`；后续完成实现后再运行 `make qemu`、`make grade`。迁移后全部源码可编译为对象文件，整项目 `make` 仍返回 2，链接阶段仅报告尚未实现的 Lab4 函数 `page_insert`、`page_remove`、`proc_init`、`cpu_idle`。独立前置测试内核已在 QEMU 的 64M / 128M / 256M 配置下通过，见迁移记录。
+使用已有 RISC-V 工具链，在 `code/` 下运行 `make`；后续完成实现后再运行 `make qemu`、`make grade`。2026-11-11 合并复核中，A/C 的四个对象文件强制重编译退出 0；整项目 `make` 返回 2，链接阶段仅报告尚未实现的 `proc_init`。原有 `check_pgdir`、`check_boot_pgdir` 和正式评分尚待运行。历史前置专项测试及 C 的独立测试记录不等于合并后完整内核验收通过。
 
 ## 复核与更新资料
 
@@ -27,7 +27,7 @@ python tools/verify_lab4_import.py
 python tools/archive_lab4.py
 ```
 
-第一条按迁移清单检查 5 个已适配文件的摘要，并逐字节核对其余 63 个附件文件，同时核对指导书内容和资源。`--starter-only` 用于显式比较未迁移的 ZIP 基线。第二条会重新抓取课程站点；仅从已保存页面重新生成阅读版时使用 `python tools/archive_lab4.py --from-cache`。
+第一条用于 A/C 新增实现之前的历史迁移快照：它固定核对迁移阶段的摘要，当前 A/C 实现及新增测试会超出该清单，不能把清单不匹配解释成实现错误。`--starter-only` 用于显式比较未迁移的 ZIP 基线。第二条会重新抓取课程站点；仅从已保存页面重新生成阅读版时使用 `python tools/archive_lab4.py --from-cache`。
 
 在已有 RISC-V 工具链与 QEMU 的 Linux / WSL 环境中，执行前置专项测试（不修改真实 `code/`）：
 

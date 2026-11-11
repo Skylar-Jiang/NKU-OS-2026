@@ -221,4 +221,50 @@ init_main(void *arg)
 //LAB4 function2 YOUR CODE
 
 
-//LAB4 function3 YOUR CODE
+//LAB4 function3 2411788
+
+/* Keep switch.S offsets checked against the C layout at build time. */
+#define CHECK_CONTEXT(field, slot) \
+    _Static_assert(__builtin_offsetof(struct context, field) == \
+                   (slot) * sizeof(uintptr_t), "switch_to context offset")
+CHECK_CONTEXT(ra, 0); CHECK_CONTEXT(sp, 1);
+CHECK_CONTEXT(s0, 2); CHECK_CONTEXT(s1, 3);
+CHECK_CONTEXT(s2, 4); CHECK_CONTEXT(s3, 5);
+CHECK_CONTEXT(s4, 6); CHECK_CONTEXT(s5, 7);
+CHECK_CONTEXT(s6, 8); CHECK_CONTEXT(s7, 9);
+CHECK_CONTEXT(s8, 10); CHECK_CONTEXT(s9, 11);
+CHECK_CONTEXT(s10, 12); CHECK_CONTEXT(s11, 13);
+_Static_assert(sizeof(struct context) == 14 * sizeof(uintptr_t),
+               "switch_to context size");
+_Static_assert(sizeof(uintptr_t) == 8, "Lab4 uses RV64 Sv39");
+#undef CHECK_CONTEXT
+
+void cpu_idle(void)
+{
+    for (;;) {
+        if (current->need_resched) {
+            schedule();
+        }
+    }
+}
+
+void proc_run(struct proc_struct *proc)
+{
+    assert(proc != NULL && current != NULL);
+    assert(proc->state == PROC_RUNNABLE);
+    assert((proc->pgdir & (PGSIZE - 1)) == 0);
+    if (proc != current) {
+        bool intr_flag;
+        local_intr_save(intr_flag);
+        struct proc_struct *prev = current;
+        current = proc;
+        /* pgdir is a physical address. lsatp() is the old Sv32 helper. */
+        write_csr(satp, ((uintptr_t)8 << 60) |
+                        (proc->pgdir >> RISCV_PGSHIFT));
+        /* No ASIDs are assigned in this lab; discard old translations. */
+        asm volatile("sfence.vma" ::: "memory");
+        switch_to(&prev->context, &proc->context);
+        /* This executes when prev is selected again, not in the new thread. */
+        local_intr_restore(intr_flag);
+    }
+}
