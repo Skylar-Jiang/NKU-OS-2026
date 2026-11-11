@@ -218,7 +218,30 @@ init_main(void *arg)
     return 0;
 }
 
-//LAB4 function2 YOUR CODE
+//LAB4 function2 2413507
+
+// alloc_proc - allocate a PCB and put every field into a well-defined blank
+// state. The PCB owns no kernel stack, PID or list membership yet.
+static struct proc_struct *
+alloc_proc(void)
+{
+    struct proc_struct *proc = kmalloc(sizeof(struct proc_struct));
+    if (proc == NULL)
+    {
+        return NULL;
+    }
+    // Zero first: runs, kstack, need_resched, parent, mm, context, tf,
+    // flags and name all start as 0/NULL.
+    memset(proc, 0, sizeof(struct proc_struct));
+    proc->state = PROC_UNINIT;
+    proc->pid = -1;
+    // Kernel threads share the kernel root page table (physical address).
+    proc->pgdir = boot_pgdir_pa;
+    // Self-linked nodes: not on proc_list or any hash bucket yet.
+    list_init(&(proc->list_link));
+    list_init(&(proc->hash_link));
+    return proc;
+}
 
 
 //LAB4 function3 2411788
