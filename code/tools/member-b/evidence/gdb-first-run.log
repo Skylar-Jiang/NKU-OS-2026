@@ -1,0 +1,23 @@
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+Breakpoint 1, proc_run (proc=0xffffffffc040e110) at kern/process/proc.c:429
+429	    assert(proc != NULL && current != NULL);
+== proc_run(next): idle -> init
+current pid=0 name=idle  next pid=1 name=init
+next->pgdir=0x80208000 next->kstack=0xffffffffc0410000 next->tf=0xffffffffc0411ee0
+next->context.ra=0xffffffffc02031d6 (forkret=0xffffffffc02031d6)  next->context.sp=0xffffffffc0411ee0
+Breakpoint 2, forkret () at kern/process/proc.c:151
+151	    forkrets(current->tf);
+== forkret (after switch_to)
+current pid=1  sp=0xffffffffc0411ee0  ra=0xffffffffc02031d6  satp=0x8000000000080208
+tf->epc=0xffffffffc0203188 tf->status=0x8000000000046120 tf->gpr.sp=0xffffffffc0411ee0 tf->gpr.s0=0xffffffffc02031e4 tf->gpr.s1=0xffffffffc0205480
+Breakpoint 3, kernel_thread_entry () at kern/process/entry.S:4
+4		move a0, s1
+== kernel_thread_entry (after __trapret/sret)
+pc=0xffffffffc0203188 sp=0xffffffffc0411ee0 sp%16=0 s0=0xffffffffc02031e4 (init_main=0xffffffffc02031e4) s1=Hello world!!
+sstatus=0x8000000000046002 SIE=1 SPIE=0 SPP=0
+Breakpoint 4, init_main (arg=0xffffffffc0205480) at kern/process/proc.c:215
+215	    cprintf("this initproc, pid = %d, name = \"%s\"\n", current->pid, get_proc_name(current));
+== init_main
+current pid=1 name=init arg=Hello world!! sp=0xffffffffc0411ee0 kstack=[0xffffffffc0410000,0xffffffffc0412000)
+[Inferior 1 (process 1) killed]

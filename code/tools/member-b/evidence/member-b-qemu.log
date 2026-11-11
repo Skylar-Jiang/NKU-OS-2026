@@ -1,0 +1,122 @@
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+DTB Init
+HartID: 0
+DTB Address: 0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000008000000 (128 MB)
+  End:  0x0000000087ffffff
+DTB init completed
+(THU.CST) os is loading ...
+
+Special kernel symbols:
+  entry  0xc020004a (virtual)
+  etext  0xc020603e (virtual)
+  edata  0xc020c030 (virtual)
+  end    0xc0210534 (virtual)
+Kernel executable memory footprint: 66KB
+memory management: best_fit_pmm_manager
+physcial memory map:
+  memory: 0x0000000008000000, [0x0000000080000000, 0x0000000087ffffff].
+check_alloc_page() succeeded!
+check_pgdir() succeeded!
+check_boot_pgdir() succeeded!
+use SLOB allocator
+kmalloc_init() succeeded!
+check_vma_struct() succeeded!
+check_vmm() succeeded.
+[member-b] begin proc_init checks
+[member-b] PASS alloc_proc returns a PCB
+[member-b] PASS alloc_proc state/pid
+[member-b] PASS alloc_proc runs/kstack/need_resched/flags zero
+[member-b] PASS alloc_proc parent/mm/tf NULL
+[member-b] PASS alloc_proc context zeroed
+[member-b] PASS alloc_proc name zeroed
+[member-b] PASS alloc_proc pgdir is page-aligned boot_pgdir_pa
+[member-b] PASS alloc_proc list nodes self-linked
+[member-b] PASS alloc_proc returns independent PCBs
+[member-b] PASS alloc_proc returns NULL when kmalloc fails
+[member-b] PASS alloc_proc failure leaves global state unchanged
+[member-b] PASS current is idleproc
+[member-b] PASS idle pid 0 runnable
+[member-b] PASS idle uses bootstack
+[member-b] PASS idle need_resched set
+[member-b] PASS idle parent/mm/tf/runs/context untouched
+[member-b] PASS idle name
+[member-b] PASS idle not in proc_list or hash
+[member-b] PASS init pid 1
+[member-b] PASS init name
+[member-b] PASS init runnable, parent idle, mm NULL
+[member-b] PASS init shares kernel root page table
+[member-b] PASS init in proc_list and hash
+[member-b] PASS nr_process == 2 after proc_init
+[member-b] PASS init has its own page-aligned kernel stack
+[member-b] PASS init trapframe at stack top, context ra=forkret sp=tf
+[member-b] PASS init trapframe epc/s0/s1 match kernel_thread_entry
+[member-b] PASS init sstatus SPP=1 SPIE=1 SIE=0
+[member-b] PASS three threads created
+[member-b] PASS PIDs unique
+[member-b] PASS PIDs sequential
+[member-b] PASS nr_process counts new threads
+[member-b] PASS new threads registered with parent/frame/state
+[member-b] PASS kernel stacks do not overlap
+[member-b] PASS test cleanup restored process table
+[member-b] PASS do_fork returns -E_NO_FREE_PROC at limit
+[member-b] PASS limit failure leaves no resources
+[member-b] PASS do_fork returns -E_NO_MEM when PCB alloc fails
+[member-b] PASS PCB failure leaves no resources
+[member-b] PASS do_fork returns -E_NO_MEM when kstack alloc fails
+[member-b] PASS kstack failure frees the PCB
+[member-b] PASS copy_mm accepts kernel thread (mm NULL)
+[member-b] PASS copy_mm rejects non-NULL user mm
+[member-b] PASS copy_mm failure frees kstack and PCB
+[member-b] PASS failed forks consumed no PID
+[member-b] PASS copy_thread keeps nonzero esp, a0=0
+[member-b] PASS copy_thread copies the rest of the frame
+[member-b] PASS probe thread created
+[member-b] PASS idle still pristine after tests
+[member-b] end proc_init checks pass=49 fail=0
+++ setup timer interrupts
+[member-b] begin first-run checks
+[member-b] PASS init_main runs as initproc
+[member-b] PASS initproc runs counted
+[member-b] PASS init_main sp inside own kstack, 16-byte aligned
+[member-b] PASS init_main runs with interrupts enabled
+[member-b] PASS thread created from init has parent init
+[member-b] PASS kernel_thread clears SIE even when caller has SIE=1
+[member-b] PASS probe thread executed
+[member-b] PASS probe received fn(arg) argument
+[member-b] PASS probe sp inside own kstack, 16-byte aligned
+[member-b] PASS probe current/runs consistent
+[member-b] PASS probe satp is Sv39 kernel root
+[member-b] PASS probe runs with interrupts enabled (SPIE->SIE)
+[member-b] SUMMARY pass=61 fail=0
+this initproc, pid = 1, name = "init"
+To U: "Hello world!!".
+To U: "en.., Bye, Bye. :)"
+kernel panic at kern/process/proc.c:208:
+    process exit!!.
+
+Welcome to the kernel debug monitor!!
+Type 'help' for a list of commands.
+qemu exit status: 0 (124 = stopped by timeout)
