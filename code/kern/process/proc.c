@@ -392,6 +392,26 @@ elf_seg_perm(uint32_t p_flags, uint32_t *vm_flags, uint32_t *perm)
     }
 }
 
+/* map_user_range - mm_map() that first rejects any overlap with an existing
+ * VMA. mm_map() only detects a VMA containing the start address; a range
+ * that starts below an existing VMA and covers it would otherwise reach the
+ * overlap assert in insert_vma_struct() and panic on a crafted ELF. */
+static int
+map_user_range(struct mm_struct *mm, uintptr_t addr, size_t len, uint32_t vm_flags)
+{
+    uintptr_t start = ROUNDDOWN(addr, PGSIZE), end = ROUNDUP(addr + len, PGSIZE);
+    list_entry_t *list = &(mm->mmap_list), *le = list;
+    while ((le = list_next(le)) != list)
+    {
+        struct vma_struct *vma = le2vma(le, list_link);
+        if (start < vma->vm_end && vma->vm_start < end)
+        {
+            return -E_INVAL_ELF;
+        }
+    }
+    return mm_map(mm, addr, len, vm_flags, NULL);
+}
+
 /* load_segment - back every page of [va, va + memsz) with a fresh zeroed
  * page and copy the filesz bytes of file data into it. Zero-filling whole
  * pages covers BSS, the head of an unaligned first page and the tail of the
@@ -494,8 +514,8 @@ load_icode(unsigned char *binary, size_t size)
         }
         uint32_t vm_flags, perm;
         elf_seg_perm(ph.p_flags, &vm_flags, &perm);
-        /* mm_map rejects overlap with an earlier segment. */
-        if ((ret = mm_map(mm, ph.p_va, ph.p_memsz, vm_flags, NULL)) != 0)
+        /* Segments must not overlap (also within a shared page). */
+        if ((ret = map_user_range(mm, ph.p_va, ph.p_memsz, vm_flags)) != 0)
         {
             goto bad_mm;
         }
@@ -522,8 +542,8 @@ load_icode(unsigned char *binary, size_t size)
 
     /* (5) User stack: reserve USTACKSIZE below USTACKTOP (fails if a segment
      *     overlaps it) and back the top pages. */
-    if ((ret = mm_map(mm, USTACKTOP - USTACKSIZE, USTACKSIZE,
-                      VM_READ | VM_WRITE | VM_STACK, NULL)) != 0)
+    if ((ret = map_user_range(mm, USTACKTOP - USTACKSIZE, USTACKSIZE,
+                              VM_READ | VM_WRITE | VM_STACK)) != 0)
     {
         goto bad_mm;
     }
