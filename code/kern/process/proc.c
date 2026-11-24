@@ -671,7 +671,198 @@ bad_fork_cleanup_proc:
 }
 
 
-//lab5 function4 YOUR CODE
+//lab5 function4 2413507
+
+/* do_exit - called by sys_exit, by a killed process on its way back to user
+ * mode, or when a kernel thread function returns.
+ *   1. leave and release the user address space (destroyed only with its
+ *      last sharer; COW pages are freed only with their last mapping);
+ *   2. become PROC_ZOMBIE with exit_code;
+ *   3. wake a parent blocked in do_wait and hand all children to initproc;
+ *   4. schedule() and never run again.
+ * The kernel stack and PCB are still in use here; the parent frees them in
+ * do_wait. */
+int do_exit(int error_code)
+{
+    if (current == idleproc)
+    {
+        panic("idleproc exit.\n");
+    }
+    if (current == initproc)
+    {
+        panic("initproc exit.\n");
+    }
+
+    struct mm_struct *mm = current->mm;
+    if (mm != NULL)
+    {
+        /* Switch to the kernel-only page table before the user one can go. */
+        lsatp(boot_pgdir_pa);
+        flush_tlb();
+        current->mm = NULL;
+        current->pgdir = boot_pgdir_pa;
+        release_mm(mm);
+    }
+
+    bool intr_flag;
+    struct proc_struct *proc;
+    local_intr_save(intr_flag);
+    {
+        current->state = PROC_ZOMBIE;
+        current->exit_code = error_code;
+
+        proc = current->parent;
+        if (proc->wait_state == WT_CHILD)
+        {
+            wakeup_proc(proc);
+        }
+        /* Re-parent every child (running or zombie) to initproc, keeping the
+         * sibling list consistent with set_links(). */
+        while (current->cptr != NULL)
+        {
+            proc = current->cptr;
+            current->cptr = proc->optr;
+
+            proc->yptr = NULL;
+            if ((proc->optr = initproc->cptr) != NULL)
+            {
+                initproc->cptr->yptr = proc;
+            }
+            proc->parent = initproc;
+            initproc->cptr = proc;
+            if (proc->state == PROC_ZOMBIE && initproc->wait_state == WT_CHILD)
+            {
+                wakeup_proc(initproc);
+            }
+        }
+    }
+    local_intr_restore(intr_flag);
+
+    schedule();
+    panic("do_exit will not return!! %d.\n", current->pid);
+}
+
+/* do_wait - wait for child pid (or any child when pid == 0) to become a
+ * zombie, store its exit code to *code_store if given, and reclaim it.
+ * Returns -E_BAD_PROC when there is no matching child and -E_INVAL when
+ * code_store is not a writable address of the caller; in the latter case the
+ * child is left unreclaimed so that a later valid wait can still collect it. */
+int do_wait(int pid, int *code_store)
+{
+    struct mm_struct *mm = current->mm;
+    struct proc_struct *proc;
+    bool intr_flag, haskid;
+
+    if (code_store != NULL &&
+        !user_mem_check(mm, (uintptr_t)code_store, sizeof(int), 1))
+    {
+        return -E_INVAL;
+    }
+
+repeat:
+    haskid = 0;
+    /* Scan and go to sleep with interrupts off so that a child's exit
+     * cannot slip in between the check and the state change. */
+    local_intr_save(intr_flag);
+    if (pid != 0)
+    {
+        proc = find_proc(pid);
+        if (proc != NULL && proc->parent == current)
+        {
+            haskid = 1;
+            if (proc->state == PROC_ZOMBIE)
+            {
+                goto found;
+            }
+        }
+    }
+    else
+    {
+        for (proc = current->cptr; proc != NULL; proc = proc->optr)
+        {
+            haskid = 1;
+            if (proc->state == PROC_ZOMBIE)
+            {
+                goto found;
+            }
+        }
+    }
+    if (haskid)
+    {
+        current->state = PROC_SLEEPING;
+        current->wait_state = WT_CHILD;
+        local_intr_restore(intr_flag);
+        schedule();
+        if (current->flags & PF_EXITING)
+        {
+            do_exit(-E_KILLED);
+        }
+        goto repeat;
+    }
+    local_intr_restore(intr_flag);
+    return -E_BAD_PROC;
+
+found:
+    local_intr_restore(intr_flag);
+    if (proc == idleproc || proc == initproc)
+    {
+        panic("wait idleproc or initproc.\n");
+    }
+    /* copy_to_user breaks COW sharing on the target page before writing, so
+     * the store never reaches a page still shared with another process. */
+    if (code_store != NULL &&
+        !copy_to_user(mm, code_store, &proc->exit_code, sizeof(int)))
+    {
+        return -E_INVAL;
+    }
+    local_intr_save(intr_flag);
+    {
+        unhash_proc(proc);
+        remove_links(proc); /* includes nr_process-- */
+    }
+    local_intr_restore(intr_flag);
+    put_kstack(proc);
+    kfree(proc);
+    return 0;
+}
+
+/* do_yield - ask the scheduler to run another process at the next safe point
+ * (trap return to user mode, or cpu_idle). */
+int do_yield(void)
+{
+    current->need_resched = 1;
+    return 0;
+}
+
+/* do_kill - mark process pid as exiting. The target exits by itself on its
+ * next return to user mode (trap()) or when it wakes up in do_wait; a target
+ * in an interruptible sleep is woken now. Its stack and PCB are never freed
+ * here. */
+int do_kill(int pid)
+{
+    struct proc_struct *proc;
+    int ret = -E_INVAL;
+    bool intr_flag;
+    local_intr_save(intr_flag);
+    if ((proc = find_proc(pid)) != NULL && proc != initproc)
+    {
+        if ((proc->flags & PF_EXITING) || proc->state == PROC_ZOMBIE)
+        {
+            ret = -E_KILLED;
+        }
+        else
+        {
+            proc->flags |= PF_EXITING;
+            if (proc->wait_state & WT_INTERRUPTED)
+            {
+                wakeup_proc(proc);
+            }
+            ret = 0;
+        }
+    }
+    local_intr_restore(intr_flag);
+    return ret;
+}
 
 
 #define __KERNEL_EXECVE(name, binary, size) ({           \
