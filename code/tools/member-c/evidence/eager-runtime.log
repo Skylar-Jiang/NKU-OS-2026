@@ -1,3 +1,8 @@
+PASS print active user root and COW leaf
+PASS print 2 MiB leaf without walking as table
+PASS print canonical high 1 GiB leaf
+PASS page table printer is read only
+PASS printer fixture cleanup
 PASS eager range copy
 PASS eager copy has distinct frame and equal data
 PASS eager child write isolation

@@ -24,7 +24,7 @@ riscv64-unknown-elf-gcc $flags $includes -c "$build/vmm-mutant.c" -o "$build/vmm
 # Skip the earlier OOM-preflight check only in this targeted mutant run so
 # the parent/child data isolation assertion itself is reached.
 riscv64-unknown-elf-gcc $flags $includes -DTEST_COPYOUT_MUTANT -c tests/runtime.c -o "$build/runtime-mutant.o"
-riscv64-unknown-elf-gcc $flags -nostdlib -Wl,--gc-sections -T tests/test.ld "$build/pmm.c.o" "$build/vmm-mutant.o" "$build/intr.c.o" "$build/string.c.o" "$build/hash.c.o" "$build/runtime-mutant.o" "$build/start.S.o" "$build/trapentry.S.o" -o "$build/mutant.elf"
+riscv64-unknown-elf-gcc $flags -nostdlib -Wl,--gc-sections -T tests/test.ld "$build/pmm.c.o" "$build/vmm-mutant.o" "$build/intr.c.o" "$build/string.c.o" "$build/hash.c.o" "$build/printfmt.c.o" "$build/runtime-mutant.o" "$build/start.S.o" "$build/trapentry.S.o" -o "$build/mutant.elf"
 set +e
 timeout 25 "$qemu" -machine virt -m 128M -nographic -bios none -kernel "$build/mutant.elf" > evidence/mutation.log 2>&1
 status=$?

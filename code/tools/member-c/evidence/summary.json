@@ -1,8 +1,8 @@
 {
   "baseline": "23d1cf2",
   "date": "2026-11-24",
-  "cow_configuration_checks": 52,
-  "eager_configuration_checks": 8,
+  "cow_configuration_checks": 57,
+  "eager_configuration_checks": 13,
   "real_store_fault": true,
   "gdb_epc_unchanged": true,
   "gdb_physical_frame_changed": true,
@@ -27,5 +27,13 @@
     "success on real store fault",
     "-E_INVAL on non-COW",
     "-E_NO_MEM on allocation failure"
-  ]
+  ],
+  "print_pgdir_validation": {
+    "date": "2026-11-25",
+    "integration_base": "c11f317",
+    "change": "only add print_pgdir and its static walker to integration base",
+    "full_link": "passed",
+    "user_program": "pgdir pass.; init check memory pass.",
+    "official_13_test_suite": "not run in this follow-up"
+  }
 }
