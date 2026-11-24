@@ -7,7 +7,7 @@
   "gdb_epc_unchanged": true,
   "gdb_physical_frame_changed": true,
   "copyout_mutant": "detected by isolation assertion",
-  "official_grade": "not run; production A/B modules incomplete",
+  "official_grade": "full suite not run; integration pgdir passed on 2026-11-25 (see print_pgdir_validation)",
   "test_substitutes": [
     "page allocator",
     "kmalloc",
@@ -16,9 +16,8 @@
     "S-mode-only trap entry"
   ],
   "not_verified": [
-    "production U/S stack switch",
-    "user ecall/ELF startup",
-    "B wait/exit/exec",
+    "full production U/S stack-switch coverage",
+    "full B wait/exit/exec regression",
     "multi-hart concurrency",
     "original Linux Dirty COW race"
   ],
