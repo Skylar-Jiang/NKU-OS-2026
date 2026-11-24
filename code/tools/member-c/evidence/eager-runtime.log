@@ -1,0 +1,9 @@
+PASS eager range copy
+PASS eager copy has distinct frame and equal data
+PASS eager child write isolation
+PASS eager cleanup returns all resources
+PASS eager do_fork creates separate mm
+PASS eager do_fork copies writable frame
+PASS eager child return zero
+PASS eager fork cleanup
+ALL MEMBER C EAGER TESTS PASS

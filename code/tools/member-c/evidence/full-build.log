@@ -1,0 +1,78 @@
++ cc kern/init/entry.S
++ cc kern/init/init.c
++ cc kern/libs/readline.c
++ cc kern/libs/stdio.c
++ cc kern/debug/kdebug.c
++ cc kern/debug/kmonitor.c
++ cc kern/debug/panic.c
++ cc kern/driver/clock.c
++ cc kern/driver/console.c
++ cc kern/driver/dtb.c
++ cc kern/driver/intr.c
++ cc kern/driver/picirq.c
++ cc kern/trap/trap.c
++ cc kern/trap/trapentry.S
++ cc kern/mm/default_pmm.c
++ cc kern/mm/kmalloc.c
++ cc kern/mm/pmm.c
++ cc kern/mm/vmm.c
+kern/trap/trap.c: In function 'trap_dispatch':
+kern/trap/trap.c:108:9: warning: implicit declaration of function 'interrupt_handler' [-Wimplicit-function-declaration]
+  108 |         interrupt_handler(tf);
+      |         ^~~~~~~~~~~~~~~~~
+kern/trap/trap.c:113:9: warning: implicit declaration of function 'exception_handler' [-Wimplicit-function-declaration]
+  113 |         exception_handler(tf);
+      |         ^~~~~~~~~~~~~~~~~
+kern/mm/kmalloc.c: In function '__slob_free_pages':
+kern/mm/kmalloc.c:92:22: warning: passing argument 1 of 'kva2page' makes pointer from integer without a cast [-Wint-conversion]
+   92 |  free_pages(kva2page(kva), 1 << order);
+      |                      ^~~
+      |                      |
+      |                      long unsigned int
+In file included from kern/mm/kmalloc.c:7:
+kern/mm/pmm.h:121:16: note: expected 'void *' but argument is of type 'long unsigned int'
+  121 | kva2page(void *kva)
+      |          ~~~~~~^~~
++ cc kern/process/entry.S
++ cc kern/process/proc.c
++ cc kern/process/switch.S
++ cc kern/schedule/sched.c
+kern/process/proc.c:311:28: warning: 'alloc_proc' used but never defined
+  311 | static struct proc_struct *alloc_proc(void);
+      |                            ^~~~~~~~~~
++ cc kern/syscall/syscall.c
++ cc libs/hash.c
++ cc libs/printfmt.c
++ cc libs/rand.c
+kern/syscall/syscall.c:11:29: error: 'sys_exit' undeclared here (not in a function)
+   11 |     [SYS_exit]              sys_exit,
+      |                             ^~~~~~~~
+kern/syscall/syscall.c:12:29: error: 'sys_fork' undeclared here (not in a function)
+   12 |     [SYS_fork]              sys_fork,
+      |                             ^~~~~~~~
+kern/syscall/syscall.c:13:29: error: 'sys_wait' undeclared here (not in a function)
+   13 |     [SYS_wait]              sys_wait,
+      |                             ^~~~~~~~
+kern/syscall/syscall.c:14:29: error: 'sys_exec' undeclared here (not in a function)
+   14 |     [SYS_exec]              sys_exec,
+      |                             ^~~~~~~~
+kern/syscall/syscall.c:15:29: error: 'sys_yield' undeclared here (not in a function); did you mean 'do_yield'?
+   15 |     [SYS_yield]             sys_yield,
+      |                             ^~~~~~~~~
+      |                             do_yield
+kern/syscall/syscall.c:16:29: error: 'sys_kill' undeclared here (not in a function)
+   16 |     [SYS_kill]              sys_kill,
+      |                             ^~~~~~~~
+kern/syscall/syscall.c:17:29: error: 'sys_getpid' undeclared here (not in a function); did you mean 'SYS_getpid'?
+   17 |     [SYS_getpid]            sys_getpid,
+      |                             ^~~~~~~~~~
+      |                             SYS_getpid
+kern/syscall/syscall.c:18:29: error: 'sys_putc' undeclared here (not in a function)
+   18 |     [SYS_putc]              sys_putc,
+      |                             ^~~~~~~~
+kern/syscall/syscall.c:19:29: error: 'sys_pgdir' undeclared here (not in a function); did you mean 'SYS_pgdir'?
+   19 |     [SYS_pgdir]             sys_pgdir,
+      |                             ^~~~~~~~~
+      |                             SYS_pgdir
+make: *** [Makefile:162: obj/kern/syscall/syscall.o] Error 1
+make: *** Waiting for unfinished jobs....

@@ -1,0 +1,23 @@
+PASS eager range copy
+PASS eager copy has distinct frame and equal data
+PASS eager child write isolation
+PASS eager cleanup returns all resources
+PASS COW range copy
+PASS fork shares frame with two references
+PASS both PTEs write protected
+PASS COW OOM preserves mapping and refs
+PASS shared COW write allocates private page
+PASS COW copy content and refs
+PASS COW child data isolated
+PASS single reference restores W without allocation
+PASS non-COW fault rejected
+PASS COW cleanup no leaks
+PASS parent first write breaks shared COW
+PASS parent first write leaves child data unchanged
+PASS fault outside VMA rejected
+PASS overflowing user range rejected
+PASS duplicate readonly VMA
+PASS true readonly never becomes COW writable
+PASS readonly writes denied including kernel copyout
+PASS repeated fork three-way sharing
+FAIL copy_to_user breaks COW through physical alias
