@@ -102,10 +102,14 @@ alloc_proc(void)
     // Self-linked nodes: not on proc_list or any hash bucket yet.
     list_init(&(proc->list_link));
     list_init(&(proc->hash_link));
+    //lab5 function2 2413507 update alloc_proc
+    // Lab5 fields: no exit status, not waiting, no process-tree links yet.
+    // set_links()/remove_links() rely on these starting as NULL.
+    proc->exit_code = 0;
+    proc->wait_state = 0;
+    proc->cptr = proc->yptr = proc->optr = NULL;
     return proc;
 }
-
-//lab5 function2 YOUR CODE update alloc_proc
 
 
 // set_proc_name - set the name of proc
@@ -515,11 +519,10 @@ void proc_run(struct proc_struct *proc)
         local_intr_save(intr_flag);
         struct proc_struct *prev = current;
         current = proc;
-        /* pgdir is a physical address. lsatp() is the old Sv32 helper. */
-        write_csr(satp, ((uintptr_t)8 << 60) |
-                        (proc->pgdir >> RISCV_PGSHIFT));
-        /* No ASIDs are assigned in this lab; discard old translations. */
-        asm volatile("sfence.vma" ::: "memory");
+        /* pgdir is a physical address; lsatp() sets MODE=8 (Sv39) | PPN.
+         * No ASIDs are assigned in this lab, so discard old translations. */
+        lsatp(proc->pgdir);
+        flush_tlb();
         switch_to(&prev->context, &proc->context);
         /* This executes when prev is selected again, not in the new thread. */
         local_intr_restore(intr_flag);
