@@ -202,7 +202,51 @@ out:
     return ret;
 }
 
-//lab5 function3 YOUR CODE 
+//lab5 function3 2411788
+int dup_mmap(struct mm_struct *to, struct mm_struct *from)
+{
+    assert(to != NULL && from != NULL && to != from);
+    list_entry_t *le = &from->mmap_list;
+    while ((le = list_next(le)) != &from->mmap_list) {
+        struct vma_struct *vma = le2vma(le, list_link);
+        struct vma_struct *copy = vma_create(vma->vm_start, vma->vm_end, vma->vm_flags);
+        if (copy == NULL) return -E_NO_MEM;
+        insert_vma_struct(to, copy);
+        int ret = copy_range(to->pgdir, from->pgdir, vma->vm_start,
+                             vma->vm_end, LAB5_COW);
+        if (ret != 0) return ret;
+    }
+    return 0;
+}
+
+int do_cow_fault(struct mm_struct *mm, uintptr_t addr)
+{
+    if (mm == NULL || mm->pgdir == NULL ||
+        !user_mem_check(mm, addr, 1, 1)) return -E_INVAL;
+    bool flag;
+    local_intr_save(flag);
+    uintptr_t va = ROUNDDOWN(addr, PGSIZE);
+    pte_t *pte = get_pte(mm->pgdir, va, 0);
+    int ret = -E_INVAL;
+    if (pte == NULL || (*pte & (PTE_V | PTE_U | PTE_R | PTE_COW)) !=
+        (PTE_V | PTE_U | PTE_R | PTE_COW) || (*pte & PTE_W)) goto out;
+    struct Page *old = pte2page(*pte);
+    uint32_t perm = ((*pte & 0x3ff) | PTE_W) & ~PTE_COW;
+    if (page_ref(old) == 1) {
+        *pte = pte_create(page2ppn(old), perm);
+        tlb_invalidate(mm->pgdir, va);
+        ret = 0;
+    } else if (page_ref(old) > 1) {
+        struct Page *copy = alloc_page();
+        if (copy == NULL) { ret = -E_NO_MEM; goto out; }
+        memcpy(page2kva(copy), page2kva(old), PGSIZE);
+        ret = page_insert(mm->pgdir, copy, va, perm);
+        if (ret != 0) free_page(copy);
+    }
+out:
+    local_intr_restore(flag);
+    return ret;
+}
 
 
 
@@ -239,7 +283,33 @@ bool copy_to_user(struct mm_struct *mm, void *dst, const void *src, size_t len)
     {
         return 0;
     }
-    memcpy(dst, src, len);
+    if (mm == NULL || len == 0) {
+        memcpy(dst, src, len);
+        return 1;
+    }
+    if (mm->pgdir == NULL) return 0;
+    /* Break COW even when writing through the kernel's physical alias.
+     * Preflight all pages before changing user bytes; allocation failure may
+     * leave earlier pages private, but cannot partially copy the payload.
+     */
+    uintptr_t start = (uintptr_t)dst, end = start + len;
+    for (uintptr_t va = ROUNDDOWN(start, PGSIZE); va < end; va += PGSIZE) {
+        pte_t *pte = get_pte(mm->pgdir, va, 0);
+        if (pte == NULL || (*pte & (PTE_V | PTE_U)) != (PTE_V | PTE_U)) return 0;
+        if (*pte & PTE_COW) {
+            uintptr_t checked = va < start ? start : va;
+            if (do_cow_fault(mm, checked) != 0) return 0;
+        }
+        if (!(*pte & PTE_W)) return 0;
+    }
+    for (size_t done = 0; done < len;) {
+        uintptr_t va = start + done;
+        struct Page *page = get_page(mm->pgdir, va, NULL);
+        size_t chunk = PGSIZE - PGOFF(va);
+        if (chunk > len - done) chunk = len - done;
+        memcpy((char *)page2kva(page) + PGOFF(va), (const char *)src + done, chunk);
+        done += chunk;
+    }
     return 1;
 }
 
@@ -330,6 +400,7 @@ check_vma_struct(void)
 }
 bool user_mem_check(struct mm_struct *mm, uintptr_t addr, size_t len, bool write)
 {
+    if (len > (uintptr_t)-1 - addr) return 0;
     if (mm != NULL)
     {
         if (!USER_ACCESS(addr, addr + len))

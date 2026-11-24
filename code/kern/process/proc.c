@@ -274,14 +274,76 @@ put_pgdir(struct mm_struct *mm)
     free_page(kva2page(mm->pgdir));
 }
 
-//lab5 function3 YOUR CODE update copy_mm
+//lab5 function3 2411788 update copy_mm
+static int copy_mm(uint32_t clone_flags, struct proc_struct *proc)
+{
+    struct mm_struct *old = current->mm;
+    if (old == NULL) return 0;
+    struct mm_struct *mm = old;
+    int ret = 0;
+    lock_mm(old);
+    if (!(clone_flags & CLONE_VM)) {
+        mm = mm_create();
+        if (mm == NULL) { ret = -E_NO_MEM; goto out; }
+        if ((ret = setup_pgdir(mm)) != 0) { mm_destroy(mm); goto out; }
+        if ((ret = dup_mmap(mm, old)) != 0) {
+            exit_mmap(mm);
+            put_pgdir(mm);
+            mm_destroy(mm);
+            goto out;
+        }
+    }
+    mm_count_inc(mm);
+    proc->mm = mm;
+    proc->pgdir = PADDR(mm->pgdir);
+out:
+    unlock_mm(old);
+    return ret;
+}
 
 
 
 //lab5 function2 YOUR CODE
 
 
-//lab5 function3 YOUR CODE
+//lab5 function3 2411788
+/* alloc_proc belongs to B; this declaration allows independent compilation. */
+static struct proc_struct *alloc_proc(void);
+
+static void copy_thread(struct proc_struct *proc, uintptr_t stack, struct trapframe *tf)
+{
+    proc->tf = (struct trapframe *)(proc->kstack + KSTACKSIZE) - 1;
+    *proc->tf = *tf;
+    proc->tf->gpr.a0 = 0;
+    proc->tf->gpr.sp = stack ? stack :
+        ((tf->status & SSTATUS_SPP) ? (uintptr_t)proc->tf : tf->gpr.sp);
+    proc->context.ra = (uintptr_t)forkret;
+    proc->context.sp = (uintptr_t)proc->tf;
+}
+
+int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf)
+{
+    if (nr_process >= MAX_PROCESS) return -E_NO_FREE_PROC;
+    struct proc_struct *proc = alloc_proc();
+    if (proc == NULL) return -E_NO_MEM;
+    proc->parent = current;
+    int ret = setup_kstack(proc);
+    if (ret != 0) goto free_proc;
+    ret = copy_mm(clone_flags, proc);
+    if (ret != 0) { put_kstack(proc); goto free_proc; }
+    copy_thread(proc, stack, tf);
+    bool flag;
+    local_intr_save(flag);
+    proc->pid = get_pid();
+    hash_proc(proc);
+    set_links(proc); /* Includes nr_process++; do not duplicate it. */
+    wakeup_proc(proc);
+    local_intr_restore(flag);
+    return proc->pid;
+free_proc:
+    kfree(proc);
+    return ret;
+}
 
 
 //lab5 function4 YOUR CODE
