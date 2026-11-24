@@ -110,6 +110,8 @@ USRCDIR		+= user
 ULIBDIR		+= user/libs
 
 UCFLAGS		+= $(addprefix -I,$(UINCLUDE))
+# Preserve potentially trapping user operations while keeping -O2 enabled.
+UCFLAGS		+= -fnon-call-exceptions
 USER_BINS	:=
 
 $(call add_files_cc,$(call listf_cc,$(ULIBDIR)),ulibs,$(UCFLAGS))
