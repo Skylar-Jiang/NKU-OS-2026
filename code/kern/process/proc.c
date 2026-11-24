@@ -695,15 +695,81 @@ bad_fork_cleanup_proc:
 #define KERNEL_EXECVE2(x, xstart, xsize) __KERNEL_EXECVE2(x, xstart, xsize)
 
 
-//lab5 function2 YOUR CODE
+//lab5 function2 2413507
 
-/* Lab4 kernel-thread startup only; user_main/exec/wait remain Lab5 tasks. */
+/* kernel_execve - turn the calling kernel thread into a user process.
+ *
+ * Calling do_execve() directly is not enough: it only prepares the new image,
+ * while the CPU stays in S mode. Instead this uses the kernel-breakpoint
+ * contract implemented by the trap layer: a7 = T_SYSCALL marks the ebreak as
+ * an exec request, a0 = SYS_exec, a1..a4 = name, len, binary, size. The trap
+ * entry builds a real trapframe for this thread, syscall() runs do_execve,
+ * load_icode rewrites that trapframe (U-mode status, ELF entry, user sp) and
+ * the common __trapret path finishes with sret. Interrupts stay disabled from
+ * the trap entry until sret, so the switch cannot be observed half-done.
+ * Control comes back here only if exec failed, with the error in a0. */
+static int
+kernel_execve(const char *name, unsigned char *binary, size_t size)
+{
+    register uintptr_t a0 asm("a0") = SYS_exec;
+    register uintptr_t a1 asm("a1") = (uintptr_t)name;
+    register uintptr_t a2 asm("a2") = (uintptr_t)strlen(name);
+    register uintptr_t a3 asm("a3") = (uintptr_t)binary;
+    register uintptr_t a4 asm("a4") = (uintptr_t)size;
+    register uintptr_t a7 asm("a7") = T_SYSCALL;
+    asm volatile("ebreak"
+                 : "+r"(a0)
+                 : "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(a7)
+                 : "memory");
+    return (int)a0;
+}
+
+/* user_main - transition kernel thread that becomes the first user program.
+ * `make build-<prog>` / grading defines TEST, TESTSTART and TESTSIZE to pick
+ * the program; the default build runs `exit`. */
+static int
+user_main(void *arg)
+{
+    int ret;
+#ifdef TEST
+    ret = KERNEL_EXECVE2(TEST, TESTSTART, TESTSIZE);
+#else
+    ret = KERNEL_EXECVE(exit);
+#endif
+    /* Reached only on failure; kernel_thread_entry passes ret to do_exit and
+     * initproc reaps this thread. */
+    cprintf("user_main: kernel_execve failed, error %d.\n", ret);
+    return ret;
+}
+
+/* init_main - second kernel thread (pid 1): starts user_main, reaps every
+ * child (including orphans re-parented to it) and then checks that all
+ * process and memory state has been returned. */
 static int
 init_main(void *arg)
 {
-    cprintf("this initproc, pid = %d, name = \"%s\"\n", current->pid, get_proc_name(current));
-    cprintf("To U: \"%s\".\n", (const char *)arg);
-    cprintf("To U: \"en.., Bye, Bye. :)\"\n");
+    size_t nr_free_pages_store = nr_free_pages();
+    size_t kernel_allocated_store = kallocated();
+
+    int pid = kernel_thread(user_main, NULL, 0);
+    if (pid <= 0)
+    {
+        panic("create user_main failed.\n");
+    }
+
+    while (do_wait(0, NULL) == 0)
+    {
+        schedule();
+    }
+
+    cprintf("all user-mode processes have quit.\n");
+    assert(initproc->cptr == NULL && initproc->yptr == NULL && initproc->optr == NULL);
+    assert(nr_process == 2);
+    assert(list_next(&proc_list) == &(initproc->list_link));
+    assert(list_prev(&proc_list) == &(initproc->list_link));
+    assert(nr_free_pages_store == nr_free_pages());
+    assert(kernel_allocated_store == kallocated());
+    cprintf("init check memory pass.\n");
     return 0;
 }
 
