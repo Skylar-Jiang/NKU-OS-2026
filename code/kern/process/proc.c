@@ -596,19 +596,31 @@ int do_execve(const char *name, size_t len, unsigned char *binary, size_t size)
     }
     memset(local_name, 0, sizeof(local_name));
 
-    /* Validate user pointers against the caller's address space (or kernel
-     * range for a kernel thread) and keep a private copy of the name: the
-     * old address space may be released by load_icode. */
-    lock_mm(mm);
-    if (name == NULL ||
-        (len != 0 && !copy_from_user(mm, local_name, name, len, 0)) ||
-        binary == NULL || size == 0 ||
-        !user_mem_check(mm, (uintptr_t)binary, size, 0))
+    if (name == NULL || binary == NULL || size == 0)
     {
-        unlock_mm(mm);
         return -E_INVAL;
     }
-    unlock_mm(mm);
+    /* Keep a private copy of the name: the old address space may be released
+     * by load_icode. A user caller (mm != NULL) passes untrusted pointers that
+     * must lie in readable VMAs of its own address space. A kernel thread
+     * (mm == NULL, only kernel_execve) passes kernel image data; it is not
+     * routed through user_mem_check() because KERN_ACCESS() cannot accept any
+     * address here (KERNBASE + KMEMSIZE wraps past 2^64 on Sv39). */
+    if (mm != NULL)
+    {
+        lock_mm(mm);
+        if ((len != 0 && !copy_from_user(mm, local_name, name, len, 0)) ||
+            !user_mem_check(mm, (uintptr_t)binary, size, 0))
+        {
+            unlock_mm(mm);
+            return -E_INVAL;
+        }
+        unlock_mm(mm);
+    }
+    else
+    {
+        memcpy(local_name, name, len);
+    }
 
     if ((ret = load_icode(binary, size)) != 0)
     {
@@ -753,7 +765,9 @@ int do_wait(int pid, int *code_store)
     struct proc_struct *proc;
     bool intr_flag, haskid;
 
-    if (code_store != NULL &&
+    /* A user caller's pointer must be writable in its own address space; a
+     * kernel thread (mm == NULL) passes a kernel pointer (see do_execve). */
+    if (code_store != NULL && mm != NULL &&
         !user_mem_check(mm, (uintptr_t)code_store, sizeof(int), 1))
     {
         return -E_INVAL;
@@ -810,10 +824,16 @@ found:
     }
     /* copy_to_user breaks COW sharing on the target page before writing, so
      * the store never reaches a page still shared with another process. */
-    if (code_store != NULL &&
-        !copy_to_user(mm, code_store, &proc->exit_code, sizeof(int)))
+    if (code_store != NULL)
     {
-        return -E_INVAL;
+        if (mm == NULL)
+        {
+            *code_store = proc->exit_code;
+        }
+        else if (!copy_to_user(mm, code_store, &proc->exit_code, sizeof(int)))
+        {
+            return -E_INVAL;
+        }
     }
     local_intr_save(intr_flag);
     {
