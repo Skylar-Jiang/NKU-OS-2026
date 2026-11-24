@@ -922,9 +922,12 @@ int do_kill(int pid)
 static int
 kernel_execve(const char *name, unsigned char *binary, size_t size)
 {
+    /* Evaluate every call before binding the register variables: a call
+     * made after a1 is bound (e.g. strlen) would clobber it. */
+    size_t len = strlen(name);
     register uintptr_t a0 asm("a0") = SYS_exec;
     register uintptr_t a1 asm("a1") = (uintptr_t)name;
-    register uintptr_t a2 asm("a2") = (uintptr_t)strlen(name);
+    register uintptr_t a2 asm("a2") = (uintptr_t)len;
     register uintptr_t a3 asm("a3") = (uintptr_t)binary;
     register uintptr_t a4 asm("a4") = (uintptr_t)size;
     register uintptr_t a7 asm("a7") = T_SYSCALL;
