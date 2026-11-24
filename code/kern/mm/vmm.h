@@ -51,6 +51,12 @@ void vmm_init(void);
 int mm_map(struct mm_struct *mm, uintptr_t addr, size_t len, uint32_t vm_flags,
            struct vma_struct **vma_store);
 int mm_unmap(struct mm_struct *mm, uintptr_t addr, size_t len);
+/* Store page fault handler: 0=resolved, negative=invalid/OOM. Do not advance EPC.
+ * Single-hart implementation; no mm_lock acquisition (safe for copyout callers).
+ */
+int cow_handle_store_fault(struct mm_struct *mm, uintptr_t fault_addr);
+/* Compatibility name retained for the existing C tests and copyout path. */
+int do_cow_fault(struct mm_struct *mm, uintptr_t addr);
 int dup_mmap(struct mm_struct *to, struct mm_struct *from);
 void exit_mmap(struct mm_struct *mm);
 uintptr_t get_unmapped_area(struct mm_struct *mm, size_t len);

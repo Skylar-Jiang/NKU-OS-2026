@@ -316,30 +316,41 @@ put_pgdir(struct mm_struct *mm)
 }
 
 //lab5 function3 YOUR CODE update copy_mm
-static int
-copy_mm(uint32_t clone_flags, struct proc_struct *proc)
+static int copy_mm(uint32_t clone_flags, struct proc_struct *proc)
 {
-    if (current == NULL || current->mm == NULL)
-    {
-        proc->mm = NULL;
-        return 0;
+    struct mm_struct *old = current->mm;
+    if (old == NULL) return 0;
+    struct mm_struct *mm = old;
+    int ret = 0;
+    lock_mm(old);
+    if (!(clone_flags & CLONE_VM)) {
+        mm = mm_create();
+        if (mm == NULL) { ret = -E_NO_MEM; goto out; }
+        if ((ret = setup_pgdir(mm)) != 0) { mm_destroy(mm); goto out; }
+        if ((ret = dup_mmap(mm, old)) != 0) {
+            exit_mmap(mm);
+            put_pgdir(mm);
+            mm_destroy(mm);
+            goto out;
+        }
     }
-    return -E_INVAL;
+    mm_count_inc(mm);
+    proc->mm = mm;
+    proc->pgdir = PADDR(mm->pgdir);
+out:
+    unlock_mm(old);
+    return ret;
 }
 
-static void
-copy_thread(struct proc_struct *proc, uintptr_t esp, struct trapframe *tf)
+static void copy_thread(struct proc_struct *proc, uintptr_t stack, struct trapframe *tf)
 {
     proc->tf = (struct trapframe *)(proc->kstack + KSTACKSIZE) - 1;
-    *(proc->tf) = *tf;
-    // Child observes 0 as the fork return value.
+    *proc->tf = *tf;
     proc->tf->gpr.a0 = 0;
-    // esp == 0 means a kernel thread: after __trapret its sp is the top of its
-    // own stack area (the frame is dead by then), never 0.
-    proc->tf->gpr.sp = (esp == 0) ? (uintptr_t)proc->tf : esp;
-
+    proc->tf->gpr.sp = stack ? stack :
+        ((tf->status & SSTATUS_SPP) ? (uintptr_t)proc->tf : tf->gpr.sp);
     proc->context.ra = (uintptr_t)forkret;
-    proc->context.sp = (uintptr_t)(proc->tf);
+    proc->context.sp = (uintptr_t)proc->tf;
 }
 
 
@@ -348,54 +359,29 @@ copy_thread(struct proc_struct *proc, uintptr_t esp, struct trapframe *tf)
 
 
 //lab5 function3 YOUR CODE
-/* Lab4 kernel-thread fork only; Lab5 address-space/tree extensions are pending. */
+/* Integrated member C process-duplication implementation from 2499528. */
 int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf)
 {
-    int ret = -E_NO_FREE_PROC;
-    struct proc_struct *proc;
-    if (nr_process >= MAX_PROCESS)
-    {
-        goto fork_out;
-    }
-    ret = -E_NO_MEM;
-    if ((proc = alloc_proc()) == NULL)
-    {
-        goto fork_out;
-    }
+    if (nr_process >= MAX_PROCESS) return -E_NO_FREE_PROC;
+    struct proc_struct *proc = alloc_proc();
+    if (proc == NULL) return -E_NO_MEM;
     proc->parent = current;
-
-    if ((ret = setup_kstack(proc)) != 0)
-    {
-        goto bad_fork_cleanup_proc;
-    }
-    if ((ret = copy_mm(clone_flags, proc)) != 0)
-    {
-        goto bad_fork_cleanup_kstack;
-    }
+    int ret = setup_kstack(proc);
+    if (ret != 0) goto free_proc;
+    ret = copy_mm(clone_flags, proc);
+    if (ret != 0) { put_kstack(proc); goto free_proc; }
     copy_thread(proc, stack, tf);
-
-    // PID allocation scans proc_list, so allocation and registration form one
-    // critical section; the child becomes RUNNABLE only once fully built.
-    bool intr_flag;
-    local_intr_save(intr_flag);
-    {
-        proc->pid = get_pid();
-        hash_proc(proc);
-        list_add(&proc_list, &(proc->list_link));
-        nr_process++;
-        wakeup_proc(proc);
-        ret = proc->pid;
-    }
-    local_intr_restore(intr_flag);
-
-fork_out:
-    return ret;
-
-bad_fork_cleanup_kstack:
-    put_kstack(proc);
-bad_fork_cleanup_proc:
+    bool flag;
+    local_intr_save(flag);
+    proc->pid = get_pid();
+    hash_proc(proc);
+    set_links(proc); /* Includes nr_process++; do not duplicate it. */
+    wakeup_proc(proc);
+    local_intr_restore(flag);
+    return proc->pid;
+free_proc:
     kfree(proc);
-    goto fork_out;
+    return ret;
 }
 
 

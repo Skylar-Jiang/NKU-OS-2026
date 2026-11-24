@@ -1,0 +1,21 @@
+0x0000000000001000 in ?? ()
+Breakpoint 1 at 0x80002d30: file tests/runtime.c, line 78.
+
+Breakpoint 1, trap (tf=0x802abd50) at tests/runtime.c:78
+78	    assert(tf->cause==15&&fault_mm);faults++;
+Real store-page-fault entry
+$1 = 15
+$2 = 0x800000
+$3 = 0x80002ad0
+   0x80002ad0 <test_main+3128>:	sb	a4,0(a5)
+Before repair: COW bit and W bit
+$4 = 0x100
+Temporary breakpoint 2 at 0x80002e68: file tests/trapentry.S, line 109.
+
+Temporary breakpoint 2, __trapret () at tests/trapentry.S:109
+109	    RESTORE_ALL
+After repair: unchanged EPC, different physical page, writable non-COW
+$5 = 1
+$6 = 1
+$7 = 0x4
+[Inferior 1 (process 1) detached]

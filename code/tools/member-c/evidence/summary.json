@@ -1,0 +1,31 @@
+{
+  "baseline": "23d1cf2",
+  "date": "2026-11-24",
+  "cow_configuration_checks": 52,
+  "eager_configuration_checks": 8,
+  "real_store_fault": true,
+  "gdb_epc_unchanged": true,
+  "gdb_physical_frame_changed": true,
+  "copyout_mutant": "detected by isolation assertion",
+  "official_grade": "not run; production A/B modules incomplete",
+  "test_substitutes": [
+    "page allocator",
+    "kmalloc",
+    "B alloc_proc",
+    "scheduler/wakeup",
+    "S-mode-only trap entry"
+  ],
+  "not_verified": [
+    "production U/S stack switch",
+    "user ecall/ELF startup",
+    "B wait/exit/exec",
+    "multi-hart concurrency",
+    "original Linux Dirty COW race"
+  ],
+  "trap_interface": "cow_handle_store_fault declared in kern/mm/vmm.h",
+  "trap_interface_checks": [
+    "success on real store fault",
+    "-E_INVAL on non-COW",
+    "-E_NO_MEM on allocation failure"
+  ]
+}

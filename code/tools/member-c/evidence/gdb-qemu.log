@@ -1,0 +1,52 @@
+PASS eager range copy
+PASS eager copy has distinct frame and equal data
+PASS eager child write isolation
+PASS eager cleanup returns all resources
+PASS COW range copy
+PASS fork shares frame with two references
+PASS both PTEs write protected
+PASS COW OOM preserves mapping and refs
+PASS shared COW write allocates private page
+PASS COW copy content and refs
+PASS COW child data isolated
+PASS single reference restores W without allocation
+PASS non-COW fault rejected
+PASS COW cleanup no leaks
+PASS parent first write breaks shared COW
+PASS parent first write leaves child data unchanged
+PASS fault outside VMA rejected
+PASS overflowing user range rejected
+PASS cross-page copyout OOM returns failure
+PASS copyout preflight failure does not partially write payload
+PASS cross-page copyout succeeds after retry
+PASS cross-page child payload and parent isolation
+PASS cross-page copyout cleanup
+PASS duplicate readonly VMA
+PASS true readonly never becomes COW writable
+PASS readonly writes denied including kernel copyout
+PASS repeated fork three-way sharing
+PASS copy_to_user breaks COW through physical alias
+PASS child teardown keeps other mappings alive
+PASS last owner remains usable after other exits
+PASS sibling page table teardown preserves parent
+PASS multi-VMA cleanup no leaks
+PASS intermediate page-table allocation rollback
+PASS do_fork independent mm and parent registration
+PASS child return zero and user EPC/SP preserved
+PASS fork first-entry context prepared
+PASS set_links registers exactly once
+PASS CLONE_VM shares mm rather than COW metadata
+PASS shared mm child cleanup restores parent state
+PASS PCB failure rollback
+PASS kernel stack failure rollback
+PASS root page allocation failure rollback
+PASS mm structure allocation failure rollback
+PASS VMA allocation failure rollback
+PASS partial COW duplication failure releases child refs
+PASS parent survives failed fork with lazy COW permission restore
+PASS fork cleanup all resources returned
+PASS process limit fails without allocation
+PASS kernel thread path keeps kernel stack when stack argument zero
+PASS kernel thread creation cleanup
+PASS real store fault resolves and retrqemu-system-riscv64: terminating on signal 1
+i

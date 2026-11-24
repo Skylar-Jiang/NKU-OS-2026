@@ -224,6 +224,7 @@ void pmm_init(void)
 // return vaule: the kernel virtual address of this pte
 pte_t *get_pte(pde_t *pgdir, uintptr_t la, bool create)
 {
+    bool created_l1 = 0;
     pde_t *pdep1 = &pgdir[PDX1(la)];
     if (!(*pdep1 & PTE_V))
     {
@@ -235,7 +236,8 @@ pte_t *get_pte(pde_t *pgdir, uintptr_t la, bool create)
         set_page_ref(page, 1);
         uintptr_t pa = page2pa(page);
         memset(KADDR(pa), 0, PGSIZE);
-        *pdep1 = pte_create(page2ppn(page), PTE_U | PTE_V);
+        *pdep1 = pte_create(page2ppn(page), 0);
+        created_l1 = 1;
     }
 
     pde_t *pdep0 = &((pde_t *)KADDR(PDE_ADDR(*pdep1)))[PDX0(la)];
@@ -244,12 +246,19 @@ pte_t *get_pte(pde_t *pgdir, uintptr_t la, bool create)
         struct Page *page;
         if (!create || (page = alloc_page()) == NULL)
         {
+            if (created_l1) {
+                struct Page *table = pde2page(*pdep1);
+                *pdep1 = 0;
+                asm volatile("sfence.vma" ::: "memory");
+                set_page_ref(table, 0);
+                free_page(table);
+            }
             return NULL;
         }
         set_page_ref(page, 1);
         uintptr_t pa = page2pa(page);
         memset(KADDR(pa), 0, PGSIZE);
-        *pdep0 = pte_create(page2ppn(page), PTE_U | PTE_V);
+        *pdep0 = pte_create(page2ppn(page), 0);
     }
     return &((pte_t *)KADDR(PDE_ADDR(*pdep0)))[PTX(la)];
 }
@@ -357,6 +366,10 @@ void exit_range(pde_t *pgdir, uintptr_t start, uintptr_t end)
                 d0start += PTSIZE;
             } while (d0start != 0 && d0start < d1start + PDSIZE && d0start < end);
             // free level 0 page directory only when all pde0s in it are already invalid
+            free_pd0 = 1;
+            for (int i = 0; i < NPDEENTRY; i++) {
+                if (pd0[i] & PTE_V) { free_pd0 = 0; break; }
+            }
             if (free_pd0)
             {
                 free_page(pde2page(pde1));
@@ -370,6 +383,38 @@ void exit_range(pde_t *pgdir, uintptr_t start, uintptr_t end)
 
 
 //lab5 function3 YOUR CODE 
+int copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end, bool share)
+{
+    assert(start % PGSIZE == 0 && end % PGSIZE == 0);
+    assert(start < end && USER_ACCESS(start, end) && to != from);
+    for (uintptr_t addr = start; addr < end; addr += PGSIZE) {
+        pte_t *src = get_pte(from, addr, 0);
+        if (src == NULL || !(*src & PTE_V)) continue;
+        if (!(*src & PTE_U)) return -E_INVAL;
+        struct Page *page = pte2page(*src);
+        uint32_t perm = *src & 0x3ff;
+        if (share) {
+            /* Insert first: on failure this page's parent PTE is unchanged. */
+            if (perm & (PTE_W | PTE_COW)) perm = (perm & ~PTE_W) | PTE_COW;
+            bool flag;
+            local_intr_save(flag);
+            int ret = page_insert(to, page, addr, perm);
+            if (ret != 0) { local_intr_restore(flag); return ret; }
+            *src = pte_create(page2ppn(page), perm);
+            tlb_invalidate(from, addr);
+            local_intr_restore(flag);
+        } else {
+            struct Page *newpage = alloc_page();
+            if (newpage == NULL) return -E_NO_MEM;
+            memcpy(page2kva(newpage), page2kva(page), PGSIZE);
+            /* An eager copy of an already-COW page owns its writable copy. */
+            if (perm & PTE_COW) perm = (perm | PTE_W) & ~PTE_COW;
+            int ret = page_insert(to, newpage, addr, perm);
+            if (ret != 0) { free_page(newpage); return ret; }
+        }
+    }
+    return 0;
+}
 
 
 //lab4 请补充你在lab4中的代码
@@ -498,7 +543,8 @@ static void check_pgdir(void)
     assert((ptep = get_pte(boot_pgdir_va, PGSIZE, 0)) != NULL);
     assert(*ptep & PTE_U);
     assert(*ptep & PTE_W);
-    assert(boot_pgdir_va[0] & PTE_U);
+    /* Sv39 reserves U/A/D on non-leaf entries; permissions are on leaves. */
+    assert((boot_pgdir_va[0] & (PTE_U | PTE_A | PTE_D)) == 0);
     assert(page_ref(p2) == 1);
 
     assert(page_insert(boot_pgdir_va, p1, PGSIZE, 0) == 0);
