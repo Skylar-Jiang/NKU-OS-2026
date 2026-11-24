@@ -102,10 +102,14 @@ alloc_proc(void)
     // Self-linked nodes: not on proc_list or any hash bucket yet.
     list_init(&(proc->list_link));
     list_init(&(proc->hash_link));
+    //lab5 function2 2413507 update alloc_proc
+    // Lab5 fields: no exit status, not waiting, no process-tree links yet.
+    // set_links()/remove_links() rely on these starting as NULL.
+    proc->exit_code = 0;
+    proc->wait_state = 0;
+    proc->cptr = proc->yptr = proc->optr = NULL;
     return proc;
 }
-
-//lab5 function2 YOUR CODE update alloc_proc
 
 
 // set_proc_name - set the name of proc
@@ -355,7 +359,307 @@ static void copy_thread(struct proc_struct *proc, uintptr_t stack, struct trapfr
 
 
 
-//lab5 function2 YOUR CODE
+//lab5 function2 2413507
+/* Number of user-stack pages populated eagerly by load_icode. The stack VMA
+ * spans USTACKSIZE; Lab5 has no demand-paging handler, so only these pages are
+ * backed and the unmapped remainder of the VMA acts as an overflow guard. */
+#define USTACK_INIT_PAGES 4
+
+/* release_mm - drop one reference to mm and destroy it with the last one.
+ * mm_count counts sharers of the address space (CLONE_VM); the physical pages
+ * keep their own Page::ref (COW), which unmap_range() consults per page. */
+static void
+release_mm(struct mm_struct *mm)
+{
+    if (mm != NULL && mm_count_dec(mm) == 0)
+    {
+        exit_mmap(mm);
+        put_pgdir(mm);
+        mm_destroy(mm);
+    }
+}
+
+/* elf_seg_perm - translate ELF segment flags into VMA flags and PTE bits. */
+static void
+elf_seg_perm(uint32_t p_flags, uint32_t *vm_flags, uint32_t *perm)
+{
+    *vm_flags = 0;
+    *perm = PTE_U | PTE_V;
+    if (p_flags & ELF_PF_X)
+    {
+        *vm_flags |= VM_EXEC;
+        *perm |= PTE_X;
+    }
+    if (p_flags & ELF_PF_W)
+    {
+        *vm_flags |= VM_WRITE;
+        /* RISC-V reserves W without R, so a writable page is also readable. */
+        *perm |= PTE_W | PTE_R;
+    }
+    if (p_flags & ELF_PF_R)
+    {
+        *vm_flags |= VM_READ;
+        *perm |= PTE_R;
+    }
+}
+
+/* map_user_range - mm_map() that first rejects any overlap with an existing
+ * VMA. mm_map() only detects a VMA containing the start address; a range
+ * that starts below an existing VMA and covers it would otherwise reach the
+ * overlap assert in insert_vma_struct() and panic on a crafted ELF. */
+static int
+map_user_range(struct mm_struct *mm, uintptr_t addr, size_t len, uint32_t vm_flags)
+{
+    uintptr_t start = ROUNDDOWN(addr, PGSIZE), end = ROUNDUP(addr + len, PGSIZE);
+    list_entry_t *list = &(mm->mmap_list), *le = list;
+    while ((le = list_next(le)) != list)
+    {
+        struct vma_struct *vma = le2vma(le, list_link);
+        if (start < vma->vm_end && vma->vm_start < end)
+        {
+            return -E_INVAL_ELF;
+        }
+    }
+    return mm_map(mm, addr, len, vm_flags, NULL);
+}
+
+/* load_segment - back every page of [va, va + memsz) with a fresh zeroed
+ * page and copy the filesz bytes of file data into it. Zero-filling whole
+ * pages covers BSS, the head of an unaligned first page and the tail of the
+ * last page. The caller has already reserved the range with mm_map(), so no
+ * page in it is shared with another segment. */
+static int
+load_segment(struct mm_struct *mm, const unsigned char *src, uintptr_t va,
+             size_t filesz, size_t memsz, uint32_t perm)
+{
+    uintptr_t end = va + memsz, file_end = va + filesz;
+    uintptr_t la;
+    for (la = ROUNDDOWN(va, PGSIZE); la < end; la += PGSIZE)
+    {
+        struct Page *page = pgdir_alloc_page(mm->pgdir, la, perm);
+        if (page == NULL)
+        {
+            return -E_NO_MEM;
+        }
+        unsigned char *kva = page2kva(page);
+        memset(kva, 0, PGSIZE);
+        uintptr_t from = (la > va) ? la : va;
+        uintptr_t to = (la + PGSIZE < file_end) ? la + PGSIZE : file_end;
+        if (from < to)
+        {
+            memcpy(kva + (from - la), src + (from - va), to - from);
+        }
+    }
+    return 0;
+}
+
+/* load_icode - build a new user address space from the ELF image binary and
+ * install it as the image of current.
+ *
+ * The new mm is built completely while the old one (if any) is still active,
+ * so binary may live in the caller's user memory and any failure returns with
+ * current untouched. Only after every check and allocation has succeeded is
+ * the new mm committed, the old one released and current->tf rewritten to
+ * enter the program at its ELF entry in U mode. */
+static int
+load_icode(unsigned char *binary, size_t size)
+{
+    struct elfhdr elf;
+    struct proghdr ph;
+    struct mm_struct *mm;
+    int ret = -E_INVAL_ELF;
+    uint16_t i;
+    bool has_load = 0;
+
+    /* (1) ELF header. The embedded images are not guaranteed to be aligned,
+     *     so headers are copied out instead of being dereferenced in place. */
+    if (binary == NULL || size < sizeof(struct elfhdr))
+    {
+        return -E_INVAL_ELF;
+    }
+    memcpy(&elf, binary, sizeof(struct elfhdr));
+    if (elf.e_magic != ELF_MAGIC || elf.e_phnum == 0 ||
+        elf.e_phentsize != sizeof(struct proghdr) ||
+        elf.e_phoff > size ||
+        (size - elf.e_phoff) / sizeof(struct proghdr) < elf.e_phnum)
+    {
+        return -E_INVAL_ELF;
+    }
+
+    /* (2) A fresh mm with its own root page table (kernel half copied). */
+    ret = -E_NO_MEM;
+    if ((mm = mm_create()) == NULL)
+    {
+        return ret;
+    }
+    if (setup_pgdir(mm) != 0)
+    {
+        mm_destroy(mm);
+        return ret;
+    }
+
+    /* (3) Map and fill every PT_LOAD segment. */
+    for (i = 0; i < elf.e_phnum; i++)
+    {
+        memcpy(&ph, binary + elf.e_phoff + (size_t)i * sizeof(struct proghdr),
+               sizeof(struct proghdr));
+        if (ph.p_type != ELF_PT_LOAD)
+        {
+            continue;
+        }
+        ret = -E_INVAL_ELF;
+        if (ph.p_filesz > ph.p_memsz || ph.p_offset > size ||
+            ph.p_filesz > size - ph.p_offset)
+        {
+            goto bad_mm;
+        }
+        if (ph.p_memsz == 0)
+        {
+            continue;
+        }
+        /* Overflow-safe check that the segment lies in user space. */
+        if (ph.p_va + ph.p_memsz < ph.p_va ||
+            !USER_ACCESS(ph.p_va, ph.p_va + ph.p_memsz))
+        {
+            goto bad_mm;
+        }
+        uint32_t vm_flags, perm;
+        elf_seg_perm(ph.p_flags, &vm_flags, &perm);
+        /* Segments must not overlap (also within a shared page). */
+        if ((ret = map_user_range(mm, ph.p_va, ph.p_memsz, vm_flags)) != 0)
+        {
+            goto bad_mm;
+        }
+        if ((ret = load_segment(mm, binary + ph.p_offset, ph.p_va,
+                                ph.p_filesz, ph.p_memsz, perm)) != 0)
+        {
+            goto bad_mm;
+        }
+        has_load = 1;
+    }
+    ret = -E_INVAL_ELF;
+    if (!has_load)
+    {
+        goto bad_mm;
+    }
+
+    /* (4) The entry point must be inside an executable segment. */
+    struct vma_struct *entry_vma = find_vma(mm, elf.e_entry);
+    if (entry_vma == NULL || elf.e_entry < entry_vma->vm_start ||
+        !(entry_vma->vm_flags & VM_EXEC))
+    {
+        goto bad_mm;
+    }
+
+    /* (5) User stack: reserve USTACKSIZE below USTACKTOP (fails if a segment
+     *     overlaps it) and back the top pages. */
+    if ((ret = map_user_range(mm, USTACKTOP - USTACKSIZE, USTACKSIZE,
+                              VM_READ | VM_WRITE | VM_STACK)) != 0)
+    {
+        goto bad_mm;
+    }
+    ret = -E_NO_MEM;
+    for (i = 1; i <= USTACK_INIT_PAGES; i++)
+    {
+        struct Page *page = pgdir_alloc_page(mm->pgdir, USTACKTOP - i * PGSIZE,
+                                             PTE_U | PTE_V | PTE_R | PTE_W);
+        if (page == NULL)
+        {
+            goto bad_mm;
+        }
+        memset(page2kva(page), 0, PGSIZE);
+    }
+
+    /* (6) Commit: from here on nothing can fail. binary is not read again,
+     *     so it may disappear together with the old address space. */
+    struct mm_struct *old_mm = current->mm;
+    bool intr_flag;
+    local_intr_save(intr_flag);
+    {
+        mm_count_inc(mm);
+        current->mm = mm;
+        current->pgdir = PADDR(mm->pgdir);
+        lsatp(current->pgdir);
+        flush_tlb();
+    }
+    local_intr_restore(intr_flag);
+    /* Code was written through kernel aliases; sync the instruction stream. */
+    asm volatile("fence.i" ::: "memory");
+    release_mm(old_mm);
+
+    /* (7) Trapframe for the first sret into the new image: user stack top,
+     *     ELF entry, SPP=0 (return to U), SPIE=1 (interrupts on after sret),
+     *     SIE=0 for the remainder of the kernel path. Other sstatus bits such
+     *     as SUM are inherited from the running kernel. */
+    struct trapframe *tf = current->tf;
+    uintptr_t sstatus = read_csr(sstatus);
+    memset(tf, 0, sizeof(struct trapframe));
+    tf->gpr.sp = USTACKTOP;
+    tf->epc = elf.e_entry;
+    tf->status = (sstatus & ~(SSTATUS_SPP | SSTATUS_SIE)) | SSTATUS_SPIE;
+    return 0;
+
+bad_mm:
+    /* mm_count is still 0 and mm was never installed. */
+    exit_mmap(mm);
+    put_pgdir(mm);
+    mm_destroy(mm);
+    return ret;
+}
+
+/* do_execve - replace the image of current with the ELF program binary.
+ * On success current keeps its pid and process-tree links. On failure the
+ * caller's old image is left intact (load_icode commits only on success),
+ * so the error can be returned to it. */
+int do_execve(const char *name, size_t len, unsigned char *binary, size_t size)
+{
+    struct mm_struct *mm = current->mm;
+    char local_name[PROC_NAME_LEN + 1];
+    int ret;
+
+    if (current->tf == NULL)
+    {
+        return -E_INVAL;
+    }
+    if (len > PROC_NAME_LEN)
+    {
+        len = PROC_NAME_LEN;
+    }
+    memset(local_name, 0, sizeof(local_name));
+
+    if (name == NULL || binary == NULL || size == 0)
+    {
+        return -E_INVAL;
+    }
+    /* Keep a private copy of the name: the old address space may be released
+     * by load_icode. A user caller (mm != NULL) passes untrusted pointers that
+     * must lie in readable VMAs of its own address space. A kernel thread
+     * (mm == NULL, only kernel_execve) passes kernel image data; it is not
+     * routed through user_mem_check() because KERN_ACCESS() cannot accept any
+     * address here (KERNBASE + KMEMSIZE wraps past 2^64 on Sv39). */
+    if (mm != NULL)
+    {
+        lock_mm(mm);
+        if ((len != 0 && !copy_from_user(mm, local_name, name, len, 0)) ||
+            !user_mem_check(mm, (uintptr_t)binary, size, 0))
+        {
+            unlock_mm(mm);
+            return -E_INVAL;
+        }
+        unlock_mm(mm);
+    }
+    else
+    {
+        memcpy(local_name, name, len);
+    }
+
+    if ((ret = load_icode(binary, size)) != 0)
+    {
+        return ret;
+    }
+    set_proc_name(current, local_name);
+    return 0;
+}
 
 
 //lab5 function3 YOUR CODE
@@ -385,7 +689,206 @@ free_proc:
 }
 
 
-//lab5 function4 YOUR CODE
+//lab5 function4 2413507
+
+/* do_exit - called by sys_exit, by a killed process on its way back to user
+ * mode, or when a kernel thread function returns.
+ *   1. leave and release the user address space (destroyed only with its
+ *      last sharer; COW pages are freed only with their last mapping);
+ *   2. become PROC_ZOMBIE with exit_code;
+ *   3. wake a parent blocked in do_wait and hand all children to initproc;
+ *   4. schedule() and never run again.
+ * The kernel stack and PCB are still in use here; the parent frees them in
+ * do_wait. */
+int do_exit(int error_code)
+{
+    if (current == idleproc)
+    {
+        panic("idleproc exit.\n");
+    }
+    if (current == initproc)
+    {
+        panic("initproc exit.\n");
+    }
+
+    struct mm_struct *mm = current->mm;
+    if (mm != NULL)
+    {
+        /* Switch to the kernel-only page table before the user one can go. */
+        lsatp(boot_pgdir_pa);
+        flush_tlb();
+        current->mm = NULL;
+        current->pgdir = boot_pgdir_pa;
+        release_mm(mm);
+    }
+
+    bool intr_flag;
+    struct proc_struct *proc;
+    local_intr_save(intr_flag);
+    {
+        current->state = PROC_ZOMBIE;
+        current->exit_code = error_code;
+
+        proc = current->parent;
+        if (proc->wait_state == WT_CHILD)
+        {
+            wakeup_proc(proc);
+        }
+        /* Re-parent every child (running or zombie) to initproc, keeping the
+         * sibling list consistent with set_links(). */
+        while (current->cptr != NULL)
+        {
+            proc = current->cptr;
+            current->cptr = proc->optr;
+
+            proc->yptr = NULL;
+            if ((proc->optr = initproc->cptr) != NULL)
+            {
+                initproc->cptr->yptr = proc;
+            }
+            proc->parent = initproc;
+            initproc->cptr = proc;
+            if (proc->state == PROC_ZOMBIE && initproc->wait_state == WT_CHILD)
+            {
+                wakeup_proc(initproc);
+            }
+        }
+    }
+    local_intr_restore(intr_flag);
+
+    schedule();
+    panic("do_exit will not return!! %d.\n", current->pid);
+}
+
+/* do_wait - wait for child pid (or any child when pid == 0) to become a
+ * zombie, store its exit code to *code_store if given, and reclaim it.
+ * Returns -E_BAD_PROC when there is no matching child and -E_INVAL when
+ * code_store is not a writable address of the caller; in the latter case the
+ * child is left unreclaimed so that a later valid wait can still collect it. */
+int do_wait(int pid, int *code_store)
+{
+    struct mm_struct *mm = current->mm;
+    struct proc_struct *proc;
+    bool intr_flag, haskid;
+
+    /* A user caller's pointer must be writable in its own address space; a
+     * kernel thread (mm == NULL) passes a kernel pointer (see do_execve). */
+    if (code_store != NULL && mm != NULL &&
+        !user_mem_check(mm, (uintptr_t)code_store, sizeof(int), 1))
+    {
+        return -E_INVAL;
+    }
+
+repeat:
+    haskid = 0;
+    /* Scan and go to sleep with interrupts off so that a child's exit
+     * cannot slip in between the check and the state change. */
+    local_intr_save(intr_flag);
+    if (pid != 0)
+    {
+        proc = find_proc(pid);
+        if (proc != NULL && proc->parent == current)
+        {
+            haskid = 1;
+            if (proc->state == PROC_ZOMBIE)
+            {
+                goto found;
+            }
+        }
+    }
+    else
+    {
+        for (proc = current->cptr; proc != NULL; proc = proc->optr)
+        {
+            haskid = 1;
+            if (proc->state == PROC_ZOMBIE)
+            {
+                goto found;
+            }
+        }
+    }
+    if (haskid)
+    {
+        current->state = PROC_SLEEPING;
+        current->wait_state = WT_CHILD;
+        local_intr_restore(intr_flag);
+        schedule();
+        if (current->flags & PF_EXITING)
+        {
+            do_exit(-E_KILLED);
+        }
+        goto repeat;
+    }
+    local_intr_restore(intr_flag);
+    return -E_BAD_PROC;
+
+found:
+    local_intr_restore(intr_flag);
+    if (proc == idleproc || proc == initproc)
+    {
+        panic("wait idleproc or initproc.\n");
+    }
+    /* copy_to_user breaks COW sharing on the target page before writing, so
+     * the store never reaches a page still shared with another process. */
+    if (code_store != NULL)
+    {
+        if (mm == NULL)
+        {
+            *code_store = proc->exit_code;
+        }
+        else if (!copy_to_user(mm, code_store, &proc->exit_code, sizeof(int)))
+        {
+            return -E_INVAL;
+        }
+    }
+    local_intr_save(intr_flag);
+    {
+        unhash_proc(proc);
+        remove_links(proc); /* includes nr_process-- */
+    }
+    local_intr_restore(intr_flag);
+    put_kstack(proc);
+    kfree(proc);
+    return 0;
+}
+
+/* do_yield - ask the scheduler to run another process at the next safe point
+ * (trap return to user mode, or cpu_idle). */
+int do_yield(void)
+{
+    current->need_resched = 1;
+    return 0;
+}
+
+/* do_kill - mark process pid as exiting. The target exits by itself on its
+ * next return to user mode (trap()) or when it wakes up in do_wait; a target
+ * in an interruptible sleep is woken now. Its stack and PCB are never freed
+ * here. */
+int do_kill(int pid)
+{
+    struct proc_struct *proc;
+    int ret = -E_INVAL;
+    bool intr_flag;
+    local_intr_save(intr_flag);
+    if ((proc = find_proc(pid)) != NULL && proc != initproc)
+    {
+        if ((proc->flags & PF_EXITING) || proc->state == PROC_ZOMBIE)
+        {
+            ret = -E_KILLED;
+        }
+        else
+        {
+            proc->flags |= PF_EXITING;
+            if (proc->wait_state & WT_INTERRUPTED)
+            {
+                wakeup_proc(proc);
+            }
+            ret = 0;
+        }
+    }
+    local_intr_restore(intr_flag);
+    return ret;
+}
 
 
 #define __KERNEL_EXECVE(name, binary, size) ({           \
@@ -409,15 +912,91 @@ free_proc:
 #define KERNEL_EXECVE2(x, xstart, xsize) __KERNEL_EXECVE2(x, xstart, xsize)
 
 
-//lab5 function2 YOUR CODE
+//lab5 function2 2413507
 
-/* Lab4 kernel-thread startup only; user_main/exec/wait remain Lab5 tasks. */
+/* kernel_execve - turn the calling kernel thread into a user process.
+ *
+ * Calling do_execve() directly is not enough: it only prepares the new image,
+ * while the CPU stays in S mode. Instead this uses the kernel-breakpoint
+ * contract implemented by the trap layer: a7 = T_SYSCALL marks the ebreak as
+ * an exec request, a0 = SYS_exec, a1..a4 = name, len, binary, size. The trap
+ * entry builds a real trapframe for this thread, syscall() runs do_execve,
+ * load_icode rewrites that trapframe (U-mode status, ELF entry, user sp) and
+ * the common __trapret path finishes with sret. Interrupts stay disabled from
+ * the trap entry until sret, so the switch cannot be observed half-done.
+ * Control comes back here only if exec failed, with the error in a0. */
+static int
+kernel_execve(const char *name, unsigned char *binary, size_t size)
+{
+    /* Evaluate every call before binding the register variables: a call
+     * made after a1 is bound (e.g. strlen) would clobber it. */
+    size_t len = strlen(name);
+    register uintptr_t a0 asm("a0") = SYS_exec;
+    register uintptr_t a1 asm("a1") = (uintptr_t)name;
+    register uintptr_t a2 asm("a2") = (uintptr_t)len;
+    register uintptr_t a3 asm("a3") = (uintptr_t)binary;
+    register uintptr_t a4 asm("a4") = (uintptr_t)size;
+    register uintptr_t a7 asm("a7") = T_SYSCALL;
+    asm volatile("ebreak"
+                 : "+r"(a0)
+                 : "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(a7)
+                 : "memory");
+    return (int)a0;
+}
+
+/* user_main - transition kernel thread that becomes the first user program.
+ * `make build-<prog>` / grading defines TEST, TESTSTART and TESTSIZE to pick
+ * the program; the default build runs `exit`. */
+static int
+user_main(void *arg)
+{
+    int ret;
+#ifdef TEST
+    ret = KERNEL_EXECVE2(TEST, TESTSTART, TESTSIZE);
+#else
+    ret = KERNEL_EXECVE(exit);
+#endif
+    /* Reached only on failure; kernel_thread_entry passes ret to do_exit and
+     * initproc reaps this thread. */
+    cprintf("user_main: kernel_execve failed, error %d.\n", ret);
+    return ret;
+}
+
+/* init_main - second kernel thread (pid 1): starts user_main, reaps every
+ * child (including orphans re-parented to it) and then checks that all
+ * process and memory state has been returned. */
 static int
 init_main(void *arg)
 {
-    cprintf("this initproc, pid = %d, name = \"%s\"\n", current->pid, get_proc_name(current));
-    cprintf("To U: \"%s\".\n", (const char *)arg);
-    cprintf("To U: \"en.., Bye, Bye. :)\"\n");
+    size_t nr_free_pages_store = nr_free_pages();
+    size_t kernel_allocated_store = kallocated();
+
+    int pid = kernel_thread(user_main, NULL, 0);
+    if (pid <= 0)
+    {
+        panic("create user_main failed.\n");
+    }
+
+    while (do_wait(0, NULL) == 0)
+    {
+        schedule();
+    }
+
+    cprintf("all user-mode processes have quit.\n");
+    assert(initproc->cptr == NULL && initproc->yptr == NULL && initproc->optr == NULL);
+    assert(nr_process == 2);
+    assert(list_next(&proc_list) == &(initproc->list_link));
+    assert(list_prev(&proc_list) == &(initproc->list_link));
+    /* SLOB grows its arena one page at a time and never returns arena pages
+     * to the page allocator, so many short-lived PCBs/VMAs (e.g. forktest)
+     * leave a few pages in the arena. Exact equality is therefore not an
+     * invariant here; record the delta and require that no pages appeared. */
+    size_t nr_free_pages_now = nr_free_pages();
+    cprintf("init_main: free pages %d before user_main, %d after reaping.\n",
+            (int)nr_free_pages_store, (int)nr_free_pages_now);
+    assert(nr_free_pages_now <= nr_free_pages_store);
+    assert(kernel_allocated_store == kallocated());
+    cprintf("init check memory pass.\n");
     return 0;
 }
 
@@ -501,11 +1080,10 @@ void proc_run(struct proc_struct *proc)
         local_intr_save(intr_flag);
         struct proc_struct *prev = current;
         current = proc;
-        /* pgdir is a physical address. lsatp() is the old Sv32 helper. */
-        write_csr(satp, ((uintptr_t)8 << 60) |
-                        (proc->pgdir >> RISCV_PGSHIFT));
-        /* No ASIDs are assigned in this lab; discard old translations. */
-        asm volatile("sfence.vma" ::: "memory");
+        /* pgdir is a physical address; lsatp() sets MODE=8 (Sv39) | PPN.
+         * No ASIDs are assigned in this lab, so discard old translations. */
+        lsatp(proc->pgdir);
+        flush_tlb();
         switch_to(&prev->context, &proc->context);
         /* This executes when prev is selected again, not in the new thread. */
         local_intr_restore(intr_flag);
