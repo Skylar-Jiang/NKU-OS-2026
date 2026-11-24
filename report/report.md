@@ -67,6 +67,6 @@ Dirty COW（CVE-2016-5195）是 Linux mm/gup.c 中与写时复制处理有关的
 
 ## 对接与剩余工作
 
-给 A 的接口为 do_cow_fault(mm, addr)，仅对 store page fault 调用，参数使用 tf->tval，成功不推进 EPC；OOM 和非法访问按进程异常策略处理。给 B 的约定是分别维护 mm_count 与 Page 引用，最后一个 mm 使用者才销毁地址空间，用户结果写入走 copy_to_user。详细约定见 code/tools/member-c/README.md。
+给 A 的接口为 cow_handle_store_fault(mm, fault_addr)，在 vmm.h 声明（内部 do_cow_fault 名称保留兼容），仅对 store page fault 调用，参数使用 tf->tval，成功不推进 EPC；OOM 和非法访问按进程异常策略处理。给 B 的约定是分别维护 mm_count 与 Page 引用，最后一个 mm 使用者才销毁地址空间，用户结果写入走 copy_to_user。详细约定见 code/tools/member-c/README.md。
 
 下一步在 A/B 合并后执行官方 13 项，验证用户态父子写、wait/exit/exec 回收及错误路径，再补生产环境截图。目前没有桌面截图或原 Linux Dirty COW 竞态复现记录。

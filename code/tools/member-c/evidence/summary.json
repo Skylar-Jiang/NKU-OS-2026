@@ -21,5 +21,11 @@
     "B wait/exit/exec",
     "multi-hart concurrency",
     "original Linux Dirty COW race"
+  ],
+  "trap_interface": "cow_handle_store_fault declared in kern/mm/vmm.h",
+  "trap_interface_checks": [
+    "success on real store fault",
+    "-E_INVAL on non-COW",
+    "-E_NO_MEM on allocation failure"
   ]
 }

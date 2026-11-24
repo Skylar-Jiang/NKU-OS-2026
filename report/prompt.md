@@ -30,7 +30,7 @@ Validation：用实际生产函数验证返回值、页号、引用、计数、�
 [RELY]
 PTE软件位、VM_WRITE、Page引用、页表权限、sfence.vma、copy_to_user和用户地址校验。
 [GUARANTEE]
-提供do_cow_fault(mm,addr)，成功0，非法或OOM返回负值；给A说明成功后EPC保持不变。
+提供cow_handle_store_fault(mm,fault_addr)，成功0，非法或OOM返回负值；给A说明成功后EPC保持不变。
 [SPECIFICATION]
 Pre：只处理合法可写VMA上的用户COW映射，当前仅保证单hart非抢占内核。
 Post：写者获得独占可写映射，其他进程数据保持原值；真正只读区域仍不可写。

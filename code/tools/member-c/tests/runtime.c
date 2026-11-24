@@ -76,7 +76,7 @@ static pte_t *pte(struct mm_struct *mm,uintptr_t va){pte_t *p=get_pte(mm->pgdir,
 static int byte(struct mm_struct *mm,uintptr_t va){return *(unsigned char *)page2kva(pte2page(*pte(mm,va)));}
 void trap(struct trapframe *tf) {
     assert(tf->cause==15&&fault_mm);faults++;
-    assert(do_cow_fault(fault_mm,tf->tval)==0);
+    assert(cow_handle_store_fault(fault_mm,tf->tval)==0);
     /* EPC unchanged: restart the faulting store. */
 }
 static void free_child(struct proc_struct *p) {
@@ -118,14 +118,14 @@ void test_main(void) {
     /* Give child a real VMA because raw copy_range only copies PTEs. */
     assert(mm_map(b,va,PGSIZE,VM_READ|VM_WRITE,NULL)==0);
     page_budget=0;pte_t saved=*pte(b,va);
-    check(do_cow_fault(b,va)==-E_NO_MEM&&*pte(b,va)==saved&&page_ref(original)==2,"COW OOM preserves mapping and refs");page_budget=-1;
+    check(cow_handle_store_fault(b,va)==-E_NO_MEM&&*pte(b,va)==saved&&page_ref(original)==2,"COW OOM preserves mapping and refs");page_budget=-1;
     check(do_cow_fault(b,va)==0,"shared COW write allocates private page");
     check(pte2page(*pte(b,va))!=original&&page_ref(original)==1&&byte(b,va)==0x41,"COW copy content and refs");
     *(char *)page2kva(pte2page(*pte(b,va)))=0x42;
     check(byte(a,va)==0x41,"COW child data isolated");
     int count=live_pages;
     check(do_cow_fault(a,va)==0&&live_pages==count&&(*pte(a,va)&PTE_W),"single reference restores W without allocation");
-    check(do_cow_fault(a,va)==-E_INVAL,"non-COW fault rejected");destroy(b);destroy(a);
+    check(cow_handle_store_fault(a,va)==-E_INVAL,"non-COW fault rejected");destroy(b);destroy(a);
     check(live_pages==before&&live_heap==0,"COW cleanup no leaks");
     a=newmm();b=newmm();addpage(a,va,1,0x33);assert(dup_mmap(b,a)==0);
     check(do_cow_fault(a,va)==0,"parent first write breaks shared COW");

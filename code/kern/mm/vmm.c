@@ -250,6 +250,13 @@ out:
 
 
 
+/* Public Trap-layer interface agreed with member A. Returns exactly the
+ * core resolver status; never changes a trapframe or advances its EPC. */
+int cow_handle_store_fault(struct mm_struct *mm, uintptr_t fault_addr)
+{
+    return do_cow_fault(mm, fault_addr);
+}
+
 void exit_mmap(struct mm_struct *mm)
 {
     assert(mm != NULL && mm_count(mm) == 0);

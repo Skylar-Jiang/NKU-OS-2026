@@ -7,13 +7,15 @@
 - 新增 `PTE_COW=0x100`，使用 PTE 软件保留位；不是硬件 W 位，不改变 VMA 的 VM_WRITE。
 - `copy_range(..., share)`：false 为立即复制，true 为 COW 共享。它不是 CLONE_VM；失败时目标页表可能已有部分映射，由调用方统一销毁目标空间。
 - `LAB5_COW` 默认 1；编译 vmm.c 时设置 `-DLAB5_COW=0` 可验证普通 Fork。
-- `int do_cow_fault(struct mm_struct *mm, uintptr_t addr)` 在 vmm.h 声明。0 表示修复成功；-E_INVAL 表示不是合法 COW 写；-E_NO_MEM 表示资源不足。调用方只能对写页错误调用，成功不增加 EPC，返回后重试原指令。
+- `int cow_handle_store_fault(struct mm_struct *mm, uintptr_t fault_addr)` 在 vmm.h 声明。0 表示修复成功；-E_INVAL 表示不是合法 COW 写；-E_NO_MEM 表示资源不足。调用方只能对写页错误调用，成功不增加 EPC，返回后重试原指令。
 - Lab5 Trap 帧的异常地址字段为 `tf->tval`，不是 Lab4 的 badvaddr。
 - 当前单 hart、内核不可抢占假设下，页引用和 PTE 更新以本地中断临界区保护。处理函数不重新获取 mm_lock，避免已经持有该锁的 copyout 路径自锁；多核实现需要统一页表锁、引用保护和远端 TLB shootdown，当前未覆盖。
 
+保留 `do_cow_fault` 作为已有内部调用的兼容名称；A 统一使用 `cow_handle_store_fault`。两个名称返回语义完全一致。
+
 ## A 接入生产异常入口
 
-对 store page fault（RISC-V 原因码 15）调用 `do_cow_fault(current->mm, tf->tval)`。成功直接返回，不执行系统调用的 `epc += 4`；失败按用户异常/OOM 策略处理，不循环重试。内核操作用户缓冲区时也可能产生 S 态 store fault，不能只按 SPP=0 才尝试 COW；仍必须校验异常地址属于当前用户空间。不能把所有写保护异常恢复成可写。
+对 store page fault（RISC-V 原因码 15）调用 `cow_handle_store_fault(current->mm, tf->tval)`。成功直接返回，不执行系统调用的 `epc += 4`；失败按用户异常/OOM 策略处理，不循环重试。内核操作用户缓冲区时也可能产生 S 态 store fault，不能只按 SPP=0 才尝试 COW；仍必须校验异常地址属于当前用户空间。不能把所有写保护异常恢复成可写。
 
 本目录 tests/trapentry.S 是隔离测试专用的 S 态入口，沿用小组已完成 Lab4 的保存恢复布局；它不支持生产 U/S 双向栈切换，禁止用它覆盖 A 的 kern/trap/trapentry.S。
 
@@ -38,7 +40,7 @@ bash tools/member-c/tests/mutation.sh
 
 默认使用本机已有 SiFive GCC 10.2.0、QEMU 4.1.1。编译产物在被 Git 忽略的 tools/member-c/build 中；脚本路径可按其他成员机器调整。
 
-隔离环境链接真实 pmm.c、vmm.c，runtime.c 直接包含真实 proc.c 来测试 static copy_mm 等函数。替代组件为测试页分配器、kmalloc、B 的 alloc_proc、调度和唤醒入口。分页运行在 S 态，真实硬件 store fault 通过测试 Trap 入口调用生产 do_cow_fault。它不验证生产 U/S 栈切换、ecall、ELF、do_wait/do_exit/exec，也不能代替官方 13 项回归。
+隔离环境链接真实 pmm.c、vmm.c，runtime.c 直接包含真实 proc.c 来测试 static copy_mm 等函数。替代组件为测试页分配器、kmalloc、B 的 alloc_proc、调度和唤醒入口。分页运行在 S 态，真实硬件 store fault 通过测试 Trap 入口调用生产 cow_handle_store_fault。它不验证生产 U/S 栈切换、ecall、ELF、do_wait/do_exit/exec，也不能代替官方 13 项回归。
 
 已通过 COW/复制路径 52 项、普通 Fork 配置 8 项；GDB 记录 cause=15、EPC 保持不变、物理页改变、PTE 从 COW 只读变为独占可写。删除临时副本 copy_to_user 的 COW 检查后，测试在父子隔离断言失败，恢复实现后通过；这不是原 Linux Dirty COW 的并发复现。
 
