@@ -121,6 +121,11 @@ void interrupt_handler(struct trapframe *tf)
         if (ticks % TICK_NUM == 0)
         {
             print_ticks();
+            /* trap() schedules on return to user mode, not inside this IRQ. */
+            if (current != NULL)
+            {
+                current->need_resched = 1;
+            }
         }
         /* An interrupt resumes the interrupted instruction; do not skip epc. */
         break;
@@ -229,6 +234,22 @@ void exception_handler(struct trapframe *tf)
 {
     switch (tf->cause)
     {
+    case CAUSE_LOAD_PAGE_FAULT:
+        print_trapframe(tf);
+        cprintf("Load page fault: address=0x%016llx, epc=0x%016llx, error=%d\n",
+                (unsigned long long)tf->tval, (unsigned long long)tf->epc,
+                -E_FAULT);
+        /* Kernel faults and invalid/reserved processes use the fatal path;
+         * an ordinary user's illegal read must terminate only that process.
+         */
+        if (trap_in_kernel(tf) || current == NULL || current == idleproc ||
+            current == initproc || current->state != PROC_RUNNABLE)
+        {
+            panic("unrecoverable load page fault");
+        }
+        do_exit(-E_FAULT);
+        /* Never retry an unrepaired read, even if the exit path returns. */
+        panic("do_exit returned after an unhandled load page fault");
     case CAUSE_STORE_PAGE_FAULT:
         /* Only confirmed COW repair may return and retry the unchanged epc. */
         handle_store_page_fault(tf);
