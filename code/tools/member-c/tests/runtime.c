@@ -8,6 +8,7 @@
 #include <riscv.h>
 #include <kmalloc.h>
 #include <assert.h>
+#include <stdio.h>
 #include "../../../kern/process/proc.c"
 #define COUNT 8192
 static struct Page descriptors[COUNT];
@@ -19,6 +20,25 @@ static pde_t root[512] __attribute__((aligned(4096)));
 static struct proc_struct parent;
 static struct mm_struct *fault_mm;
 static int faults;
+static char pgdir_output[8192];
+static size_t pgdir_used;
+static void capture_char(int c, void *unused) {
+    if (pgdir_used + 1 < sizeof(pgdir_output)) {
+        pgdir_output[pgdir_used++] = c;
+        pgdir_output[pgdir_used] = 0;
+    }
+}
+int cprintf(const char *fmt, ...) {
+    va_list ap; va_start(ap, fmt);
+    size_t before = pgdir_used;
+    vprintfmt(capture_char, NULL, fmt, ap); va_end(ap);
+    return pgdir_used - before;
+}
+static int captured(const char *s) {
+    for (size_t i = 0; i < pgdir_used; i++)
+        if (!strncmp(pgdir_output+i, s, strlen(s))) return 1;
+    return 0;
+}
 static void say(const char *s) {
     volatile char *uart=(void *)(PHYSICAL_MEMORY_OFFSET+0x10000000UL);
     while(*s) *uart=*s++;
@@ -92,6 +112,27 @@ void test_main(void) {
     extern void __alltraps(void);write_csr(stvec,(uintptr_t)__alltraps);set_csr(sstatus,SSTATUS_SUM);
     uintptr_t va=UTEXT;
     int before=live_pages;
+    /* Synthetic active root: exercise all Sv39 leaf levels, including a
+     * canonical high VA. Keep the real root's RAM/MMIO mappings for execution. */
+    struct mm_struct *printed = newmm();
+    struct Page *printed_page = addpage(printed, va, 1, 0x12);
+    *get_pte(printed->pgdir, va, 0) = (*get_pte(printed->pgdir, va, 0) & ~PTE_W) | PTE_COW;
+    pte_t *l1 = KADDR(PTE_ADDR(printed->pgdir[0]));
+    l1[10] = pte_create(0x82000000UL >> 12, PTE_R);
+    pte_t printed_saved = *get_pte(printed->pgdir, va, 0);
+    int print_pages = live_pages, print_ref = page_ref(printed_page);
+    write_csr(satp, ((uintptr_t)8 << 60) | (PADDR(printed->pgdir) >> 12));
+    asm volatile("sfence.vma":::"memory");
+    pgdir_used = 0; pgdir_output[0] = 0; print_pgdir();
+    check(captured("L0 VA=0000000000800000") && captured("COW=1"), "print active user root and COW leaf");
+    check(captured("size=200000") && captured("L1 VA=0000000001400000"), "print 2 MiB leaf without walking as table");
+    check(captured("L2 VA=ffffffffc0000000") && captured("size=40000000"), "print canonical high 1 GiB leaf");
+    check(live_pages == print_pages && page_ref(printed_page) == print_ref &&
+          *get_pte(printed->pgdir, va, 0) == printed_saved, "page table printer is read only");
+    write_csr(satp, ((uintptr_t)8 << 60) | (boot_pgdir_pa >> 12));
+    asm volatile("sfence.vma":::"memory");
+    l1[10] = 0; destroy(printed);
+    check(live_pages == before && live_heap == 0, "printer fixture cleanup");
     struct mm_struct *a=newmm(),*b=newmm();struct Page *original=addpage(a,va,1,0x31);
     check(copy_range(b->pgdir,a->pgdir,va,va+PGSIZE,0)==0,"eager range copy");
     check(pte2page(*pte(b,va))!=original&&byte(b,va)==0x31,"eager copy has distinct frame and equal data");

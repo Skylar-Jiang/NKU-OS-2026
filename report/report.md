@@ -70,3 +70,12 @@ Dirty COW（CVE-2016-5195）是 Linux mm/gup.c 中与写时复制处理有关的
 给 A 的接口为 cow_handle_store_fault(mm, fault_addr)，在 vmm.h 声明（内部 do_cow_fault 名称保留兼容），仅对 store page fault 调用，参数使用 tf->tval，成功不推进 EPC；OOM 和非法访问按进程异常策略处理。给 B 的约定是分别维护 mm_count 与 Page 引用，最后一个 mm 使用者才销毁地址空间，用户结果写入走 copy_to_user。详细约定见 code/tools/member-c/README.md。
 
 下一步在 A/B 合并后执行官方 13 项，验证用户态父子写、wait/exit/exec 回收及错误路径，再补生产环境截图。目前没有桌面截图或原 Linux Dirty COW 竞态复现记录。
+
+
+## 2026-11-25：补齐 print_pgdir
+
+在 pmm.c 实现 print_pgdir()，从当前 satp 提取 Sv39 根页表，不固定打印启动页表。递归最多三级，区分非叶项与 4 KiB、2 MiB、1 GiB 叶项，输出规范化虚拟地址、物理地址、大小、RWX/U/G/A/D 权限和 COW 位。不分配物理页，不修改页表或引用计数；异常表指针只输出诊断，不继续解引用。
+
+新增 5 项实际 QEMU 断言：当前用户根及 COW、2 MiB 叶项、高位规范地址及 1 GiB 叶项、无状态修改、测试资源回收。现在 COW 隔离配置共 57 项、普通 Fork 配置共 13 项通过；GDB 和 copyout 变异检测也再次通过。
+
+另外，在隔离的构建目录导出公共 lab5 的 c11f317，只插入本次打印函数（保留公共分支已有的 A/B/C 整合修改），完整 make 链接成功。使用 build-pgdir、DEBUG_GRADE 和 QEMU 4.1.1 实际运行，出现 pgdir pass.、all user-mode processes have quit. 和 init check memory pass.，最后到框架的 initproc exit 终止路径。见 evidence/integration-print-pgdir-build.log 与 integration-print-pgdir-runtime.log。本次没有运行全部 13 个官方程序，不能据此宣称满分。截图中 A 的定时调度、用户读缺页终止问题仍由 A 检查。

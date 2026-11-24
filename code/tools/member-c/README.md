@@ -51,3 +51,12 @@ bash tools/member-c/tests/mutation.sh
 ## 尚待整合
 
 正式 make 当前因 A 的 sys_* 封装未实现而编译失败，见 evidence/full-build.log。A/B 尚未完成时不运行官方 grade，不记录虚构分数。集成后须跑官方 13 项、COW 用户态写入、退出/exec/等待共享页回收，并补真实桌面截图。
+
+
+## 2026-11-25：补齐 print_pgdir
+
+在 pmm.c 实现 print_pgdir()，从当前 satp 提取 Sv39 根页表，不固定打印启动页表。递归最多三级，区分非叶项与 4 KiB、2 MiB、1 GiB 叶项，输出规范化虚拟地址、物理地址、大小、RWX/U/G/A/D 权限和 COW 位。不分配物理页，不修改页表或引用计数；异常表指针只输出诊断，不继续解引用。
+
+新增 5 项实际 QEMU 断言：当前用户根及 COW、2 MiB 叶项、高位规范地址及 1 GiB 叶项、无状态修改、测试资源回收。现在 COW 隔离配置共 57 项、普通 Fork 配置共 13 项通过；GDB 和 copyout 变异检测也再次通过。
+
+另外，在隔离的构建目录导出公共 lab5 的 c11f317，只插入本次打印函数（保留公共分支已有的 A/B/C 整合修改），完整 make 链接成功。使用 build-pgdir、DEBUG_GRADE 和 QEMU 4.1.1 实际运行，出现 pgdir pass.、all user-mode processes have quit. 和 init check memory pass.，最后到框架的 initproc exit 终止路径。见 evidence/integration-print-pgdir-build.log 与 integration-print-pgdir-runtime.log。本次没有运行全部 13 个官方程序，不能据此宣称满分。截图中 A 的定时调度、用户读缺页终止问题仍由 A 检查。

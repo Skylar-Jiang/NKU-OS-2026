@@ -1,3 +1,8 @@
+PASS print active user root and COW leaf
+PASS print 2 MiB leaf without walking as table
+PASS print canonical high 1 GiB leaf
+PASS page table printer is read only
+PASS printer fixture cleanup
 PASS eager range copy
 PASS eager copy has distinct frame and equal data
 PASS eager child write isolation
@@ -48,5 +53,4 @@ PASS fork cleanup all resources returned
 PASS process limit fails without allocation
 PASS kernel thread path keeps kernel stack when stack argument zero
 PASS kernel thread creation cleanup
-PASS real store fault resolves and retrqemu-system-riscv64: terminating on signal 1
-i
+PASS real store fault resolves and retries unchanged EPCqemu-system-riscv64: terminating on signal 1
