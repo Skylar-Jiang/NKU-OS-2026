@@ -348,7 +348,275 @@ copy_thread(struct proc_struct *proc, uintptr_t esp, struct trapframe *tf)
 
 
 
-//lab5 function2 YOUR CODE
+//lab5 function2 2413507
+/* Number of user-stack pages populated eagerly by load_icode. The stack VMA
+ * spans USTACKSIZE; Lab5 has no demand-paging handler, so only these pages are
+ * backed and the unmapped remainder of the VMA acts as an overflow guard. */
+#define USTACK_INIT_PAGES 4
+
+/* release_mm - drop one reference to mm and destroy it with the last one.
+ * mm_count counts sharers of the address space (CLONE_VM); the physical pages
+ * keep their own Page::ref (COW), which unmap_range() consults per page. */
+static void
+release_mm(struct mm_struct *mm)
+{
+    if (mm != NULL && mm_count_dec(mm) == 0)
+    {
+        exit_mmap(mm);
+        put_pgdir(mm);
+        mm_destroy(mm);
+    }
+}
+
+/* elf_seg_perm - translate ELF segment flags into VMA flags and PTE bits. */
+static void
+elf_seg_perm(uint32_t p_flags, uint32_t *vm_flags, uint32_t *perm)
+{
+    *vm_flags = 0;
+    *perm = PTE_U | PTE_V;
+    if (p_flags & ELF_PF_X)
+    {
+        *vm_flags |= VM_EXEC;
+        *perm |= PTE_X;
+    }
+    if (p_flags & ELF_PF_W)
+    {
+        *vm_flags |= VM_WRITE;
+        /* RISC-V reserves W without R, so a writable page is also readable. */
+        *perm |= PTE_W | PTE_R;
+    }
+    if (p_flags & ELF_PF_R)
+    {
+        *vm_flags |= VM_READ;
+        *perm |= PTE_R;
+    }
+}
+
+/* load_segment - back every page of [va, va + memsz) with a fresh zeroed
+ * page and copy the filesz bytes of file data into it. Zero-filling whole
+ * pages covers BSS, the head of an unaligned first page and the tail of the
+ * last page. The caller has already reserved the range with mm_map(), so no
+ * page in it is shared with another segment. */
+static int
+load_segment(struct mm_struct *mm, const unsigned char *src, uintptr_t va,
+             size_t filesz, size_t memsz, uint32_t perm)
+{
+    uintptr_t end = va + memsz, file_end = va + filesz;
+    uintptr_t la;
+    for (la = ROUNDDOWN(va, PGSIZE); la < end; la += PGSIZE)
+    {
+        struct Page *page = pgdir_alloc_page(mm->pgdir, la, perm);
+        if (page == NULL)
+        {
+            return -E_NO_MEM;
+        }
+        unsigned char *kva = page2kva(page);
+        memset(kva, 0, PGSIZE);
+        uintptr_t from = (la > va) ? la : va;
+        uintptr_t to = (la + PGSIZE < file_end) ? la + PGSIZE : file_end;
+        if (from < to)
+        {
+            memcpy(kva + (from - la), src + (from - va), to - from);
+        }
+    }
+    return 0;
+}
+
+/* load_icode - build a new user address space from the ELF image binary and
+ * install it as the image of current.
+ *
+ * The new mm is built completely while the old one (if any) is still active,
+ * so binary may live in the caller's user memory and any failure returns with
+ * current untouched. Only after every check and allocation has succeeded is
+ * the new mm committed, the old one released and current->tf rewritten to
+ * enter the program at its ELF entry in U mode. */
+static int
+load_icode(unsigned char *binary, size_t size)
+{
+    struct elfhdr elf;
+    struct proghdr ph;
+    struct mm_struct *mm;
+    int ret = -E_INVAL_ELF;
+    uint16_t i;
+    bool has_load = 0;
+
+    /* (1) ELF header. The embedded images are not guaranteed to be aligned,
+     *     so headers are copied out instead of being dereferenced in place. */
+    if (binary == NULL || size < sizeof(struct elfhdr))
+    {
+        return -E_INVAL_ELF;
+    }
+    memcpy(&elf, binary, sizeof(struct elfhdr));
+    if (elf.e_magic != ELF_MAGIC || elf.e_phnum == 0 ||
+        elf.e_phentsize != sizeof(struct proghdr) ||
+        elf.e_phoff > size ||
+        (size - elf.e_phoff) / sizeof(struct proghdr) < elf.e_phnum)
+    {
+        return -E_INVAL_ELF;
+    }
+
+    /* (2) A fresh mm with its own root page table (kernel half copied). */
+    ret = -E_NO_MEM;
+    if ((mm = mm_create()) == NULL)
+    {
+        return ret;
+    }
+    if (setup_pgdir(mm) != 0)
+    {
+        mm_destroy(mm);
+        return ret;
+    }
+
+    /* (3) Map and fill every PT_LOAD segment. */
+    for (i = 0; i < elf.e_phnum; i++)
+    {
+        memcpy(&ph, binary + elf.e_phoff + (size_t)i * sizeof(struct proghdr),
+               sizeof(struct proghdr));
+        if (ph.p_type != ELF_PT_LOAD)
+        {
+            continue;
+        }
+        ret = -E_INVAL_ELF;
+        if (ph.p_filesz > ph.p_memsz || ph.p_offset > size ||
+            ph.p_filesz > size - ph.p_offset)
+        {
+            goto bad_mm;
+        }
+        if (ph.p_memsz == 0)
+        {
+            continue;
+        }
+        /* Overflow-safe check that the segment lies in user space. */
+        if (ph.p_va + ph.p_memsz < ph.p_va ||
+            !USER_ACCESS(ph.p_va, ph.p_va + ph.p_memsz))
+        {
+            goto bad_mm;
+        }
+        uint32_t vm_flags, perm;
+        elf_seg_perm(ph.p_flags, &vm_flags, &perm);
+        /* mm_map rejects overlap with an earlier segment. */
+        if ((ret = mm_map(mm, ph.p_va, ph.p_memsz, vm_flags, NULL)) != 0)
+        {
+            goto bad_mm;
+        }
+        if ((ret = load_segment(mm, binary + ph.p_offset, ph.p_va,
+                                ph.p_filesz, ph.p_memsz, perm)) != 0)
+        {
+            goto bad_mm;
+        }
+        has_load = 1;
+    }
+    ret = -E_INVAL_ELF;
+    if (!has_load)
+    {
+        goto bad_mm;
+    }
+
+    /* (4) The entry point must be inside an executable segment. */
+    struct vma_struct *entry_vma = find_vma(mm, elf.e_entry);
+    if (entry_vma == NULL || elf.e_entry < entry_vma->vm_start ||
+        !(entry_vma->vm_flags & VM_EXEC))
+    {
+        goto bad_mm;
+    }
+
+    /* (5) User stack: reserve USTACKSIZE below USTACKTOP (fails if a segment
+     *     overlaps it) and back the top pages. */
+    if ((ret = mm_map(mm, USTACKTOP - USTACKSIZE, USTACKSIZE,
+                      VM_READ | VM_WRITE | VM_STACK, NULL)) != 0)
+    {
+        goto bad_mm;
+    }
+    ret = -E_NO_MEM;
+    for (i = 1; i <= USTACK_INIT_PAGES; i++)
+    {
+        struct Page *page = pgdir_alloc_page(mm->pgdir, USTACKTOP - i * PGSIZE,
+                                             PTE_U | PTE_V | PTE_R | PTE_W);
+        if (page == NULL)
+        {
+            goto bad_mm;
+        }
+        memset(page2kva(page), 0, PGSIZE);
+    }
+
+    /* (6) Commit: from here on nothing can fail. binary is not read again,
+     *     so it may disappear together with the old address space. */
+    struct mm_struct *old_mm = current->mm;
+    bool intr_flag;
+    local_intr_save(intr_flag);
+    {
+        mm_count_inc(mm);
+        current->mm = mm;
+        current->pgdir = PADDR(mm->pgdir);
+        lsatp(current->pgdir);
+        flush_tlb();
+    }
+    local_intr_restore(intr_flag);
+    /* Code was written through kernel aliases; sync the instruction stream. */
+    asm volatile("fence.i" ::: "memory");
+    release_mm(old_mm);
+
+    /* (7) Trapframe for the first sret into the new image: user stack top,
+     *     ELF entry, SPP=0 (return to U), SPIE=1 (interrupts on after sret),
+     *     SIE=0 for the remainder of the kernel path. Other sstatus bits such
+     *     as SUM are inherited from the running kernel. */
+    struct trapframe *tf = current->tf;
+    uintptr_t sstatus = read_csr(sstatus);
+    memset(tf, 0, sizeof(struct trapframe));
+    tf->gpr.sp = USTACKTOP;
+    tf->epc = elf.e_entry;
+    tf->status = (sstatus & ~(SSTATUS_SPP | SSTATUS_SIE)) | SSTATUS_SPIE;
+    return 0;
+
+bad_mm:
+    /* mm_count is still 0 and mm was never installed. */
+    exit_mmap(mm);
+    put_pgdir(mm);
+    mm_destroy(mm);
+    return ret;
+}
+
+/* do_execve - replace the image of current with the ELF program binary.
+ * On success current keeps its pid and process-tree links. On failure the
+ * caller's old image is left intact (load_icode commits only on success),
+ * so the error can be returned to it. */
+int do_execve(const char *name, size_t len, unsigned char *binary, size_t size)
+{
+    struct mm_struct *mm = current->mm;
+    char local_name[PROC_NAME_LEN + 1];
+    int ret;
+
+    if (current->tf == NULL)
+    {
+        return -E_INVAL;
+    }
+    if (len > PROC_NAME_LEN)
+    {
+        len = PROC_NAME_LEN;
+    }
+    memset(local_name, 0, sizeof(local_name));
+
+    /* Validate user pointers against the caller's address space (or kernel
+     * range for a kernel thread) and keep a private copy of the name: the
+     * old address space may be released by load_icode. */
+    lock_mm(mm);
+    if (name == NULL ||
+        (len != 0 && !copy_from_user(mm, local_name, name, len, 0)) ||
+        binary == NULL || size == 0 ||
+        !user_mem_check(mm, (uintptr_t)binary, size, 0))
+    {
+        unlock_mm(mm);
+        return -E_INVAL;
+    }
+    unlock_mm(mm);
+
+    if ((ret = load_icode(binary, size)) != 0)
+    {
+        return ret;
+    }
+    set_proc_name(current, local_name);
+    return 0;
+}
 
 
 //lab5 function3 YOUR CODE
