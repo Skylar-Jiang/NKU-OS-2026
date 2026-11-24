@@ -1,6 +1,11 @@
 #include <riscv.h>
 
+    .text
     .altmacro
+    .equ TRAPFRAME_SIZE, 36 * REGBYTES
+    .if (TRAPFRAME_SIZE % 16) != 0
+    .error "trapframe must preserve the 16-byte RISC-V stack alignment"
+    .endif
     .align 2
     .macro SAVE_ALL
     LOCAL _restore_kernel_sp
@@ -15,7 +20,8 @@
 _restore_kernel_sp:
     csrr sp, sscratch
 _save_context:
-    addi sp, sp, -36 * REGBYTES
+    # 32 GPR slots followed by status, epc, tval and cause in struct trapframe.
+    addi sp, sp, -TRAPFRAME_SIZE
     # save x registers
     STORE x0, 0*REGBYTES(sp)
     STORE x1, 1*REGBYTES(sp)
@@ -55,7 +61,7 @@ _save_context:
     csrrw s0, sscratch, x0
     csrr s1, sstatus
     csrr s2, sepc
-    csrr s3, 0x143
+    csrr s3, stval
     csrr s4, scause
 
     STORE s0, 2*REGBYTES(sp)
@@ -68,23 +74,91 @@ _save_context:
     .macro RESTORE_ALL
 
     #lab3：填写你在lab3中实现的代码，并进行修改补充
+    LOCAL _restore_context
+
+    # __trapret may also be entered directly with a constructed trapframe.
+    # Keep the restore window atomic even if that caller had SIE enabled.
+    csrci sstatus, SSTATUS_SIE
+    LOAD s1, 32*REGBYTES(sp)
+    LOAD s2, 33*REGBYTES(sp)
+    # sret restores interrupt enable from SPIE, never from a premature SIE.
+    andi s1, s1, ~SSTATUS_SIE
+
+    # The official SAVE_ALL uses sscratch=0 while running in S mode.
+    # A U-mode return must publish the unwound kernel stack for the next trap.
+    csrw sscratch, zero
+    andi s0, s1, SSTATUS_SPP
+    bnez s0, _restore_context
+    addi s0, sp, TRAPFRAME_SIZE
+    csrw sscratch, s0
+_restore_context:
+    csrw sstatus, s1
+    csrw sepc, s2
+
+    # s1/s2 have finished carrying the CSR values and can now be restored.
+    # x0 is hard-wired to zero; tval/cause are diagnostic snapshots.
+    LOAD x1, 1*REGBYTES(sp)
+    LOAD x3, 3*REGBYTES(sp)
+    LOAD x4, 4*REGBYTES(sp)
+    LOAD x5, 5*REGBYTES(sp)
+    LOAD x6, 6*REGBYTES(sp)
+    LOAD x7, 7*REGBYTES(sp)
+    LOAD x8, 8*REGBYTES(sp)
+    LOAD x9, 9*REGBYTES(sp)
+    LOAD x10, 10*REGBYTES(sp)
+    LOAD x11, 11*REGBYTES(sp)
+    LOAD x12, 12*REGBYTES(sp)
+    LOAD x13, 13*REGBYTES(sp)
+    LOAD x14, 14*REGBYTES(sp)
+    LOAD x15, 15*REGBYTES(sp)
+    LOAD x16, 16*REGBYTES(sp)
+    LOAD x17, 17*REGBYTES(sp)
+    LOAD x18, 18*REGBYTES(sp)
+    LOAD x19, 19*REGBYTES(sp)
+    LOAD x20, 20*REGBYTES(sp)
+    LOAD x21, 21*REGBYTES(sp)
+    LOAD x22, 22*REGBYTES(sp)
+    LOAD x23, 23*REGBYTES(sp)
+    LOAD x24, 24*REGBYTES(sp)
+    LOAD x25, 25*REGBYTES(sp)
+    LOAD x26, 26*REGBYTES(sp)
+    LOAD x27, 27*REGBYTES(sp)
+    LOAD x28, 28*REGBYTES(sp)
+    LOAD x29, 29*REGBYTES(sp)
+    LOAD x30, 30*REGBYTES(sp)
+    LOAD x31, 31*REGBYTES(sp)
+    # SAVE_ALL stored the pre-Trap sp through sscratch in slot 2.
+    # Restore it last: every preceding load still addresses the Trap frame.
+    LOAD x2, 2*REGBYTES(sp)
     .endm
 
+    # stvec uses Direct mode: its entry address must be four-byte aligned.
+    .balign 4
     .globl __alltraps
+    .type __alltraps, @function
 __alltraps:
     SAVE_ALL
 
     #lab3:填写你在lab3中实现的代码
+    mv a0, sp
+    call trap
     # sp should be the same as before "jal trap"
 
     .globl __trapret
+    .type __trapret, @function
 __trapret:
+    # Both trap() and forkrets supply sp = &trapframe. Reload the possibly
+    # edited epc/status/GPRs; tval and cause remain diagnostic snapshots.
     RESTORE_ALL
     # return from supervisor call
     sret
+    .size __trapret, .-__trapret
+    .size __alltraps, .-__alltraps
  
     .globl forkrets
+    .type forkrets, @function
 forkrets:
     # set stack to this new process's trapframe
     move sp, a0
     j __trapret
+    .size forkrets, .-forkrets

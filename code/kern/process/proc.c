@@ -84,6 +84,27 @@ void switch_to(struct context *from, struct context *to);
 
 //lab4 请补充你在lab4中的代码
 
+static struct proc_struct *
+alloc_proc(void)
+{
+    struct proc_struct *proc = kmalloc(sizeof(struct proc_struct));
+    if (proc == NULL)
+    {
+        return NULL;
+    }
+    // Zero first: runs, kstack, need_resched, parent, mm, context, tf,
+    // flags and name all start as 0/NULL.
+    memset(proc, 0, sizeof(struct proc_struct));
+    proc->state = PROC_UNINIT;
+    proc->pid = -1;
+    // Kernel threads share the kernel root page table (physical address).
+    proc->pgdir = boot_pgdir_pa;
+    // Self-linked nodes: not on proc_list or any hash bucket yet.
+    list_init(&(proc->list_link));
+    list_init(&(proc->hash_link));
+    return proc;
+}
+
 //lab5 function2 YOUR CODE update alloc_proc
 
 
@@ -229,6 +250,26 @@ find_proc(int pid)
 }
 
 //lab5 function2 YOUR CODE update kernel_thread
+/* Lab4 baseline; no user-process setup is added here. */
+// The trapframe sits at the top of a page-aligned kernel stack, so its size
+// must keep the frame (and therefore the first-run sp) 16-byte aligned.
+_Static_assert(sizeof(struct trapframe) % 16 == 0,
+               "trapframe must keep the kernel stack 16-byte aligned");
+
+int kernel_thread(int (*fn)(void *), void *arg, uint32_t clone_flags)
+{
+    struct trapframe tf;
+    memset(&tf, 0, sizeof(struct trapframe));
+    // kernel_thread_entry: a0 <- s1 (arg), then jalr s0 (fn).
+    tf.gpr.s0 = (uintptr_t)fn;
+    tf.gpr.s1 = (uintptr_t)arg;
+    // sret returns to S-mode (SPP=1) and enables interrupts there (SPIE=1);
+    // SIE stays clear until sret actually happens.
+    tf.status = (read_csr(sstatus) | SSTATUS_SPP | SSTATUS_SPIE) & ~SSTATUS_SIE;
+    tf.epc = (uintptr_t)kernel_thread_entry;
+    // Kernel threads share the kernel address space.
+    return do_fork(clone_flags | CLONE_VM, 0, &tf);
+}
 
 
 // setup_kstack - alloc pages with size KSTACKPAGE as process kernel stack
@@ -275,6 +316,31 @@ put_pgdir(struct mm_struct *mm)
 }
 
 //lab5 function3 YOUR CODE update copy_mm
+static int
+copy_mm(uint32_t clone_flags, struct proc_struct *proc)
+{
+    if (current == NULL || current->mm == NULL)
+    {
+        proc->mm = NULL;
+        return 0;
+    }
+    return -E_INVAL;
+}
+
+static void
+copy_thread(struct proc_struct *proc, uintptr_t esp, struct trapframe *tf)
+{
+    proc->tf = (struct trapframe *)(proc->kstack + KSTACKSIZE) - 1;
+    *(proc->tf) = *tf;
+    // Child observes 0 as the fork return value.
+    proc->tf->gpr.a0 = 0;
+    // esp == 0 means a kernel thread: after __trapret its sp is the top of its
+    // own stack area (the frame is dead by then), never 0.
+    proc->tf->gpr.sp = (esp == 0) ? (uintptr_t)proc->tf : esp;
+
+    proc->context.ra = (uintptr_t)forkret;
+    proc->context.sp = (uintptr_t)(proc->tf);
+}
 
 
 
@@ -282,6 +348,55 @@ put_pgdir(struct mm_struct *mm)
 
 
 //lab5 function3 YOUR CODE
+/* Lab4 kernel-thread fork only; Lab5 address-space/tree extensions are pending. */
+int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf)
+{
+    int ret = -E_NO_FREE_PROC;
+    struct proc_struct *proc;
+    if (nr_process >= MAX_PROCESS)
+    {
+        goto fork_out;
+    }
+    ret = -E_NO_MEM;
+    if ((proc = alloc_proc()) == NULL)
+    {
+        goto fork_out;
+    }
+    proc->parent = current;
+
+    if ((ret = setup_kstack(proc)) != 0)
+    {
+        goto bad_fork_cleanup_proc;
+    }
+    if ((ret = copy_mm(clone_flags, proc)) != 0)
+    {
+        goto bad_fork_cleanup_kstack;
+    }
+    copy_thread(proc, stack, tf);
+
+    // PID allocation scans proc_list, so allocation and registration form one
+    // critical section; the child becomes RUNNABLE only once fully built.
+    bool intr_flag;
+    local_intr_save(intr_flag);
+    {
+        proc->pid = get_pid();
+        hash_proc(proc);
+        list_add(&proc_list, &(proc->list_link));
+        nr_process++;
+        wakeup_proc(proc);
+        ret = proc->pid;
+    }
+    local_intr_restore(intr_flag);
+
+fork_out:
+    return ret;
+
+bad_fork_cleanup_kstack:
+    put_kstack(proc);
+bad_fork_cleanup_proc:
+    kfree(proc);
+    goto fork_out;
+}
 
 
 //lab5 function4 YOUR CODE
@@ -309,6 +424,107 @@ put_pgdir(struct mm_struct *mm)
 
 
 //lab5 function2 YOUR CODE
+
+/* Lab4 kernel-thread startup only; user_main/exec/wait remain Lab5 tasks. */
+static int
+init_main(void *arg)
+{
+    cprintf("this initproc, pid = %d, name = \"%s\"\n", current->pid, get_proc_name(current));
+    cprintf("To U: \"%s\".\n", (const char *)arg);
+    cprintf("To U: \"en.., Bye, Bye. :)\"\n");
+    return 0;
+}
+
+void proc_init(void)
+{
+    int i;
+
+    list_init(&proc_list);
+    for (i = 0; i < HASH_LIST_SIZE; i++)
+    {
+        list_init(hash_list + i);
+    }
+
+    if ((idleproc = alloc_proc()) == NULL)
+    {
+        panic("cannot alloc idleproc.\n");
+    }
+
+    // idleproc is the code already running on bootstack, not a forked
+    // thread. It is neither hashed nor put on proc_list: schedule() uses it
+    // only as the fallback when no ordinary thread is runnable.
+    idleproc->pid = 0;
+    idleproc->state = PROC_RUNNABLE;
+    idleproc->kstack = (uintptr_t)bootstack;
+    idleproc->need_resched = 1;
+    set_proc_name(idleproc, "idle");
+    nr_process++;
+
+    current = idleproc;
+
+    int pid = kernel_thread(init_main, "Hello world!!", 0);
+    if (pid <= 0)
+    {
+        panic("create init_main failed.\n");
+    }
+
+    initproc = find_proc(pid);
+    if (initproc == NULL)
+    {
+        panic("initproc pid %d not found.\n", pid);
+    }
+    set_proc_name(initproc, "init");
+
+    assert(idleproc != NULL && idleproc->pid == 0);
+    assert(initproc != NULL && initproc->pid == 1);
+    assert(initproc->parent == idleproc && initproc->mm == NULL);
+}
+
+/* Keep switch.S offsets checked against the C layout at build time. */
+#define CHECK_CONTEXT(field, slot) \
+    _Static_assert(__builtin_offsetof(struct context, field) == \
+                   (slot) * sizeof(uintptr_t), "switch_to context offset")
+CHECK_CONTEXT(ra, 0); CHECK_CONTEXT(sp, 1);
+CHECK_CONTEXT(s0, 2); CHECK_CONTEXT(s1, 3);
+CHECK_CONTEXT(s2, 4); CHECK_CONTEXT(s3, 5);
+CHECK_CONTEXT(s4, 6); CHECK_CONTEXT(s5, 7);
+CHECK_CONTEXT(s6, 8); CHECK_CONTEXT(s7, 9);
+CHECK_CONTEXT(s8, 10); CHECK_CONTEXT(s9, 11);
+CHECK_CONTEXT(s10, 12); CHECK_CONTEXT(s11, 13);
+_Static_assert(sizeof(struct context) == 14 * sizeof(uintptr_t),
+               "switch_to context size");
+_Static_assert(sizeof(uintptr_t) == 8, "Lab4 uses RV64 Sv39");
+#undef CHECK_CONTEXT
+
+void cpu_idle(void)
+{
+    for (;;) {
+        if (current->need_resched) {
+            schedule();
+        }
+    }
+}
+
+void proc_run(struct proc_struct *proc)
+{
+    assert(proc != NULL && current != NULL);
+    assert(proc->state == PROC_RUNNABLE);
+    assert((proc->pgdir & (PGSIZE - 1)) == 0);
+    if (proc != current) {
+        bool intr_flag;
+        local_intr_save(intr_flag);
+        struct proc_struct *prev = current;
+        current = proc;
+        /* pgdir is a physical address. lsatp() is the old Sv32 helper. */
+        write_csr(satp, ((uintptr_t)8 << 60) |
+                        (proc->pgdir >> RISCV_PGSHIFT));
+        /* No ASIDs are assigned in this lab; discard old translations. */
+        asm volatile("sfence.vma" ::: "memory");
+        switch_to(&prev->context, &proc->context);
+        /* This executes when prev is selected again, not in the new thread. */
+        local_intr_restore(intr_flag);
+    }
+}
 
 
 

@@ -89,6 +89,58 @@ size_t nr_free_pages(void)
 
 //lab2 请补充你在lab2中的代码
 
+static void page_init(void)
+{
+    extern char end[];
+    va_pa_offset = PHYSICAL_MEMORY_OFFSET;
+    const uintptr_t kernel_begin = KERNBASE - PHYSICAL_MEMORY_OFFSET;
+    const uintptr_t mapped_end = KERNTOP - PHYSICAL_MEMORY_OFFSET;
+    uint64_t mem_begin = get_memory_base();
+    uint64_t mem_size = get_memory_size();
+    if (mem_size == 0 || mem_begin < DRAM_BASE ||
+        mem_begin > kernel_begin || mem_size > ~(uint64_t)0 - mem_begin)
+    {
+        panic("page_init: invalid DTB memory range");
+    }
+    uint64_t mem_end = mem_begin + mem_size;
+    cprintf("physcial memory map:\n");
+    cprintf("  memory: 0x%016lx, [0x%016lx, 0x%016lx].\n",
+            mem_size, mem_begin, mem_end - 1);
+
+    uintptr_t maxpa = mem_end < mapped_end ? mem_end : mapped_end;
+    maxpa = ROUNDDOWN(maxpa, PGSIZE);
+    uintptr_t kernel_end = PADDR((uintptr_t)end);
+    if (kernel_end < kernel_begin || kernel_end >= maxpa)
+    {
+        panic("page_init: memory does not contain the kernel");
+    }
+    /* npage is the exclusive physical PPN bound; pages[] starts at nbase. */
+    npage = maxpa / PGSIZE;
+    size_t count = npage - nbase;
+    uintptr_t pages_pa = ROUNDUP(kernel_end, PGSIZE);
+    if (pages_pa > maxpa || count > (maxpa - pages_pa) / sizeof(struct Page))
+    {
+        panic("page_init: no room for page descriptors");
+    }
+    pages = (struct Page *)(pages_pa + va_pa_offset);
+    for (size_t i = 0; i < count; i++)
+    {
+        pages[i].flags = 0;
+        SetPageReserved(&pages[i]);
+        pages[i].property = 0;
+        set_page_ref(&pages[i], 0);
+        list_init(&pages[i].page_link);
+        /* Lab5 Page keeps the replacement bookkeeping inherited from Lab4. */
+        list_init(&pages[i].pra_page_link);
+        pages[i].pra_vaddr = 0;
+    }
+    uintptr_t free_start = ROUNDUP(pages_pa + count * sizeof(struct Page), PGSIZE);
+    if (free_start < maxpa)
+    {
+        init_memmap(pa2page(free_start), (maxpa - free_start) / PGSIZE);
+    }
+}
+
 // boot_map_segment - setup&enable the paging mechanism
 // parameters
 //  la:   linear address of this memory need to map (after x86 segment map)
@@ -225,13 +277,12 @@ static inline void page_remove_pte(pde_t *pgdir, uintptr_t la, pte_t *ptep)
     if (*ptep & PTE_V)
     {
         struct Page *page = pte2page(*ptep);
-        page_ref_dec(page);
-        if (page_ref(page) == 0)
+        *ptep = 0;
+        tlb_invalidate(pgdir, la);
+        if (page_ref_dec(page) == 0)
         {
             free_page(page);
         }
-        *ptep = 0;
-        tlb_invalidate(pgdir, la);
     }
 }
 
@@ -322,6 +373,60 @@ void exit_range(pde_t *pgdir, uintptr_t start, uintptr_t end)
 
 
 //lab4 请补充你在lab4中的代码
+
+int page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm)
+{
+    pde_t *pdep1 = &pgdir[PDX1(la)];
+    pde_t old_pde1 = *pdep1;
+    pte_t *ptep = get_pte(pgdir, la, 1);
+    if (ptep == NULL)
+    {
+        /* get_pte can allocate the first table, then fail on the second.
+         * Roll back only that newly created, still-empty Sv39 table.
+         */
+        if (!(old_pde1 & PTE_V) && (*pdep1 & PTE_V))
+        {
+            struct Page *table = pde2page(*pdep1);
+            *pdep1 = old_pde1;
+            /* A non-leaf entry changed; invalidate all page-walk levels. */
+            flush_tlb();
+            if (page_ref_dec(table) == 0)
+            {
+                free_page(table);
+            }
+        }
+        return -E_NO_MEM;
+    }
+
+    /* Hold the new page before removing an old mapping. A same-page
+     * permission update must neither free the page nor add a reference.
+     */
+    page_ref_inc(page);
+    if (*ptep & PTE_V)
+    {
+        if (pte2page(*ptep) == page)
+        {
+            page_ref_dec(page);
+        }
+        else
+        {
+            page_remove_pte(pgdir, la, ptep);
+        }
+    }
+    *ptep = pte_create(page2ppn(page), perm);
+    /* get_pte may have installed non-leaf entries as well as this leaf. */
+    flush_tlb();
+    return 0;
+}
+
+void page_remove(pde_t *pgdir, uintptr_t la)
+{
+    pte_t *ptep = get_pte(pgdir, la, 0);
+    if (ptep != NULL)
+    {
+        page_remove_pte(pgdir, la, ptep);
+    }
+}
 
 
 // invalidate a TLB entry, but only if the page tables being
