@@ -189,28 +189,40 @@ static void
 handle_store_page_fault(struct trapframe *tf)
 {
     uintptr_t fault_addr = tf->tval;
-    if (trap_in_kernel(tf) || current == NULL)
+    if (current == NULL || current->state != PROC_RUNNABLE)
     {
         store_page_fault_abort(tf, -E_FAULT);
     }
 
     struct mm_struct *mm = current->mm;
-    if (mm == NULL || mm->pgdir == NULL)
+    if (mm == NULL || mm->pgdir == NULL ||
+        !USER_ACCESS(fault_addr, fault_addr + 1))
     {
         store_page_fault_abort(tf, -E_FAULT);
     }
 
-    /* COW integration point: vmm.h/pmm.h currently provide no COW fault API.
-     * Agree the actual interface with member C before adding a call here.
-     * Pass mm and the full fault_addr; memory management must verify the
-     * VMA/PTE COW state, not merely the Store Page Fault cause.
-     * After confirmed repair, return with tf->epc unchanged to retry the store.
-     * A non-COW result or failure must reach store_page_fault_abort, propagating
-     * allocation errors instead of returning through the invalid mapping.
+    /* A kernel store through a user pointer may also fault on a COW page.
+     * SUM must already permit that access; repairing a PTE cannot fix SUM=0.
+     * copy_to_user normally resolves COW before using the physical-page alias.
      */
-    cprintf("COW fault interface pending: mm=%p, address=0x%016llx\n",
-            mm, (unsigned long long)fault_addr);
-    store_page_fault_abort(tf, -E_FAULT);
+    if (trap_in_kernel(tf) && !(tf->status & SSTATUS_SUM))
+    {
+        store_page_fault_abort(tf, -E_FAULT);
+    }
+
+    /* Memory management alone validates the VMA/PTE and completes the repair. */
+    int ret = cow_handle_store_fault(mm, fault_addr);
+    if (ret == 0)
+    {
+        /* Retry the original store in either U or S mode: never advance epc. */
+        return;
+    }
+    if (ret == -E_INVAL)
+    {
+        store_page_fault_abort(tf, -E_FAULT);
+    }
+    /* Preserve -E_NO_MEM and other failures; an unrepaired store cannot retry. */
+    store_page_fault_abort(tf, ret);
 }
 
 void exception_handler(struct trapframe *tf)
@@ -218,8 +230,9 @@ void exception_handler(struct trapframe *tf)
     switch (tf->cause)
     {
     case CAUSE_STORE_PAGE_FAULT:
+        /* Only confirmed COW repair may return and retry the unchanged epc. */
         handle_store_page_fault(tf);
-        break;
+        return;
     case CAUSE_USER_ECALL:
         /* ECALL is always 32 bits. Advance before a handler can replace epc. */
         tf->epc += 4;
