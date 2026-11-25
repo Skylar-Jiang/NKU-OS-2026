@@ -1,0 +1,57 @@
+0x0000000000001000 in ?? ()
+Breakpoint 1 at 0x80001fc8: file tests/runtime.c, line 25.
+
+Breakpoint 1, cow_proof_before (p=p@entry=0xffffffffc0286050, c=c@entry=0xffffffffc0286250) at tests/runtime.c:25
+25	    asm volatile("" : : "r"(p), "r"(c) : "memory");
+COW PROOF 1: BEFORE CHILD STORE
+Scope: isolated C memory-module harness, S-mode store to U/COW page.
+Production pmm.c/vmm.c; test allocator, scheduler and Trap entry.
+Not the complete integrated user-process regression.
+
+Virtual address       = 0x00800000
+Parent physical page  = 0x81002000
+Child physical page   = 0x81002000
+Same physical page    = 1
+Parent W=0 COW=1
+Child  W=0 COW=1
+Physical page refs    = 2
+Parent byte=0x44 Child byte=0x44
+Breakpoint 2 at 0x80003622: file tests/runtime.c, line 105.
+
+Breakpoint 2, trap (tf=0x802add50) at tests/runtime.c:105
+105	    assert(tf->cause==15&&fault_mm);faults++;
+Temporary breakpoint 3 at 0x80003758: file tests/trapentry.S, line 109.
+
+Temporary breakpoint 3, __trapret () at tests/trapentry.S:109
+109	    RESTORE_ALL
+COW PROOF 2: AFTER FAULT REPAIR, BEFORE STORE RETRY
+Scope: isolated C module; real QEMU hardware page fault.
+
+scause=15 (15 = store page fault)
+Fault VA=0x800000
+Saved EPC=0x800033c6 Repaired EPC=0x800033c6
+EPC unchanged (retry) = 1
+Faulting instruction:    0x800033c6 <test_main+3588>:	sb	s4,0(s7)
+Parent physical page  = 0x81002000
+Child physical page   = 0x81007000
+Different pages       = 1
+Parent W=0 COW=1 refs=1
+Child  W=1 COW=0 refs=1
+Before retry: parent=0x44 child=0x44
+Temporary breakpoint 4 at 0x80001fca: file tests/runtime.c, line 28.
+
+Temporary breakpoint 4, cow_proof_after (p=p@entry=0xffffffffc0286050, c=c@entry=0xffffffffc0286250) at tests/runtime.c:28
+28	    asm volatile("" : : "r"(p), "r"(c) : "memory");
+COW PROOF 3: STORE RETRIED; PARENT/CHILD DATA ISOLATION
+Scope: isolated C memory-module harness; real RISC-V sb instruction.
+
+Store target VA       = 0x00800000
+Parent physical page  = 0x81002000
+Child physical page   = 0x81007000
+Parent byte           = 0x44 (original 0x44)
+Child byte            = 0x55 (stored 0x55)
+Real store faults     = 1
+Parent unchanged      = 1
+Child store committed = 1
+Data isolation        = 1
+[Inferior 1 (process 1) detached]

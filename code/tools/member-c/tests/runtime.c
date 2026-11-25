@@ -20,6 +20,13 @@ static pde_t root[512] __attribute__((aligned(4096)));
 static struct proc_struct parent;
 static struct mm_struct *fault_mm;
 static int faults;
+/* Stable debugger checkpoints; empty barriers do not change test state. */
+void __attribute__((noinline)) cow_proof_before(struct mm_struct *p, struct mm_struct *c) {
+    asm volatile("" : : "r"(p), "r"(c) : "memory");
+}
+void __attribute__((noinline)) cow_proof_after(struct mm_struct *p, struct mm_struct *c) {
+    asm volatile("" : : "r"(p), "r"(c) : "memory");
+}
 static char pgdir_output[8192];
 static size_t pgdir_used;
 static void capture_char(int c, void *unused) {
@@ -233,7 +240,9 @@ void test_main(void) {
     /* Real supervisor store fault to a U/COW page; production Trap owned by A. */
     a=newmm();b=newmm();addpage(a,va,1,0x44);assert(dup_mmap(b,a)==0);
     fault_mm=b;write_csr(satp,((uintptr_t)8<<60)|(PADDR(b->pgdir)>>12));asm volatile("sfence.vma":::"memory");
+    cow_proof_before(a,b);
     *(volatile char *)va=0x55;
+    cow_proof_after(a,b);
     check(faults==1&&*(volatile unsigned char *)va==0x55&&byte(a,va)==0x44,"real store fault resolves and retries unchanged EPC");
     write_csr(satp,((uintptr_t)8<<60)|(boot_pgdir_pa>>12));asm volatile("sfence.vma":::"memory");fault_mm=NULL;destroy(b);destroy(a);
     check(live_pages==before&&live_heap==0,"real fault cleanup no leaks");

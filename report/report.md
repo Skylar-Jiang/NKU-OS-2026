@@ -79,3 +79,22 @@ Dirty COW（CVE-2016-5195）是 Linux mm/gup.c 中与写时复制处理有关的
 新增 5 项实际 QEMU 断言：当前用户根及 COW、2 MiB 叶项、高位规范地址及 1 GiB 叶项、无状态修改、测试资源回收。现在 COW 隔离配置共 57 项、普通 Fork 配置共 13 项通过；GDB 和 copyout 变异检测也再次通过。
 
 另外，在隔离的构建目录导出公共 lab5 的 c11f317，只插入本次打印函数（保留公共分支已有的 A/B/C 整合修改），完整 make 链接成功。使用 build-pgdir、DEBUG_GRADE 和 QEMU 4.1.1 实际运行，出现 pgdir pass.、all user-mode processes have quit. 和 init check memory pass.，最后到框架的 initproc exit 终止路径。见 evidence/integration-print-pgdir-build.log 与 integration-print-pgdir-runtime.log。本次没有运行全部 13 个官方程序，不能据此宣称满分。截图中 A 的定时调度、用户读缺页终止问题仍由 A 检查。
+
+
+## 2026-11-25：COW 三阶段 GDB 证据
+
+运行 `code/tools/member-c/tests/cow-proof.sh`，在真实写指令前、缺页修复后和写指令重试后读取页表、引用计数与物理页内容。原始记录是 `code/tools/member-c/evidence/cow-proof-before.txt`、`cow-proof-after.txt`、`cow-proof-isolation.txt`，完整会话另见 `cow-proof-session.log`。
+
+测试范围为 C 内存模块隔离测试：生产 pmm.c/vmm.c，使用测试分配器、调度器和 S 态 Trap 入口；S 态向 U/COW 页面执行真实 sb 写指令。本记录不等于整合版 U 态父子进程全流程验证。原生截图服务本次未能启动，以下图片是原始 GDB 输出的排版导出，图内已明确标注“非桌面截图”。如果提交要求原生截图，应另行截取实际运行窗口。
+
+![COW 写入前：共享物理页（GDB 日志导出图）](images/cow-proof-before.png)
+
+写前双方 PA=0x81002000，W=0、COW=1，引用数为 2，内容均为 0x44。
+
+![COW 修复后：复制物理页（GDB 日志导出图）](images/cow-proof-after.png)
+
+真实 store page fault 的 cause=15；子页 PA 变为 0x81007000，W=1、COW=0，各页引用为 1；EPC 不变。这一断点在原写指令重试前，因此双方数据暂时仍是 0x44。
+
+![COW 重试后：父子数据隔离（GDB 日志导出图）](images/cow-proof-isolation.png)
+
+重试后父页仍为 0x44，子页为 0x55；实际写缺页次数为 1，数据隔离条件成立。
