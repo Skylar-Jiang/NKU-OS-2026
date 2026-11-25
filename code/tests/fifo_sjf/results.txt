@@ -1,0 +1,97 @@
+[PASS] class name | expected=FIFO actual=FIFO
+[PASS] five class callbacks | expected=1 actual=1
+[PASS] FIFO init count | expected=0 actual=0
+[PASS] FIFO init empty list | expected=1 actual=1
+[PASS] FIFO init unused heap | expected=1 actual=1
+[PASS] FIFO init preserves max_time_slice | expected=17 actual=17
+[PASS] FIFO empty pick | expected=NULL actual=NULL
+[PASS] FIFO enqueue count | expected=1 actual=1
+[PASS] FIFO enqueue owner | expected=1 actual=1
+[PASS] FIFO enqueue count | expected=2 actual=2
+[PASS] FIFO enqueue owner | expected=1 actual=1
+[PASS] FIFO enqueue count | expected=3 actual=3
+[PASS] FIFO enqueue owner | expected=1 actual=1
+[PASS] FIFO arrival order | expected=ABC actual=ABC
+[PASS] FIFO repeated pick 1 | expected=A actual=A
+[PASS] FIFO repeated pick 2 | expected=A actual=A
+[PASS] FIFO pick leaves count | expected=3 actual=3
+[PASS] FIFO pick leaves order | expected=ABC actual=ABC
+[PASS] FIFO dequeue count | expected=2 actual=2
+[PASS] FIFO dequeue resets node | expected=1 actual=1
+[PASS] FIFO dequeue keeps last owner | expected=1 actual=1
+[PASS] FIFO dequeue count | expected=1 actual=1
+[PASS] FIFO dequeue resets node | expected=1 actual=1
+[PASS] FIFO dequeue keeps last owner | expected=1 actual=1
+[PASS] FIFO dequeue count | expected=0 actual=0
+[PASS] FIFO dequeue resets node | expected=1 actual=1
+[PASS] FIFO dequeue keeps last owner | expected=1 actual=1
+[PASS] FIFO dispatch sequence | expected=ABC actual=ABC
+[PASS] FIFO drained pick | expected=NULL actual=NULL
+[PASS] FIFO 20 ticks do not consume slice | expected=1 actual=1
+[PASS] FIFO 20 ticks do not preempt | expected=0 actual=0
+[PASS] FIFO preserves pending reschedule | expected=1 actual=1
+[PASS] FIFO remove middle | expected=AC actual=AC
+[PASS] FIFO re-enqueue at tail | expected=ACB actual=ACB
+[PASS] FIFO final count | expected=0 actual=0
+[PASS] class name | expected=SJF actual=SJF
+[PASS] five class callbacks | expected=1 actual=1
+[PASS] SJF init count | expected=0 actual=0
+[PASS] SJF init empty list | expected=1 actual=1
+[PASS] SJF init unused heap | expected=1 actual=1
+[PASS] SJF init preserves max_time_slice | expected=17 actual=17
+[PASS] SJF empty pick | expected=NULL actual=NULL
+[PASS] SJF initial estimate | expected=5 actual=5
+[PASS] SJF initial elapsed ticks | expected=0 actual=0
+[PASS] SJF enqueue count | expected=1 actual=1
+[PASS] SJF enqueue owner | expected=1 actual=1
+[PASS] SJF initial estimate | expected=5 actual=5
+[PASS] SJF initial elapsed ticks | expected=0 actual=0
+[PASS] SJF enqueue count | expected=2 actual=2
+[PASS] SJF enqueue owner | expected=1 actual=1
+[PASS] SJF initial estimate | expected=5 actual=5
+[PASS] SJF initial elapsed ticks | expected=0 actual=0
+[PASS] SJF enqueue count | expected=3 actual=3
+[PASS] SJF enqueue owner | expected=1 actual=1
+[PASS] SJF repeated shortest pick 1 | expected=B actual=B
+[PASS] SJF repeated shortest pick 2 | expected=B actual=B
+[PASS] SJF pick leaves count | expected=3 actual=3
+[PASS] SJF pick does not sort queue | expected=ABC actual=ABC
+[PASS] SJF selected estimate | expected=2 actual=2
+[PASS] SJF dequeue count | expected=2 actual=2
+[PASS] SJF dequeue resets node | expected=1 actual=1
+[PASS] SJF dequeue keeps estimate | expected=2 actual=2
+[PASS] SJF dequeue keeps last owner | expected=1 actual=1
+[PASS] SJF selected estimate | expected=5 actual=5
+[PASS] SJF dequeue count | expected=1 actual=1
+[PASS] SJF dequeue resets node | expected=1 actual=1
+[PASS] SJF dequeue keeps estimate | expected=5 actual=5
+[PASS] SJF dequeue keeps last owner | expected=1 actual=1
+[PASS] SJF selected estimate | expected=8 actual=8
+[PASS] SJF dequeue count | expected=0 actual=0
+[PASS] SJF dequeue resets node | expected=1 actual=1
+[PASS] SJF dequeue keeps estimate | expected=8 actual=8
+[PASS] SJF dequeue keeps last owner | expected=1 actual=1
+[PASS] SJF 8,2,5 dispatch sequence | expected=BCA actual=BCA
+[PASS] SJF drained pick | expected=NULL actual=NULL
+[PASS] SJF equal estimates follow arrival (not PID) | expected=CAB actual=CAB
+[PASS] SJF three actual ticks | expected=3 actual=3
+[PASS] SJF ticks do not preempt | expected=0 actual=0
+[PASS] SJF ticks do not update prediction early | expected=5 actual=5
+[PASS] SJF average (5+3)/2 | expected=4 actual=4
+[PASS] SJF average resets elapsed | expected=0 actual=0
+[PASS] SJF zero-tick burst preserves estimate | expected=4 actual=4
+[PASS] SJF odd sum rounds down (4+1)/2 | expected=2 actual=2
+[PASS] SJF minimum prediction stays positive | expected=1 actual=1
+[PASS] SJF 20 ticks accumulate | expected=20 actual=20
+[PASS] SJF 20 ticks do not preempt | expected=0 actual=0
+[PASS] SJF pending-reschedule ticks still accumulate | expected=22 actual=22
+[PASS] SJF preserves pending reschedule | expected=1 actual=1
+[PASS] SJF tick reaches INT_MAX | expected=2147483647 actual=2147483647
+[PASS] SJF tick saturates at INT_MAX | expected=2147483647 actual=2147483647
+[PASS] SJF saturated tick preserves reschedule | expected=1 actual=1
+[PASS] SJF widened average at field bounds | expected=3221225471 actual=3221225471
+[PASS] SJF bounded average resets elapsed | expected=0 actual=0
+[PASS] SJF final count | expected=0 actual=0
+[PASS] SJF final empty list | expected=1 actual=1
+SUMMARY: checks=95 passed=95 failed=0
+EXIT_STATUS=0
