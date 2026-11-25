@@ -7,6 +7,10 @@ build=${LAB5_C_BUILD:-"$PWD/build"}
 mkdir -p "$build" evidence
 includes='-I../../libs -I../../kern/process -I../../kern/mm -I../../kern/trap -I../../kern/sync -I../../kern/driver -I../../kern/schedule -I../../kern/debug'
 flags='-march=rv64imac -mabi=lp64 -mcmodel=medany -O2 -g -ffreestanding -fno-builtin -fno-stack-protector -ffunction-sections -fdata-sections -msmall-data-limit=0'
+# The integrated proc.c supplies B's real alloc_proc; old C-only baselines do not.
+if grep -q '^alloc_proc(void)' ../../kern/process/proc.c; then
+ flags="$flags -DMEMBER_C_PRODUCTION_ALLOC_PROC"
+fi
 for src in ../../kern/mm/pmm.c ../../kern/mm/vmm.c ../../kern/driver/intr.c ../../libs/string.c ../../libs/hash.c ../../libs/printfmt.c tests/runtime.c tests/start.S tests/trapentry.S; do
  riscv64-unknown-elf-gcc $flags $includes -c "$src" -o "$build/$(basename "$src").o"
 done

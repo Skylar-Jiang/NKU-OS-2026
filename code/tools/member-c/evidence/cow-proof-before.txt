@@ -1,0 +1,13 @@
+COW PROOF 1: BEFORE CHILD STORE
+Scope: isolated C memory-module harness, S-mode store to U/COW page.
+Production pmm.c/vmm.c; test allocator, scheduler and Trap entry.
+Not the complete integrated user-process regression.
+
+Virtual address       = 0x00800000
+Parent physical page  = 0x81002000
+Child physical page   = 0x81002000
+Same physical page    = 1
+Parent W=0 COW=1
+Child  W=0 COW=1
+Physical page refs    = 2
+Parent byte=0x44 Child byte=0x44

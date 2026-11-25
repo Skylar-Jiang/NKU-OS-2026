@@ -641,6 +641,24 @@ store_page_fault_abort(tf, ret);
 
 内核可以通过物理页的内核别名写入用户数据，因此不能只依赖用户页表的写保护。在 copy_to_user 中先逐页检查用户映射和写权限，遇到 COW 页调用 do_cow_fault。所有目标页均可写后，再按页内偏移分段复制数据。若跨页写入所需的分配失败，返回错误，保持用户缓冲区原数据。
 
+#### 4.6.5 三阶段 GDB 验证记录（2026-11-25）
+
+运行 `code/tools/member-c/tests/cow-proof.sh`，在真实写指令前、缺页修复后和写指令重试后读取页表、引用计数与物理页内容。原始记录是 `code/tools/member-c/evidence/cow-proof-before.txt`、`cow-proof-after.txt`、`cow-proof-isolation.txt`，完整会话另见 `cow-proof-session.log`。
+
+测试范围为 C 内存模块隔离测试：生产 pmm.c/vmm.c，使用测试分配器、调度器和 S 态 Trap 入口；S 态向 U/COW 页面执行真实 sb 写指令。本记录不等于整合版 U 态父子进程全流程验证。原生截图服务本次未能启动，以下图片是原始 GDB 输出的排版导出，图内已明确标注“非桌面截图”。如果提交要求原生截图，应另行截取实际运行窗口。
+
+![COW 写入前：共享物理页（GDB 日志导出图）](images/cow-proof-before.png)
+
+写前双方 PA=0x81002000，W=0、COW=1，引用数为 2，内容均为 0x44。
+
+![COW 修复后：复制物理页（GDB 日志导出图）](images/cow-proof-after.png)
+
+真实 store page fault 的 cause=15；子页 PA 变为 0x81007000，W=1、COW=0，各页引用为 1；EPC 不变。这一断点在原写指令重试前，因此双方数据暂时仍是 0x44。
+
+![COW 重试后：父子数据隔离（GDB 日志导出图）](images/cow-proof-isolation.png)
+
+重试后父页仍为 0x44，子页为 0x55；实际写缺页次数为 1，数据隔离条件成立。
+
 ## 五、测试与调试
 
 ### 5.1 内核编译

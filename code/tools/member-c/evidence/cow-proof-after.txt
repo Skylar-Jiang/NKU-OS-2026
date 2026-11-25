@@ -1,0 +1,14 @@
+COW PROOF 2: AFTER FAULT REPAIR, BEFORE STORE RETRY
+Scope: isolated C module; real QEMU hardware page fault.
+
+scause=15 (15 = store page fault)
+Fault VA=0x800000
+Saved EPC=0x800033c6 Repaired EPC=0x800033c6
+EPC unchanged (retry) = 1
+Faulting instruction:    0x800033c6 <test_main+3588>:	sb	s4,0(s7)
+Parent physical page  = 0x81002000
+Child physical page   = 0x81007000
+Different pages       = 1
+Parent W=0 COW=1 refs=1
+Child  W=1 COW=0 refs=1
+Before retry: parent=0x44 child=0x44

@@ -20,6 +20,10 @@ Path(sys.argv[1]+'/vmm-mutant.c').write_text(s)
 PY
 includes='-I../../libs -I../../kern/process -I../../kern/mm -I../../kern/trap -I../../kern/sync -I../../kern/driver -I../../kern/schedule -I../../kern/debug'
 flags='-march=rv64imac -mabi=lp64 -mcmodel=medany -O2 -g -ffreestanding -fno-builtin -fno-stack-protector -ffunction-sections -fdata-sections -msmall-data-limit=0'
+# The integrated proc.c supplies B's real alloc_proc; old C-only baselines do not.
+if grep -q '^alloc_proc(void)' ../../kern/process/proc.c; then
+ flags="$flags -DMEMBER_C_PRODUCTION_ALLOC_PROC"
+fi
 riscv64-unknown-elf-gcc $flags $includes -c "$build/vmm-mutant.c" -o "$build/vmm-mutant.o"
 # Skip the earlier OOM-preflight check only in this targeted mutant run so
 # the parent/child data isolation assertion itself is reached.

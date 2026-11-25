@@ -60,3 +60,13 @@ bash tools/member-c/tests/mutation.sh
 新增 5 项实际 QEMU 断言：当前用户根及 COW、2 MiB 叶项、高位规范地址及 1 GiB 叶项、无状态修改、测试资源回收。现在 COW 隔离配置共 57 项、普通 Fork 配置共 13 项通过；GDB 和 copyout 变异检测也再次通过。
 
 另外，在隔离的构建目录导出公共 lab5 的 c11f317，只插入本次打印函数（保留公共分支已有的 A/B/C 整合修改），完整 make 链接成功。使用 build-pgdir、DEBUG_GRADE 和 QEMU 4.1.1 实际运行，出现 pgdir pass.、all user-mode processes have quit. 和 init check memory pass.，最后到框架的 initproc exit 终止路径。见 evidence/integration-print-pgdir-build.log 与 integration-print-pgdir-runtime.log。本次没有运行全部 13 个官方程序，不能据此宣称满分。截图中 A 的定时调度、用户读缺页终止问题仍由 A 检查。
+
+
+## 三阶段 GDB 取证
+
+先运行 tests/run.sh，再运行 tests/cow-proof.sh。后者使用独立端口 12446，输出 evidence/cow-proof-*.txt；断言检查共享、复制、EPC 不变与数据隔离。report/images/cow-proof-*.png 是这些实际输出的排版导出，明确标注非桌面截图，不可称为原生窗口截图。测试范围为隔离 C 模块的 S 态写 U/COW 页面。
+
+
+## 公共分支合并验证（2026-11-25）
+
+在公共 lab5 的 9923025 上合入 C 的三阶段 GDB 材料，保留三人的完整报告与 Prompt。C 隔离测试原来定义了 alloc_proc 替代函数，与 B 的正式实现重复；测试脚本现在自动识别正式实现，并禁用替代函数，不改动生产 proc.c。合并后 COW 配置 57 项、立即复制配置 13 项检查通过；完整 make 和 make grade 成功，官方评分输出 Total Score: 130/130（见 evidence/merge-build.log、merge-grade.log）。此评分不替代 Challenge 的全部专项验证；三张 COW 图仍明确标为日志导出图，非原生桌面截图。

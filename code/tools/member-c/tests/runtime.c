@@ -1,5 +1,6 @@
-/* Isolated harness. Real pmm/vmm/proc implementations; test allocator and B
- * alloc_proc substitute. This is NOT a completed A/B/user-process system. */
+/* Isolated harness. Real pmm/vmm/proc implementations; test page/heap
+ * allocators. Uses integrated alloc_proc when available, otherwise a stub.
+ * This is NOT the complete integrated user-process regression. */
 #include <pmm.h>
 #include <vmm.h>
 #include <proc.h>
@@ -20,6 +21,13 @@ static pde_t root[512] __attribute__((aligned(4096)));
 static struct proc_struct parent;
 static struct mm_struct *fault_mm;
 static int faults;
+/* Stable debugger checkpoints; empty barriers do not change test state. */
+void __attribute__((noinline)) cow_proof_before(struct mm_struct *p, struct mm_struct *c) {
+    asm volatile("" : : "r"(p), "r"(c) : "memory");
+}
+void __attribute__((noinline)) cow_proof_after(struct mm_struct *p, struct mm_struct *c) {
+    asm volatile("" : : "r"(p), "r"(c) : "memory");
+}
 static char pgdir_output[8192];
 static size_t pgdir_used;
 static void capture_char(int c, void *unused) {
@@ -78,11 +86,13 @@ void kfree(void *p) {
     uintptr_t low=(uintptr_t)p-PHYSICAL_MEMORY_OFFSET;
     size_t i=(low-(uintptr_t)heap)/512;assert(i<256&&heap_used[i]);heap_used[i]=0;live_heap--;
 }
+#ifndef MEMBER_C_PRODUCTION_ALLOC_PROC
 static struct proc_struct *alloc_proc(void) {
     struct proc_struct *p=kmalloc(sizeof(*p));if(!p)return NULL;
     memset(p,0,sizeof(*p));p->pid=-1;p->pgdir=boot_pgdir_pa;
     list_init(&p->list_link);list_init(&p->hash_link);return p;
 }
+#endif
 static struct mm_struct *newmm(void) {
     struct mm_struct *mm=mm_create();assert(mm&&setup_pgdir(mm)==0);return mm;
 }
@@ -233,7 +243,9 @@ void test_main(void) {
     /* Real supervisor store fault to a U/COW page; production Trap owned by A. */
     a=newmm();b=newmm();addpage(a,va,1,0x44);assert(dup_mmap(b,a)==0);
     fault_mm=b;write_csr(satp,((uintptr_t)8<<60)|(PADDR(b->pgdir)>>12));asm volatile("sfence.vma":::"memory");
+    cow_proof_before(a,b);
     *(volatile char *)va=0x55;
+    cow_proof_after(a,b);
     check(faults==1&&*(volatile unsigned char *)va==0x55&&byte(a,va)==0x44,"real store fault resolves and retries unchanged EPC");
     write_csr(satp,((uintptr_t)8<<60)|(boot_pgdir_pa>>12));asm volatile("sfence.vma":::"memory");fault_mm=NULL;destroy(b);destroy(a);
     check(live_pages==before&&live_heap==0,"real fault cleanup no leaks");

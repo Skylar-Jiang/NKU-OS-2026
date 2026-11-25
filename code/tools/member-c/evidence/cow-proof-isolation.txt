@@ -1,0 +1,12 @@
+COW PROOF 3: STORE RETRIED; PARENT/CHILD DATA ISOLATION
+Scope: isolated C memory-module harness; real RISC-V sb instruction.
+
+Store target VA       = 0x00800000
+Parent physical page  = 0x81002000
+Child physical page   = 0x81007000
+Parent byte           = 0x44 (original 0x44)
+Child byte            = 0x55 (stored 0x55)
+Real store faults     = 1
+Parent unchanged      = 1
+Child store committed = 1
+Data isolation        = 1
