@@ -1,13 +1,13 @@
 # 操作系统实验报告
 
-Lab5：用户程序
+Lab5：用户进程管理
 
 ## 实验基本信息
 
 | 项目 | 内容 |
 | --- | --- |
-| 实验名称 | Lab5：用户程序 |
-| 小组成员 | 2412096-王麒萱、2413507-蒋林瀞、2411788-马传志 |
+| 实验名称 | Lab5：用户进程管理 |
+| 小组成员 | 2411788-马传志、2413507-蒋林瀞、2412096-王麒萱 |
 | 完成日期 | 2026.11.25 |
 
 表1 实验基本信息
@@ -16,75 +16,194 @@ Lab5：用户程序
 
 | 成员 | 负责的练习/模块 |
 | --- | --- |
-| A 2412096-王麒萱 | 功能模块一：用户态系统调用；Lab3 Trap 代码迁移；COW 写异常入口；分支任务：双 GDB 调试系统调用及返回 |
-| B 2413507-蒋林瀞 | 功能模块二：创建加载第一个用户进程；功能模块四：其余系统调用功能；Lab4 进程管理代码适配；练习：用户程序预加载 |
-| C 2411788-马传志 | 功能模块三：复制用户进程；Lab2/Lab4 内存管理代码迁移；Challenge：COW 机制及 Dirty COW 分析 |
+| A 2412096-王麒萱 | 前置代码迁移；功能模块一：系统调用与 Trap；COW 写缺页接入；时钟调度及用户态读缺页处理 |
+| B 2413507-蒋林瀞 | 功能模块二：用户程序加载及进程初始化；功能模块四：进程退出、等待、让出 CPU 和终止 |
+| C 2411788-马传志 | 功能模块三：进程复制；COW、页表输出；Dirty COW 分析 |
 
 表2 小组分工
 
-各成员撰写所负责模块、练习的实现过程和测试结果，小组共同整理实验目的、整体逻辑、测试结果和总结。
-
----
-
 ## 一、实验目的
 
-<!-- 待小组补充 -->
-
----
+1. 掌握用户态和内核态之间的切换方法，理解系统调用的参数传递及返回过程。
+2. 理解 ELF 用户程序的加载方式，掌握用户地址空间、用户栈和初始运行现场的设置方法。
+3. 掌握用户进程的创建、复制、调度、退出及等待回收方法。
+4. 理解写时复制机制，分析页表权限、缺页异常和物理页引用计数之间的关系。
 
 ## 二、实验环境
 
-在 Windows 下的 WSL Ubuntu 中编译、运行和调试内核，用 QEMU 模拟 RISC-V 64 位处理器，并通过 GDB 连接 QEMU 进行调试。
-
 | 项目 | 配置 |
 | --- | --- |
-| 终端环境 | Windows 下的 WSL Ubuntu 22.04 |
+| 操作系统 | Windows、WSL Ubuntu 22.04 |
 | 目标架构 | RISC-V 64 位，Sv39 分页 |
-| 交叉编译器 | SiFive riscv64-unknown-elf-gcc 10.1.0 |
-| 调试器 | riscv64-unknown-elf-gdb |
-| 运行方式 | QEMU 4.1.1 Virt Machine，OpenSBI |
+| 交叉编译器 | riscv64-unknown-elf-gcc 15.1.0；SiFive GCC 10.2.0 |
+| Binutils | GNU Binutils 2.45 |
+| 调试器 | RISC-V GDB 16.3.90.20250610-git；宿主 GDB 12.1 |
+| 运行环境 | QEMU 4.1.1 Virt Machine，OpenSBI v0.4 |
+| 模拟物理内存 | 128 MiB |
+| 编辑器 | VSCode |
 
 表3 软件环境
 
-| 成员 | AI 编程工具 | 底层模型 | 备注 |
-| --- | --- | --- | --- |
-| A 2412096-王麒萱 | | | |
-| B 2413507-蒋林瀞 | Claude Code | Claude Opus 5.5 | 编写进程装载、退出与等待代码，编写专项测试，GDB 调试 |
-| C 2411788-马传志 | | | |
+## 三、实验整体逻辑与原理
 
-表4 AI 工具
+### 3.1 内核启动流程
 
----
+Lab5 沿用 Lab4 的内核线程创建和调度机制。先初始化内存、Trap 入口和进程管理模块，再创建 idle、init 两个内核线程。init 创建 user_main，通过 kernel_execve 加载用户程序，最后沿 Trap 返回路径进入 U 态。
 
-## 三、实验整体逻辑分析
+```text
+kern_init -> pmm_init -> idt_init -> vmm_init -> proc_init -> clock_init -> cpu_idle
+                                                    |
+                                              idleproc / initproc
+                                                         |
+                                              kernel_thread(user_main)
+                                                         |
+                                              kernel_execve -> ebreak
+                                                         |
+                                              syscall -> do_execve -> load_icode
+                                                         |
+                                              __trapret -> sret -> 用户程序
+```
 
-### 3.1 本章节的逻辑主线
+用户程序通过 ecall 请求内核服务。内核保存异常现场，执行对应的系统调用，再根据进程状态继续运行或切换进程。父进程通过 wait 回收已退出的子进程，init 回收移交给它的孤儿进程。
 
-<!-- 待小组补充 -->
+### 3.2 实验步骤
 
-### 3.2 功能的逐步实现
+1. 迁移 Lab2 至 Lab4 的内存管理、Trap、内核线程及调度代码，适配 Lab5 的结构体和接口。
+2. 编写 U/S 态 Trap 保存和恢复代码，完成系统调用分发及九个封装函数。
+3. 编写 ELF 装载、用户栈设置和进程管理代码，构造用户程序的初始 trapframe。
+4. 编写普通 Fork 和 COW 复制代码，通过写保护和缺页异常延迟复制物理页。
+5. 运行用户程序，使用 GDB 观察特权级和寄存器变化，再执行官方评分。
 
-<!-- 待小组补充 -->
+### 3.3 特权级切换
 
----
+RISC-V 进入 S 态 Trap 时，将原特权级记录在 SPP，将原 SIE 保存到 SPIE，清除 SIE，并将异常指令地址写入 sepc。软件保存通用寄存器和原栈指针。执行 sret 时，处理器依据 SPP 选择返回特权级，将 SPIE 复制给 SIE，再跳转至 sepc。
 
-## 四、实验内容与实现
+| 字段 | 用途 |
+| --- | --- |
+| `sscratch` | U 态运行期间保存内核栈地址，S 态运行期间设为 0 |
+| `sstatus` | 保存 SPP、SPIE、SIE、SUM 等状态位 |
+| `sepc` | 保存异常返回地址 |
+| `scause` | 记录中断或异常原因 |
+| `stval` | 记录异常相关地址 |
 
-### 4.1 功能模块一：用户态系统调用功能
+表4 Trap 相关 CSR
 
-**负责人：** A 2412096-王麒萱
+RV64 的 trapframe 由 32 个通用寄存器槽和 4 个 CSR 槽组成，占 288 字节。系统调用将返回地址增加 4 字节，COW 写缺页修复后保留原地址，使写指令重新执行。时钟中断也保留原地址。
 
-<!-- 待成员 A 补充 -->
+### 3.4 用户地址空间
 
----
+使用 Sv39 三级页表管理用户虚拟地址。ELF 的 PT_LOAD 段描述文件内容、内存长度、虚拟地址和读写执行权限。先把文件数据复制到相应物理页，再清零 BSS，建立用户栈，最后把 ELF 入口和用户栈顶写入 trapframe。
 
-### 4.2 功能模块二：创建加载第一个用户进程功能
+进程之间共享内核映射。普通 Fork 为子进程创建独立的 mm 和页表，CLONE_VM 共享同一个 mm。mm_count 记录地址空间的使用者数量，Page 引用计数记录物理页的映射引用。
 
-**负责人：** B 2413507-蒋林瀞
+## 四、实验过程
 
-#### 模块功能描述
+### 4.1 迁移 Lab2、Lab3、Lab4 代码
 
-**需要实现/修改的函数：**
+负责人：A 2412096-王麒萱。
+
+将物理页分配、页表映射、kmalloc、Trap 入口、内核线程和调度代码迁入 Lab5，适配 DTB 内存初始化、页引用及 TLB 刷新。Trap 帧中的异常地址字段使用 tval，线程切换继续通过 context 保存 ra、sp 和 s0～s11。
+
+### 4.2 功能模块一：系统调用
+
+负责人：A 2412096-王麒萱。
+
+#### 4.2.1 保存 Trap 现场
+
+在 `kern/trap/trapentry.S` 中，使用 SAVE_ALL、RESTORE_ALL、__alltraps 和 __trapret 保存、恢复异常现场。将栈帧大小统一为 `36 * REGBYTES`，使用汇编条件判断约束 16 字节对齐。
+
+```asm
+csrrw sp, sscratch, sp
+bnez sp, _save_context
+_restore_kernel_sp:
+    csrr sp, sscratch
+_save_context:
+    addi sp, sp, -TRAPFRAME_SIZE
+```
+
+U 态发生 Trap，交换 sp 和 sscratch，使用 sscratch 中的内核栈地址建立 trapframe；S 态发生 Trap，交换得到的 sp 为 0，从 sscratch 取回原内核栈指针。保存通用寄存器以后，使用 `csrrw s0, sscratch, x0` 读出原栈指针，同时清零 sscratch。将 s0 写入下标为 2 的寄存器槽，再保存 status、epc、tval 和 cause。
+
+| 字段 | 字节偏移 |
+| --- | ---: |
+| `gpr.sp` | 16 |
+| `status` | 256 |
+| `epc` | 264 |
+| `tval` | 272 |
+| `cause` | 280 |
+
+表5 Trap 栈帧字段偏移
+
+#### 4.2.2 恢复 Trap 现场
+
+先关闭 SIE，读取栈帧中的 status 和 epc，并清除待写回 status 的 SIE 位。保留 SPIE，由 sret 恢复中断状态。
+
+```asm
+csrci sstatus, SSTATUS_SIE
+LOAD s1, 32*REGBYTES(sp)
+LOAD s2, 33*REGBYTES(sp)
+andi s1, s1, ~SSTATUS_SIE
+csrw sscratch, zero
+andi s0, s1, SSTATUS_SPP
+bnez s0, _restore_context
+addi s0, sp, TRAPFRAME_SIZE
+csrw sscratch, s0
+_restore_context:
+    csrw sstatus, s1
+    csrw sepc, s2
+```
+
+根据 SPP 区分返回目标。返回 U 态时将释放 trapframe 后的内核栈地址写入 sscratch，返回 S 态则保持 sscratch 为 0。恢复其余通用寄存器，最后读取下标为 2 的槽恢复 sp。status 和 epc 用于异常返回，tval 和 cause 用于记录异常信息。
+
+在 __alltraps 中将 sp 写入 a0，调用 trap。普通异常返回沿 __trapret 恢复现场；新进程通过 forkrets 将预先构造的 trapframe 地址写入 sp，再跳转到 __trapret，两条路径都以 sret 结束。
+
+#### 4.2.3 系统调用分发
+
+用户态通过 a0 传递系统调用号，a1～a5 传递参数，执行 ecall。内核将 epc 增加 4，再调用 syscall。使用 uint64_t 保存调用号和参数，保留 RV64 指针宽度。
+
+```c
+uint64_t number = tf->gpr.a0;
+int result = -E_INVAL;
+if (number < NUM_SYSCALLS && syscalls[number] != NULL)
+{
+    uint64_t arg[5] = {
+        tf->gpr.a1, tf->gpr.a2, tf->gpr.a3, tf->gpr.a4, tf->gpr.a5,
+    };
+    result = syscalls[number](arg);
+}
+tf->gpr.a0 = (uintptr_t)(intptr_t)result;
+```
+
+将系统调用号作为分发表下标，先判断范围和函数指针，再传入参数数组。将 int 类型的执行结果符号扩展到 RV64 寄存器宽度，写回 a0。无效调用号返回 -E_INVAL。
+
+| 系统调用 | 内核接口或操作 |
+| --- | --- |
+| `sys_exit` | `do_exit((int)arg[0])` |
+| `sys_fork` | `do_fork(0, tf->gpr.sp, tf)` |
+| `sys_wait` | `do_wait`，传入 PID 和退出状态地址 |
+| `sys_exec` | `do_execve`，传入程序名称、名称长度、映像地址及大小 |
+| `sys_yield` | `do_yield()` |
+| `sys_kill` | `do_kill`，传入 PID |
+| `sys_getpid` | 返回 `current->pid` |
+| `sys_putc` | `cputchar`，返回 0 |
+| `sys_pgdir` | `print_pgdir()`，返回 0 |
+
+表6 系统调用分发接口
+
+在 trap 中临时将 current->tf 指向当前异常帧，执行分发，再恢复原指针。用户态返回前读取 PF_EXITING 和 need_resched，分别执行进程退出和重新调度。
+
+#### 4.2.4 内核态系统调用入口
+
+内核通过 ebreak 启动用户程序：a7 为 T_SYSCALL，a0 为 SYS_exec，a1～a4 分别传递名称、长度、映像地址和映像大小。先通过 SPP 和寄存器标记判断是否为内核 exec 请求，再检查指令编码，区分 2 字节的 c.ebreak 和 4 字节的 ebreak。普通断点沿原异常分支执行。
+
+成功加载程序会修改当前 trapframe 中的 epc、status 和 sp，因此在调用 syscall 前先推进断点地址。若加载成功，则通过新的 epc 进入用户程序；若加载失败，则返回原内核调用位置。
+
+### 4.3 功能模块二：用户程序加载
+
+负责人：B 2413507-蒋林瀞。
+
+#### 模块功能
+
+进程初始化和装载涉及以下函数：
 
 ```c
 static struct proc_struct *alloc_proc(void);
@@ -97,9 +216,7 @@ static int load_icode(unsigned char *binary, size_t size);
 void proc_run(struct proc_struct *proc);
 ```
 
-**功能说明：**
-
-本模块把内核从只运行内核线程推进到运行第一个用户程序。启动链如下：
+启动时先创建 user_main 内核线程，再装载用户程序并进入 U 态。执行路径如下：
 
 ```text
 proc_init -> initproc(init_main) -> kernel_thread(user_main)
@@ -108,11 +225,11 @@ __trapret -> sret -> 用户程序入口 0x800020
 init_main: do_wait 回收全部子进程 -> 检查进程表与空闲页
 ```
 
-`do_wait` 同时属于本模块和功能模块四，实现说明放在 4.4.2。本模块依赖成员 A 的 Trap 返回路径和系统调用分发，依赖成员 C 的 `do_fork` 创建 `user_main`。
+init_main 通过 do_wait 等待并回收子进程，退出与回收流程见 4.5。
 
-#### 4.2.1 适配 Lab4 进程管理代码
+#### 4.3.1 适配 Lab4 进程管理代码
 
-成员 A 已将 Lab4 的 `alloc_proc`、`kernel_thread`、`proc_init`、`schedule`、`switch_to`、`proc_run` 迁入 Lab5。审查后修改两处：
+PCB 初始化与页表切换沿用 Lab4 的流程，按 Lab5 的新增字段和用户地址空间进行设置：
 
 1. `alloc_proc` 在清零 PCB 后显式初始化 Lab5 新增字段：
 
@@ -124,11 +241,11 @@ proc->cptr = proc->yptr = proc->optr = NULL;
 
 `set_links` 和 `remove_links` 依赖这三个指针的初值为 `NULL`。
 
-2. `proc_run` 改用框架提供的 `lsatp()` 写入 satp，再调用 `flush_tlb()`。`lsatp` 写入 `0x8000000000000000 | (pgdir >> 12)`，即 Sv39 模式。本实验没有分配 ASID，切换页表后刷新全部 TLB。
+2. `proc_run` 通过框架提供的 `lsatp()` 写入 satp，再调用 `flush_tlb()`。`lsatp` 写入 `0x8000000000000000 | (pgdir >> 12)`，即 Sv39 模式。各进程使用 ASID=0，切换页表后刷新全部 TLB。
 
 `kernel_thread` 沿用 Lab4 实现：内核线程以 `SPP=1` 返回 S 态，用户进程由 `load_icode` 重写 trapframe。
 
-#### 4.2.2 解析 ELF 并建立地址空间
+#### 4.3.2 解析 ELF 并建立地址空间
 
 `load_icode` 采用先建后换的顺序：在旧地址空间仍然有效时建立完整的新地址空间，全部成功后再切换。用户进程通过 `exec` 传入的程序映像位于旧用户空间，提交前一直可以读取；装载失败时当前进程保持原状，`exec` 返回错误码。
 
@@ -158,7 +275,7 @@ proc->cptr = proc->yptr = proc->optr = NULL;
 | 入口 | `e_entry` 位于带 `VM_EXEC` 的 VMA 内 |
 | 段数量 | 至少有一个 `PT_LOAD` 段 |
 
-表5 ELF 合法性检查
+表7 ELF 合法性检查
 
 范围检查都写成减法形式，避免 `p_offset + p_filesz` 等加法溢出后绕过检查。
 
@@ -185,7 +302,7 @@ for (la = ROUNDDOWN(va, PGSIZE); la < end; la += PGSIZE) {
 }
 ```
 
-整页清零同时处理三种情况：首页中 `p_va` 之前的部分，BSS，以及末页中文件数据之后的部分。testbss 的 BSS 段 `p_filesz=0`、`p_memsz=0x400000`，共 1024 页。专项测试按 1 KiB 间隔读取整个 BSS 及其最后 4 字节，结果均为零。
+整页清零同时处理三种情况：首页中 `p_va` 之前的部分，BSS，以及末页中文件数据之后的部分。testbss 的 BSS 段 `p_filesz=0`、`p_memsz=0x400000`，共 1024 页。
 
 **段重叠检查。** `mm_map` 只用 `find_vma(start)` 判断新区间的起点是否落在已有 VMA 内。若新区间的起点低于已有 VMA 并覆盖它，就会进入 `insert_vma_struct` 的重叠断言，使内核 panic。`load_icode` 在调用 `mm_map` 前遍历全部 VMA，判断区间相交：
 
@@ -227,7 +344,7 @@ tf->status = (sstatus & ~(SSTATUS_SPP | SSTATUS_SIE)) | SSTATUS_SPIE;
 
 **失败回收。** 第 (3)～(5) 步失败时，新 mm 尚未安装，`mm_count` 为 0，依次调用 `exit_mmap`、`put_pgdir`、`mm_destroy`，回收已分配的页面、页表和 VMA。
 
-#### 4.2.3 替换程序映像
+#### 4.3.3 替换程序映像
 
 `do_execve` 校验参数并复制进程名，再调用 `load_icode`：
 
@@ -257,11 +374,9 @@ set_proc_name(current, local_name);
 - 进程名截断为 `PROC_NAME_LEN`（15）个字符，复制到以零结尾的局部缓冲区。`load_icode` 提交后会释放旧地址空间，之后不再读取用户内存中的名称。
 - `load_icode` 失败时直接返回错误码，PID、进程关系和原映像都不变。
 
-内核线程不调用 `user_mem_check` 的原因见 4.2.6 第一次迭代。
+#### 4.3.4 进入用户态
 
-#### 4.2.4 进入用户态
-
-在 S 态不能用 `ecall` 发起系统调用，需要另外构造一次 Trap 返回。成员 A 在 `trap.c` 中实现了内核态 `ebreak` 契约：`a7 = T_SYSCALL`、`a0 = SYS_exec` 时，异常处理将 `epc` 跳过 `ebreak` 指令，再调用 `syscall()`。`kernel_execve` 按此契约发起 `exec`：
+内核启动用户程序时，通过 ebreak 进入已有的 Trap 返回路径。trap.c 使用以下调用约定：`a7 = T_SYSCALL`、`a0 = SYS_exec` 时，异常处理将 `epc` 跳过 `ebreak` 指令，再调用 `syscall()`。`kernel_execve` 按此契约发起 `exec`：
 
 ```c
 size_t len = strlen(name);
@@ -309,171 +424,47 @@ assert(list_next(&proc_list) == &(initproc->list_link));
 assert(list_prev(&proc_list) == &(initproc->list_link));
 ```
 
-空闲页检查的写法见 4.2.6 第二次迭代。
+回收结束后记录空闲页数，并检查 kmalloc 的已分配字节数是否恢复。SLOB 保留的 arena 页面继续供后续小块分配使用。
 
-#### 4.2.5 最终提示词
+### 4.4 功能模块三：进程复制
 
-````markdown
-[PROMPT]
-在 kern/process/proc.c 中完成第一个用户进程的创建和加载：适配 Lab4 的 alloc_proc、proc_run，
-实现 load_icode、do_execve、kernel_execve、user_main、init_main。使用官方 Lab5 的 ELF、
-页表、VMA 和内存管理接口，不修改成员 A 的 trap.c、trapentry.S 和成员 C 的 do_fork、copy_mm、
-vmm.c、pmm.c。先审查 origin/lab5 中已迁移的 Lab4 代码，只改动本人负责的函数。
+负责人：C 2411788-马传志。
 
-[RELY]
-- struct proc_struct 的 exit_code、wait_state、cptr/yptr/optr；struct elfhdr、struct proghdr、
-  ELF_MAGIC、ELF_PT_LOAD、ELF_PF_R/W/X
-- mm_create、setup_pgdir、put_pgdir、mm_map、find_vma、pgdir_alloc_page、page2kva、
-  exit_mmap、mm_destroy、mm_count_inc/dec、user_mem_check、copy_from_user
-- USERBASE、USERTOP、USTACKTOP、USTACKSIZE、PTE_U/R/W/X/V、VM_READ/WRITE/EXEC/STACK
-- lsatp、flush_tlb、SSTATUS_SPP/SPIE/SIE
-- 成员 A 的 ebreak 契约：a7=T_SYSCALL、a0=SYS_exec、a1..a4=name、len、binary、size；
-  trap() 分发期间 current->tf 指向本次 Trap 帧
-- Makefile 的 TEST、TESTSTART、TESTSIZE；KERNEL_EXECVE、KERNEL_EXECVE2 宏
+#### 4.4.1 创建子进程
 
-[GUARANTEE]
-- static int load_icode(unsigned char *binary, size_t size);
-- int do_execve(const char *name, size_t len, unsigned char *binary, size_t size);
-- static int kernel_execve(const char *name, unsigned char *binary, size_t size);
-- static int user_main(void *arg);
-- static int init_main(void *arg);
-- 可以新增仅在 proc.c 内使用的 static 辅助函数，不改变公共接口。
+先判断进程数是否达到 MAX_PROCESS，再分配 PCB、内核栈和地址空间，复制父进程的 trapframe。关中断期间分配 PID、登记哈希表、调用 set_links 建立父子及兄弟关系，最后唤醒子进程。set_links 内部已增加 nr_process，因此不重复计数。
 
-[SPECIFICATION]
-load_icode
-Pre-Condition：binary 指向长度为 size 的 ELF 映像，位于内核镜像或调用者的用户空间。
-Post-Condition：成功时 current 拥有新的 mm，旧 mm 的引用减一，trapframe 指向 ELF 入口、
-USTACKTOP，SPP=0、SPIE=1、SIE=0；失败时 current 不变，不遗留页面、页表和 VMA。
-Case 1：合法 ELF。按 PT_LOAD 段建立 VMA 和页表映射，段地址可以不按页对齐。
-Case 2：p_memsz > p_filesz。首页段前部分、BSS、末页文件数据之后的部分全部清零。
-Case 3：非法 ELF。检查魔数、e_phentsize、程序头范围、p_filesz <= p_memsz、文件偏移、
-地址回绕、用户地址范围、段与段及段与栈的重叠、入口位于可执行段，返回 -E_INVAL_ELF。
-所有范围检查用减法表达，避免加法溢出。映像可能未对齐，先复制头部再读取。
-Case 4：内存不足。回收已分配的资源，返回 -E_NO_MEM。
-Requirements：在旧地址空间仍有效时建立新地址空间，提交后不再读取 binary。
-按段标志设置权限，可写页同时可读。提交后执行 fence.i。
-
-do_execve
-Pre-Condition：current->tf 有效。
-Post-Condition：成功时保留 PID 和进程关系，进程名为截断后的 name；失败时原映像不变。
-Case 1：mm == NULL。参数来自 kernel_execve 的内核数据，直接复制。
-Case 2：mm != NULL。name 和 binary 必须位于调用者可读的 VMA 中，否则返回 -E_INVAL。
-Requirements：name 截断为 PROC_NAME_LEN 并以零结尾。
-
-kernel_execve
-Pre-Condition：当前为 user_main 内核线程，mm == NULL。
-Post-Condition：成功时经 __trapret 和 sret 进入 U 态，不返回；失败时返回错误码。
-Requirements：按成员 A 的 ebreak 契约传参。绑定 register 变量之后不能再调用函数，
-先求出 strlen(name) 再绑定寄存器。
-
-user_main / init_main
-Requirements：user_main 按 TEST 宏选择程序，默认运行 exit，失败时返回错误码。
-init_main 循环 do_wait(0, NULL) 回收全部子进程，再检查进程链表、nr_process == 2 和空闲页数。
-SLOB 分配器不归还 arena 页面，空闲页检查只要求回收后不多于回收前，并输出前后数值。
-````
-
-#### 4.2.6 实现迭代过程
-
-本模块经过三次迭代。
-
----
-
-##### 第一次迭代
-
-按阶段提示词完成 Lab4 代码适配、`load_icode`、`do_execve`、`kernel_execve`、`user_main` 和 `init_main`，编译通过。合并成员 C 的分支后运行 `make qemu`，第一个用户进程没有启动。
-
-**遇到的问题：**
-
-- 问题 1：输出 `user_main: kernel_execve failed, error -3.`，即 `-E_INVAL`。在 `do_execve` 入口打印参数，得到 `name=0x0 len=4`。`mm == NULL` 时，`user_mem_check` 用 `KERN_ACCESS` 检查内核地址：
-
-  ```c
-  #define KERNBASE 0xFFFFFFFFC0200000
-  #define KMEMSIZE 0x7E00000
-  #define KERNTOP  (KERNBASE + KMEMSIZE)
-  ```
-
-  `KERNTOP` 的加法超出 64 位，回绕为 `0x8000000`，`KERN_ACCESS` 对任何内核地址都为假，内核线程的参数无法通过检查。
-- 问题 2：修正问题 1 后错误码不变，`name` 仍为 0。最初的写法先绑定 `a1`，再调用 `strlen(name)` 给 `a2` 赋值。`strlen` 是普通函数调用，会改写调用者保存寄存器 `a1`。GCC 文档说明，局部 register 变量只在内联汇编的操作数中保证位于指定寄存器，绑定后不能再有函数调用。
-
-**问题解决策略：**
-
-- 针对问题 1：在 SPECIFICATION 中区分两类调用者。`mm == NULL` 的调用者只能是 `kernel_execve`，参数来自内核镜像，直接复制；`mm != NULL` 的调用者才用 `user_mem_check` 检查。`do_wait` 的 `code_store` 按同一规则处理。`memlayout.h` 属于官方公共代码，没有修改。
-- 针对问题 2：在 Requirements 中补充“绑定 register 变量之后不能再调用函数”，先求出长度再绑定寄存器。
-
----
-
-##### 第二次迭代
-
-`make grade` 中 forktest 输出 `forktest pass.`，随后 `init_main` 的断言失败：
-
-```text
-assertion failed: nr_free_pages_store == nr_free_pages()
+```c
+proc->tf = (struct trapframe *)(proc->kstack + KSTACKSIZE) - 1;
+*proc->tf = *tf;
+proc->tf->gpr.a0 = 0;
+proc->tf->gpr.sp = stack ? stack :
+    ((tf->status & SSTATUS_SPP) ? (uintptr_t)proc->tf : tf->gpr.sp);
+proc->context.ra = (uintptr_t)forkret;
+proc->context.sp = (uintptr_t)proc->tf;
 ```
 
-**遇到的问题：**
+子进程的 a0 设为 0，父进程通过 syscall 得到子进程 PID。用户栈采用传入地址或父进程原用户 sp；内核线程的零 stack 则使用新 trapframe 地址。子进程首次调度从 forkret 开始执行。
 
-- 问题：回收全部子进程后空闲页比创建前少 3 页。需要判断是页面泄漏还是分配器缓存。
+#### 4.4.2 复制地址空间
 
-**问题解决策略：**
+在 copy_mm 中区分三种情况：内核线程的 mm 为空；CLONE_VM 共享原 mm；普通 Fork 创建新 mm 和根页表，再通过 dup_mmap 复制 VMA 和用户映射。
 
-在临时副本中让 `init_main` 连续运行两轮同一程序，分别记录空闲页数：
+普通复制模式下，在 copy_range 中逐页查找有效用户叶项，分配新物理页并复制 PGSIZE 字节，再按原权限建立子进程映射。若原页为 COW，复制的新页恢复 W 并清除 COW 标志。`LAB5_COW=0` 对应立即复制，默认使用 COW。
 
-| 程序 | 启动时 | 第一轮结束 | 第二轮结束 |
-| --- | --- | --- | --- |
-| forktest | 31569 | 31566 | 31566 |
-| forktree | 31569 | 31567 | 31567 |
-| exit、badarg、hello、testbss | 31569 | 31569 | 31569 |
+若复制中途失败，撤销子地址空间已建立的映射、释放根页表、VMA 和 mm，再回收内核栈及 PCB。只有资源和现场全部建立成功，才登记子进程。
 
-表6 两轮运行的空闲页数
+#### 4.4.3 输出页表
 
-第二轮与第一轮结果相同，说明进程回收没有泄漏页面。forktest 同时存在 32 个子进程，它们的 PCB 和 VMA 由 SLOB 分配。SLOB 按页扩展 arena，释放对象时不把页面归还页分配器，所以空闲页只在第一轮减少。在 SPECIFICATION 中把空闲页检查改为“回收后不多于回收前”，并输出前后数值。
+使用 pmm.c 中的 print_pgdir 输出当前页表。读取当前 satp，从低位 PPN 计算根页表物理地址。检查 Sv39 模式和根页表所在物理内存范围，递归遍历三级页表。根据叶项所在层级区分 4 KiB、2 MiB 和 1 GiB 映射，输出规范虚拟地址、物理地址及 RWX/U/G/A/D、COW 权限。遍历过程逐层读取已有页表项，输出映射范围和权限。
 
----
+### 4.5 功能模块四：进程生命周期
 
-##### 第三次迭代
+负责人：B 2413507-蒋林瀞。
 
-编写专项测试时，构造第二个段从第一个段之下开始并覆盖它的 ELF，内核在 `insert_vma_struct` 的 `check_vma_overlap` 断言处 panic。
+#### 模块功能
 
-**遇到的问题：**
-
-- 问题：`mm_map` 的重叠判断只检查新区间起点是否落在已有 VMA 内。用户程序可以通过 `exec` 传入这样的映像使内核崩溃。
-
-**问题解决策略：**
-
-`vmm.c` 由成员 C 负责，在 `load_icode` 内新增 `map_user_range`，调用 `mm_map` 前检查与全部 VMA 的区间相交，返回 `-E_INVAL_ELF`。在 SPECIFICATION 的 Case 3 中加入段与段、段与栈的重叠检查。
-
-**最终结果：**
-
-经过 3 次迭代，该模块最终：
-
-- ✅ 编译通过
-- ✅ `make grade` 中依赖本模块的 13 个程序全部通过，专项测试通过
-- ✅ GDB 观察到 `sret` 后从 ELF 入口开始执行用户程序
-
-**关键改进点总结：**
-
-1. 在 SPECIFICATION 中区分内核线程和用户进程两类 `exec` 调用者，分别规定参数检查方式。
-2. 在 Requirements 中补充内联汇编传参的寄存器约束。
-3. 用两轮运行区分页面泄漏和分配器缓存，按实验结果修改空闲页检查。
-4. 补充段重叠检查，使非法映像返回错误码。
-
----
-
-### 4.3 功能模块三：复制用户进程功能
-
-**负责人：** C 2411788-马传志
-
-<!-- 待成员 C 补充 -->
-
----
-
-### 4.4 功能模块四：其余系统调用功能
-
-**负责人：** B 2413507-蒋林瀞
-
-#### 模块功能描述
-
-**需要实现/修改的函数：**
+进程退出、等待和调度使用以下接口：
 
 ```c
 int do_exit(int error_code);
@@ -482,9 +473,7 @@ int do_yield(void);
 int do_kill(int pid);
 ```
 
-**功能说明：**
-
-本模块完成进程生命周期的收尾：退出、等待回收、让出 CPU 和终止。各函数的调用来源如下：
+退出、等待回收、让出 CPU 和终止分别通过以下调用进入：
 
 | 函数 | 调用来源 |
 | --- | --- |
@@ -493,9 +482,9 @@ int do_kill(int pid);
 | `do_yield` | `sys_yield` |
 | `do_kill` | `sys_kill` |
 
-表7 调用来源
+表8 调用来源
 
-#### 4.4.1 进程退出
+#### 4.5.1 进程退出
 
 `do_exit` 的处理顺序如下：
 
@@ -504,7 +493,7 @@ int do_kill(int pid);
 3. 关中断，将状态设为 `PROC_ZOMBIE`，记录 `exit_code`。
 4. 父进程的 `wait_state` 为 `WT_CHILD` 时唤醒父进程。
 5. 将全部子进程移交给 `initproc`。
-6. 开中断，调用 `schedule()`，不再返回。
+6. 恢复先前的中断状态，调用 schedule 切换进程。
 
 移交子进程时，从 `current->cptr` 逐个取下，插入 `initproc` 子进程链表的头部，与 `set_links` 的插入方式相同：
 
@@ -526,7 +515,7 @@ while (current->cptr != NULL) {
 
 `do_exit` 执行时仍在使用自己的内核栈，`schedule()` 和 `switch_to` 还要把寄存器保存到自己 PCB 的 `context` 中，父进程回收时也要从 PCB 读取 `exit_code`。因此内核栈和 PCB 都由 `do_wait` 释放。
 
-#### 4.4.2 等待与回收
+#### 4.5.2 等待与回收
 
 `do_wait` 的流程如下：
 
@@ -552,7 +541,7 @@ found:
 - **写回退出码。** 用户进程通过 `copy_to_user` 写入。fork 后父进程的栈页处于 COW 共享状态。`copy_to_user` 先调用成员 C 的 `do_cow_fault` 解除共享：页面引用数大于 1 时为父进程复制新页，等于 1 时恢复写权限。之后再写入，子进程的页面不受影响。写入失败时子进程保留为僵尸态，之后的合法等待仍能回收它。
 - **重复回收。** `unhash_proc` 和 `remove_links` 删除记录后，`find_proc` 和子进程链表都找不到该进程，第二次等待返回 `-E_BAD_PROC`。`remove_links` 中包含 `nr_process--`，不再重复计数。
 
-#### 4.4.3 让出 CPU 与终止进程
+#### 4.5.3 让出 CPU 与终止进程
 
 `do_yield` 只设置 `current->need_resched = 1` 并返回 0。用户进程从系统调用返回前，`trap()` 检查该标志并调用 `schedule()`，当前进程保持 `PROC_RUNNABLE`。
 
@@ -578,7 +567,7 @@ if ((proc = find_proc(pid)) != NULL && proc != initproc) {
 | 已标记退出或已是僵尸态 | `-E_KILLED` |
 | 其他进程 | 0 |
 
-表8 do_kill 返回值
+表9 do_kill 返回值
 
 被终止的进程有两条退出路径：
 
@@ -587,278 +576,345 @@ if ((proc = find_proc(pid)) != NULL && proc != initproc) {
 
 `do_kill` 不释放目标进程的任何资源。目标进程此时仍在运行或睡眠，内核栈仍在使用。
 
-#### 4.4.4 最终提示词
+### 4.6 Challenge：写时复制
 
-````markdown
-[PROMPT]
-在 kern/process/proc.c 中实现 do_exit、do_wait、do_yield、do_kill，完成进程生命周期闭环。
-遵循现有进程树、PID 哈希表、等待状态和调度机制，不修改成员 C 的进程创建代码，不重复释放资源。
+负责人：C 2411788-马传志；Trap 接口负责人：A 2412096-王麒萱。
 
-[RELY]
-- PROC_SLEEPING、PROC_RUNNABLE、PROC_ZOMBIE；PF_EXITING、WT_CHILD、WT_INTERRUPTED
-- current、idleproc、initproc；parent、cptr、yptr、optr；exit_code、wait_state、need_resched
-- find_proc、set_links、remove_links（含 nr_process--）、unhash_proc、wakeup_proc、schedule
-- release_mm（mm_count 减到 0 时 exit_mmap、put_pgdir、mm_destroy）、put_kstack、kfree
-- user_mem_check；成员 C 的 copy_to_user，写入前解除目标页的 COW 共享
-- 成员 A 的 trap()：返回用户态前检查 PF_EXITING 和 need_resched
-- 错误码 -E_INVAL、-E_BAD_PROC、-E_KILLED
+#### 4.6.1 建立共享映射
 
-[GUARANTEE]
-- int do_exit(int error_code);
-- int do_wait(int pid, int *code_store);
-- int do_yield(void);
-- int do_kill(int pid);
+使用 PTE 软件保留位 0x100 表示 PTE_COW。普通 Fork 创建独立的子页表，父子进程暂时共享数据物理页。若原页可写或已经标记 COW，将父子页表项的 W 清零并设置 COW，通过 page_insert 增加物理页引用计数。真正只读的页面继续保持只读，不能因 Fork 获得写权限。
 
-[SPECIFICATION]
-do_exit
-Pre-Condition：current 不是 idleproc 或 initproc，否则 panic。
-Post-Condition：用户地址空间引用已释放，进程为僵尸态并记录退出码，子进程已移交 initproc，
-不再被调度。
-Case 1：mm 非空。先切换到 boot_pgdir_pa，再释放 mm；mm 只在最后一个引用释放时销毁。
-Case 2：有子进程。全部移交 initproc，有僵尸子进程且 initproc 在等待时唤醒 initproc。
-Case 3：父进程在等待。唤醒父进程。
-Requirements：不释放内核栈和 PCB；状态转换、进程树修改和唤醒在同一关中断区间内完成。
-
-do_wait
-Pre-Condition：current 请求等待 pid 指定的子进程，pid == 0 表示任意子进程。
-Post-Condition：成功时回收一个僵尸子进程并写回退出码。
-Case 1：目标已退出。写回退出码，删除哈希表和进程树记录，释放内核栈和 PCB，返回 0。
-Case 2：有子进程但都未退出。设置 SLEEPING 和 WT_CHILD 后调度，被唤醒后重新检查。
-Case 3：没有符合条件的子进程，或 pid 非法。返回 -E_BAD_PROC，包括 do_wait(-1, NULL)。
-Case 4：code_store 不可写。返回 -E_INVAL，不回收子进程。
-Case 5：等待期间被 kill。被唤醒后调用 do_exit(-E_KILLED)。
-Requirements：检查和睡眠在同一关中断区间内完成，避免丢失唤醒；通过 copy_to_user 写回，
-不绕过 COW 写保护；mm == NULL 的内核线程调用者传入的是内核指针，直接写入。
-
-do_yield
-Post-Condition：need_resched = 1，返回 0。
-
-do_kill
-Case 1：目标存在且未退出。设置 PF_EXITING，返回 0。
-Case 2：目标在可中断等待中。唤醒目标。
-Case 3：目标不存在、pid 非法或为 initproc，返回 -E_INVAL；已标记退出或已是僵尸态，
-返回 -E_KILLED。do_kill(-1) 必须返回 -E_INVAL。
-Requirements：不释放目标进程的内核栈和 PCB。
-````
-
-#### 4.4.5 实现迭代过程
-
-本模块经过两次迭代。
-
----
-
-##### 第一次迭代
-
-按提示词完成四个函数。合并成员 C 的代码后运行 `make grade`，exit、badarg、yield、forktest 的进程输出正确，spin 测试失败：
-
-```text
-spin:
-  -check result:   WRONG
-   !! error: missing 'I am the parent.  Killing the child...'
+```c
+if (perm & (PTE_W | PTE_COW)) perm = (perm & ~PTE_W) | PTE_COW;
+bool flag;
+local_intr_save(flag);
+int ret = page_insert(to, page, addr, perm);
+if (ret != 0) { local_intr_restore(flag); return ret; }
+*src = pte_create(page2ppn(page), perm);
+tlb_invalidate(from, addr);
+local_intr_restore(flag);
 ```
 
-**遇到的问题：**
+先插入子映射，再修改父页表项，避免本页插入失败却提前改变父项。修改父项后刷新相应的 TLB 翻译。
 
-- 问题 1：spin 的子进程执行 `while (1);`，父进程一直得不到 CPU。单独运行 spin，只看到持续输出的 `100 ticks`。原因是时钟中断处理没有设置 `need_resched`，`trap()` 不会在用户态返回前调度。该代码属于成员 A 的 `trap.c`。
-- 问题 2：`init_main` 以内核线程身份调用 `do_wait`，与 4.2.6 问题 1 相同，`mm == NULL` 时 `user_mem_check` 不能检查内核指针。
+#### 4.6.2 修复写缺页
 
-**问题解决策略：**
+写入受保护的 COW 页会产生 Store Page Fault。先判断 VMA 是否允许写入，再检查 PTE 的 V、U、R、COW 位和 W 位。引用计数为 1 时直接恢复原页写权限；引用大于 1 时分配新页，复制原页数据并替换写入进程的映射。
 
-- 针对问题 1：本模块的代码不需要修改，记录复现方法和建议后交给成员 A。成员 A 在时钟中断中每 `TICK_NUM` 次设置一次 `need_resched`，之后 spin 通过。
-- 针对问题 2：在 SPECIFICATION 中补充内核线程调用者的规则，`code_store` 为内核指针时直接写入。
+```c
+uint32_t perm = ((*pte & 0x3ff) | PTE_W) & ~PTE_COW;
+if (page_ref(old) == 1) {
+    *pte = pte_create(page2ppn(old), perm);
+    tlb_invalidate(mm->pgdir, va);
+    ret = 0;
+} else if (page_ref(old) > 1) {
+    struct Page *copy = alloc_page();
+    if (copy == NULL) { ret = -E_NO_MEM; goto out; }
+    memcpy(page2kva(copy), page2kva(old), PGSIZE);
+    ret = page_insert(mm->pgdir, copy, va, perm);
+    if (ret != 0) free_page(copy);
+}
+```
 
----
+#### 4.6.3 接入 Trap 异常分支
 
-##### 第二次迭代
+在 exception_handler 的 CAUSE_STORE_PAGE_FAULT 分支中，通过 handle_store_page_fault 读取 current->mm 和 tf->tval。检查进程状态、地址范围和页表。S 态访问用户缓冲区还需要检查原 status 的 SUM 位。
 
-官方测试程序无法覆盖等待中被 kill、孤儿进程移交、退出码写入 COW 页面等情况。编写内核态和用户态专项测试，测试设计见 5.3，没有发现新的问题。
+写缺页通过 `int cow_handle_store_fault(struct mm_struct *mm, uintptr_t fault_addr)` 处理，接口声明在 vmm.h。返回 0 表示页面修复成功，-E_INVAL 表示非法写入，-E_NO_MEM 表示分配失败。
 
-**最终结果：**
+```c
+int ret = cow_handle_store_fault(mm, fault_addr);
+if (ret == 0)
+{
+    return;
+}
+if (ret == -E_INVAL)
+{
+    store_page_fault_abort(tf, -E_FAULT);
+}
+store_page_fault_abort(tf, ret);
+```
 
-经过 2 次迭代，该模块最终：
+成功分支直接返回，epc 保持原值，恢复现场后重新执行写入指令。失败分支打印地址和错误码，普通用户进程调用 do_exit，内核不可恢复异常进入 panic。页复制、引用更新及 TLB 刷新均在内存管理模块中进行。
 
-- ✅ 编译通过
-- ✅ yield、badarg、exit、spin、forktest，以及评分以外的 forktree、waitkill 均运行通过
-- ✅ 专项测试中退出、等待、终止的全部检查通过，回收后空闲页数与创建前相同
+#### 4.6.4 内核写入用户缓冲区
 
-**关键改进点总结：**
+内核可以通过物理页的内核别名写入用户数据，因此不能只依赖用户页表的写保护。在 copy_to_user 中先逐页检查用户映射和写权限，遇到 COW 页调用 do_cow_fault。所有目标页均可写后，再按页内偏移分段复制数据。若跨页写入所需的分配失败，返回错误，保持用户缓冲区原数据。
 
-1. 在 SPECIFICATION 中写明检查与睡眠的原子性，避免丢失唤醒。
-2. 写回退出码失败时不回收子进程。
-3. 规定 `do_kill` 只设置标志和唤醒，资源释放由目标进程和父进程完成。
+## 五、测试与调试
 
----
+### 5.1 内核编译
 
-### 4.5 练习：用户程序预加载
+执行 make 编译内核和用户程序，链接生成 bin/kernel，再通过 objcopy 生成 bin/ucore.img。
 
-**负责人：** B 2413507-蒋林瀞
+![内核及用户程序编译](images/a-01-build-process.png)
 
-> 说明该用户程序是何时被预先加载到内存中的？与我们常用操作系统的加载有何区别，原因是什么？
+图5-1 内核及用户程序编译
 
-#### 4.5.1 加载时机
+编译返回状态为 0，生成 kernel 和 ucore.img。testbss 中的越界访问语句产生数组越界警告。
 
-用户程序经过四个阶段才开始运行：
+![内核镜像生成及编译返回状态](images/a-02-build-result.png)
+
+图5-2 内核编译结果
+
+### 5.2 内核运行结果
+
+执行 make qemu，OpenSBI 启动后从 DTB 读到 128 MiB 物理内存。物理页分配、页表映射、kmalloc、VMA 和虚拟内存检查依次输出成功信息，随后初始化时钟中断并加载 PID 为 2 的 exit 用户程序。
+
+![内核初始化与用户进程创建](images/a-03-qemu-start.png)
+
+图5-3 内核初始化与用户进程创建
+
+父进程创建 PID 为 3 的子进程，调用 wait 等待子进程退出。输出 `waitpid 3 ok.` 和 `exit pass.`，init 回收全部用户进程。运行前和回收后的空闲页数均为 31586，输出 `init check memory pass.`，最后进入 initproc 的结束路径。
+
+![用户进程退出及内存回收](images/a-04-qemu-ending.png)
+
+图5-4 用户进程退出及内存回收
+
+成员 B 的 exit 运行结果也输出了 waitpid 3 ok. 和 exit pass.，回收前后的空闲页数均为 31570。
+
+![成员 B 的用户进程运行与回收](images/make-qemu.png)
+
+图5-5 成员 B 的用户进程运行与回收
+
+### 5.3 评分结果
+
+执行官方 make grade，编译评分程序并运行各项检查。
+
+![官方评分编译输出](images/a-05-grade-build.png)
+
+图5-6 评分编译输出
+
+13 项测试的结果检查和输出检查均为 OK，总分为 130/130，退出码为 0。hello、yield、exit 和 forktest 分别验证了输出、调度、退出及进程复制，pgdir 验证了页表输出。
+
+![Lab5 官方评分结果](images/a-06-grade-result.png)
+
+图5-7 Lab5 官方评分结果
+
+另一组官方评分同样通过了 13 项测试，总分为 130/130。
+
+![成员 B 的官方评分结果](images/make-grade.png)
+
+图5-8 成员 B 的官方评分结果
+
+spin 需要时钟中断设置 need_resched，faultread 和 faultreadkernel 需要通过 do_exit 结束非法访存进程。divzero 的除法表达式被 GCC 在 -O2 下优化，在用户程序编译参数中增加 -fnon-call-exceptions 后，输出恢复为 -1。
+
+### 5.4 首次进入用户态
+
+在 kernel_execve 的 ebreak 处设置断点，读取系统调用参数。a0=4 对应 SYS_exec，a7=0x80 对应 T_SYSCALL，a1 指向 hello 名称，a2=5，a3 指向 ELF，a4=0x8af0。
+
+![kernel_execve 断点及寄存器](images/gdb-03-kernel-execve.png)
+
+图5-9 kernel_execve 断点及寄存器
+
+沿 syscall、do_execve 和 load_icode 继续执行，读取装载后的 trapframe：sp=0x80000000，epc=0x800020，status=0x8000000000046020，对应 SPP=0、SPIE=1、SIE=0。
+
+![装载后的用户进程初始现场](images/gdb-04-load-icode.png)
+
+图5-10 装载后的用户进程初始现场
+
+在 __trapret 的 sret 指令前停止，PC 为 0xffffffffc0200f8c，sepc 为 0x800020，sp 已恢复为用户栈顶 0x80000000，sscratch 保存内核栈顶 0xffffffffc049fec0。
+
+![首次 sret 执行前](images/gdb-05-first-sret-before.png)
+
+图5-11 首次 sret 执行前
+
+单步执行 sret，PC 变为 0x800020，用户 sp 保持 0x80000000，开始执行 ELF 入口处的指令。
+
+![首次 sret 执行后](images/gdb-06-first-sret-after.png)
+
+图5-12 首次 sret 执行后
+
+### 5.5 系统调用与 Trap 返回
+
+在用户系统调用封装的 ecall 处设置断点。PC=0x8000a0，a0=0x1e 对应 SYS_putc，a1=0x48 对应字符 H，用户 sp=0x7ffffe50。
+
+![用户 ecall 前的参数](images/gdb-07-ecall-before.png)
+
+图5-13 用户 ecall 前的参数
+
+进入 __alltraps 后执行栈交换，sp 变为内核栈顶 0xffffffffc049fec0，sscratch 保存原用户 sp=0x7ffffe50。此时 sepc=0x8000a0、scause=8，下一条指令将 sp 减去 288，为 trapframe 留出空间。
+
+![SAVE_ALL 交换用户栈和内核栈](images/gdb-09-save-all.png)
+
+图5-14 SAVE_ALL 交换用户栈和内核栈
+
+保存现场后进入 trap，当前帧地址为 0xffffffffc049fda0。读到保存的用户 sp=0x7ffffe50、epc=0x8000a0、cause=8，sscratch 已清零。内核栈顶与栈帧相差 0x120，即 288 字节，与 struct trapframe 的布局一致。
+
+![内核栈中的 trapframe](images/gdb-10-trapframe.png)
+
+图5-15 内核栈中的 trapframe
+
+在 syscall 中读取调用号和参数，a0=0x1e、a1=0x48，epc 已推进到 0x8000a4。调用栈经过 __alltraps、trap、trap_dispatch 和 exception_handler，再到 syscall。
+
+![系统调用分发及调用栈](images/gdb-11-syscall.png)
+
+图5-16 系统调用分发及调用栈
+
+sys_putc 输出字符后返回 0，trapframe 中的 a0 也变为 0，epc 保持 0x8000a4。
+
+![系统调用返回值](images/gdb-12-syscall-return.png)
+
+图5-17 系统调用返回值
+
+沿 RESTORE_ALL 恢复通用寄存器和 CSR，在 sret 前读到用户 sp=0x7ffffe50、sepc=0x8000a4、sscratch=0xffffffffc049fec0。
+
+![系统调用返回前的 sret](images/gdb-14-sret-before.png)
+
+图5-18 系统调用返回前的 sret
+
+单步后 PC=0x8000a4、a0=0，下一条指令为 `sd a0,28(sp)`。执行流从 ecall 的下一条指令继续，用户栈指针与进入内核前一致。
+
+![sret 后恢复用户程序](images/gdb-15-sret-after.png)
+
+图5-19 sret 后恢复用户程序
+
+### 5.6 双 GDB 观察异常分发
+
+使用 RISC-V GDB 调试内核，同时使用宿主 GDB 调试带符号的 QEMU。上窗观察 QEMU 的虚拟 CPU 状态，下窗观察用户程序的寄存器和指令。
+
+![客户机与宿主双 GDB](images/gdb-17-dual-gdb.png)
+
+图5-20 客户机与宿主双 GDB
+
+在 QEMU 的指令翻译路径设置断点，调用栈经过 decode_opc、riscv_tr_translate_insn、translator_loop、gen_intermediate_code 和 tb_gen_code，最后回到 cpu_exec。
+
+![QEMU 译码及翻译块生成调用链](images/gdb-18-qemu-ecall-translate.png)
+
+图5-21 QEMU 译码及翻译块生成调用链
+
+异常分发入口读到异常号 8、priv=0、PC=0x8000a0。委托到 S 态后，priv=1，PC 指向 0xffffffffc0200ebc，sepc=0x8000a0，scause=8。sp 和 sscratch 保持进入异常前的值，随后由内核入口交换栈指针。
+
+![QEMU 将 ecall 异常委托到 S 态](images/gdb-19-qemu-exception.png)
+
+图5-22 QEMU 将 ecall 异常委托到 S 态
+
+在 helper_sret 中继续单步，priv 从 1 变为 0，mstatus 从 0x8000000000046020 变为 0x8000000000046002。QEMU 4.1.1 的实现将 SIE 恢复为 1，并将 SPIE、SPP 清为 0。helper 返回后，生成代码把返回地址写入客户机 PC。
+
+![QEMU 执行 sret](images/gdb-20-qemu-sret.png)
+
+图5-23 QEMU 执行 sret
+
+### 5.7 TCG 指令翻译
+
+观察同一组指令的 in_asm、op 和 out_asm，分别对应 RISC-V 指令、TCG 中间操作和 x86-64 宿主指令。in_asm 中读到 ecall 的编码为 00000073，sret 的编码为 10200073。
+
+![RISC-V ecall 与 sret 指令](images/gdb-21-tcg-in-asm.png)
+
+图5-24 RISC-V ecall 与 sret 指令
+
+TCG 中间操作先把 0x8000a0 写入 PC，再装入异常号 8，调用 raise_exception。sret 路径调用对应的 helper，把返回值作为新的客户机 PC。
+
+![TCG 中间操作](images/gdb-22-tcg-op.png)
+
+图5-25 TCG 中间操作
+
+宿主指令把客户机 PC 写入 `0x200(%rbp)`，通过 rdi、esi 传递环境指针和异常号，再调用异常 helper。sret 返回后，使用 `movq %rax,0x200(%rbp)` 写回目标地址。沿这三个层次，可以把用户 ecall、内核异常入口和返回用户程序的过程对应起来。
+
+![TCG 生成的 x86-64 指令](images/gdb-23-tcg-out-asm.png)
+
+图5-26 TCG 生成的 x86-64 指令
+
+### 5.8 hello 用户程序运行
+
+在 GDB 中观察系统调用返回后继续运行，hello 输出问候文字和 PID，再以退出码 0 进入 do_exit。用户进程回收后，空闲页数恢复为 31586。
+
+![hello 输出及内存回收](images/a-07-hello-result.png)
+
+图5-27 hello 输出及内存回收
+
+## 六、思考题
+
+### 6.1 用户态和内核态切换
+
+用户程序执行 ecall，处理器根据异常委托和入口配置进入 S 态，将原 PC 保存到 sepc，同时记录原特权级和中断状态。软件交换 sscratch 与 sp，转入内核栈并保存通用寄存器。执行内核服务后恢复寄存器和 CSR，通过 sret 返回。
+
+第一个用户程序由内核构造初始现场，把用户入口、用户栈和 SPP=0 写入 trapframe，再执行 sret 完成特权级和 PC 的切换。普通跳转指令改变 PC，sret 则根据保存的状态同时恢复执行权限。
+
+系统调用返回时，epc 指向 ecall 的下一条指令；COW 写缺页修复后，epc 仍指向原写入指令，处理器重新执行该指令。两种情况分别对应请求已经完成和访存条件已经修复。
+
+### 6.2 Fork 写时复制
+
+立即复制需要为每个有效数据页分配物理页并复制数据，Fork 开销与已映射数据量相关。COW 让父子进程通过各自页表共享物理页，把复制推迟到实际写入。父子中的一方写入时，通过写缺页建立独立副本；共享页的引用计数降到 1 时，直接恢复原页写权限。
+
+COW 需要同时维护 PTE 权限、物理页引用计数和 TLB。父项清除 W 后刷新原地址翻译，撤销映射时减少物理页引用，最后一个映射撤销后释放物理页。真正的只读页按 VMA 的原访问权限处理。
+
+内核通过物理页别名写入用户缓冲区时，也需要先处理 COW。在 copy_to_user 中逐页检查权限，解除 COW 后再复制数据，保持其他进程所见的数据。
+
+### 6.3 用户程序预加载
+
+负责人：B 2413507-蒋林瀞。
+
+用户程序先作为 ELF 嵌入内核镜像，随内核进入内存，再由 exec 建立用户地址空间。几个阶段分别如下：
 
 | 阶段 | 发生时间 | 操作 |
 | --- | --- | --- |
-| 编译链接 | 构建内核时 | `user/*.c` 按 `tools/user.ld` 链接为独立 ELF，如 `obj/__user_hello.out`，入口 `0x800020` |
-| 嵌入内核 | 链接内核时 | `ld ... --format=binary obj/__user_*.out --format=default` 把 ELF 文件原样放入内核 `.data` 段 |
-| 加载到内存 | 系统启动时 | QEMU 把 `ucore.img` 加载到物理地址 `0x80200000`，嵌入的 ELF 随内核一起进入内存 |
-| 建立地址空间 | 执行 `exec` 时 | `load_icode` 解析 ELF，分配物理页，把各段从内核 `.data` 复制到用户地址空间 |
+| 编译链接 | 构建用户程序时 | 按 tools/user.ld 生成独立 ELF，入口为 0x800020 |
+| 嵌入内核 | 链接内核时 | 使用 `--format=binary` 把用户 ELF 的原始字节放入内核数据段 |
+| 加载到内存 | 系统启动时 | QEMU 将 ucore.img 放到物理地址 0x80200000，内嵌 ELF 一同进入内存 |
+| 建立地址空间 | 执行 exec 时 | load_icode 解析 PT_LOAD，分配页面、复制段内容、清零 BSS，并建立用户栈 |
 
-表9 用户程序的加载阶段
+表10 用户程序的加载阶段
 
-用户程序在系统启动、内核镜像被加载时就已进入内存，比任何进程的创建都早，这就是“预先加载”。`exec` 时只是从内存中的这份副本再复制一次。
+链接器根据文件路径生成 `_binary_obj___user_hello_out_start`、`_end` 和 `_size` 等符号。start 指向 ELF 的开头，end 指向结尾，size 是表示文件字节数的绝对符号。KERNEL_EXECVE 通过这些符号把程序地址和大小交给 kernel_execve。
 
-`--format=binary` 让 `ld` 把输入文件作为原始字节处理，并按文件路径生成三个符号。路径中的非字母数字字符替换为下划线：
+用户 ELF 在内核镜像加载时就已进入物理内存，exec 则把其中的段装入新进程的用户地址空间。load_icode 写好入口和用户栈后，通过 trapframe 和 sret 开始执行用户指令。
 
-```text
-ffffffffc025e740 D _binary_obj___user_hello_out_start
-ffffffffc02684c0 D _binary_obj___user_hello_out_end
-0000000000009d80 A _binary_obj___user_hello_out_size
-```
-
-`_start` 处的内容是 ELF 魔数：
-
-```text
-ffffffffc025e740 7f454c46 02010100 00000000 00000000  .ELF............
-```
-
-`_size` 是绝对符号，符号的值就是文件大小 `0x9d80`（40320 字节），因此 `KERNEL_EXECVE` 宏把它声明为数组，取地址后转换为 `size_t`。
-
-#### 4.5.2 与常用操作系统的区别
-
-| 项目 | Lab5 | 常用操作系统（如 Linux） |
+| 项目 | Lab5 | 常用操作系统 |
 | --- | --- | --- |
-| 程序来源 | 构建时固定，嵌入内核镜像 | 运行时按路径从文件系统读取 |
-| 进入内存的时间 | 系统启动时全部加载 | `exec` 时按需读取 |
-| 段的装载方式 | 立即分配全部页面并复制内容 | `mmap` 映射文件，首次访问时缺页，再从页缓存读入 |
-| BSS | 立即分配并清零，testbss 的 4 MiB BSS 立即占用 1024 页 | 映射匿名零页，写入时才分配 |
-| 只读代码页 | 每个进程各有一份副本 | 多个进程共享页缓存中的同一份 |
-| 可运行的程序 | 只有构建时嵌入的程序 | 文件系统中的任意可执行文件 |
+| 程序来源 | 构建时嵌入内核镜像 | 运行时按路径从文件系统读取 |
+| 段装载 | exec 时分配页面并复制段内容 | 建立文件映射，结合缺页异常按需读入 |
+| BSS | 分配物理页并清零 | 建立零初始化映射，结合写时复制和按需分配 |
+| 代码页共享 | 各次装载建立自己的代码页 | 多个进程可以共享页缓存中的代码页 |
 
-表10 加载方式对比
+表11 用户程序加载方式对比
 
-原因有两点：
+Lab5 通过内存中的 ELF 地址和长度完成装载，程序来源由构建配置决定。常用操作系统将程序保存在文件系统中，exec 根据文件路径读取映像，再利用虚拟内存和页缓存组织后续访问。
 
-1. Lab5 还没有文件系统和磁盘驱动，内核无法按路径读取文件。把 ELF 嵌入内核镜像后，`load_icode` 只需要一个内存地址和长度。
-2. Lab5 没有实现缺页时按需分配和读入页面的机制，只能在 `exec` 时建立全部映射。
+### 6.4 Dirty COW
 
-后续实验加入文件系统后，可以从磁盘读取程序，不再需要嵌入内核镜像。
+负责人：C 2411788-马传志。
 
-#### 4.5.3 第一次进入用户态的观察
+Dirty COW 是 Linux 写时复制机制中的竞态漏洞。私有文件映射的写访问意图、页引用和 COW 状态在并发变化中失去一致性，使写入落到原本共享的只读物理页。
 
-以 hello 为例，在 `__trapret` 的 `sret` 指令处设置断点，条件为 `(sstatus & 0x100) == 0`，即 SPP=0：
+写时复制的检查需要覆盖用户写缺页和内核写用户缓冲区两条路径。检查页表项后还要维护物理页引用，替换映射后刷新 TLB，使权限判断和最终写入对应同一页。
 
-```text
-== at sret (SPP=0 -> return to U):
-current->name = "hello"
-current->pgdir = 0x804b1000
-sepc     = 0x800020
-sstatus  = 0x8000000000046020
-sscratch = 0xffffffffc04b0ed0
-satp     = 0x80000000000804b1
-sp       = 0x80000000
-== after sret:
-pc = 0x800020   sp = 0x80000000
-=> 0x800020:  jal  ra,0x8000d8
-```
+单 hart 内核通过本地中断临界区保护页表项及引用更新。扩展到多核时，需要页表锁、原子引用计数、状态复查和跨核 TLB 同步。
 
-- `sepc=0x800020` 与 readelf 显示的入口相同。
-- `sstatus` 低 12 位为 `0x020`：SPP=0、SPIE=1、SIE=0；`0x40000` 为 SUM 位。
-- `satp` 的 MODE 为 8（Sv39），PPN `0x804b1` 对应 `current->pgdir = 0x804b1000`。
-- `sscratch` 是 `RESTORE_ALL` 写入的内核栈地址，下一次用户态 Trap 从这里保存现场。
-- 单步执行 `sret` 后，`pc` 为用户程序入口，`sp` 为 `USTACKTOP`，第一条指令跳转到 `umain`。
+### 6.5 实验知识点对照
 
-同一断点处 `current->tf` 的 `status` 为 `0x...46120`（SPP=1），与 `sstatus` 不同。`ebreak` 方案中，`trap()` 分发结束后把 `current->tf` 恢复为进入 Trap 前的值，即 `kernel_thread` 在内核栈顶构造的帧。`sret` 实际使用的是 `ebreak` 压在当前栈上的 trapframe，`load_icode` 改写的也是这一帧。下一次用户态 Trap 发生时，`current->tf` 指向新的 trapframe。
-
-手动构造 trapframe 的方案直接改写内核栈顶的那一帧，再执行 `mv sp, tf; j __trapret`，不经过异常入口。两种方案都由 `__trapret` 中的 `RESTORE_ALL` 和 `sret` 完成特权级切换，区别在于 trapframe 的来源：`ebreak` 方案由硬件和 `SAVE_ALL` 生成，可以复用系统调用分发；手动方案由内核直接填写，控制流更直接。本组按分工约定使用成员 A 已实现的 `ebreak` 契约，没有再引入第二套机制。
-
----
-
-### 4.6 分支任务：GDB 调试系统调用以及返回
-
-**负责人：** A 2412096-王麒萱
-
-<!-- 待成员 A 补充 -->
-
----
-
-### 4.7 Challenge：实现 Copy on Write 机制
-
-**负责人：** C 2411788-马传志
-
-<!-- 待成员 C 补充 -->
-
----
-
-## 五、测试与验证
-
-### 5.1 内核运行结果
-
-执行 `make qemu`，默认运行用户程序 exit：
-
-![make qemu 运行结果](images/make-qemu.png)
-
-图1 make qemu 运行结果
-
-- `kernel_execve: pid = 2, name = "exit".` 表示 `user_main` 开始装载 exit。
-- 父进程 fork 出 PID 3 的子进程，`waitpid 3 ok.` 和 `exit pass.` 表示等待和退出码传递正确。
-- `all user-mode processes have quit.` 表示 `init_main` 回收了全部子进程；空闲页数在创建 `user_main` 前后均为 31570。
-- 最后的 `initproc exit.` 是 `init_main` 返回后 `do_exit` 的 panic，与官方框架一致。
-
-### 5.2 评分结果
-
-执行 `make grade`，13 个测试程序全部通过，总分 130/130：
-
-![make grade 评分结果](images/make-grade.png)
-
-图2 make grade 评分结果
-
-### 5.3 成员 B 专项测试
-
-测试代码位于 `code/tools/member-b/`。`run.sh` 把源码复制到临时目录，在 `init_main` 入口注入内核态测试，把 `b_cowlife.c` 加入用户程序并作为 `TEST` 程序构建，再运行 QEMU，不修改源码树。注入位置与官方 `tools/inject.py` 相同，只在函数边界插入调用。
-
-**内核态测试（68 项）：**
-
-| 测试内容 | 检查数 | 结果 |
+| 本实验知识点 | 对应的 OS 原理 | 含义及实验中的具体形式 |
 | --- | --- | --- |
-| 13 种畸形 ELF：魔数、截断、`e_phentsize`、`e_phoff` 越界、程序头越界、`p_filesz > p_memsz`、`p_offset` 溢出、内核地址段、地址回绕、入口不在代码段、段与用户栈重叠、段间重叠、无 `PT_LOAD` 段。检查返回值、当前进程未改变、空闲页数不变 | 13 | 通过 |
-| `name`、`binary` 为 NULL，`size` 为 0 | 3 | 通过 |
-| 只剩 0、1、2、3、6、20、300 个空闲页时装载 testbss，检查返回 `-E_NO_MEM`、当前进程未改变、空闲页全部归还 | 7 | 通过 |
-| 内核线程装载 testbss：mm 与 satp、进程名截断、trapframe、代码段 R-X 及内容、BSS 按 1 KiB 间隔抽查为零且 RW-、用户栈 VMA 与栈顶 4 页 | 8 × 2 | 通过 |
-| 已有 mm 时 exec：拒绝内核指针、未映射的名称、超长映像；畸形映像失败后旧映像可用且不泄漏；从用户内存中的映像 exec 成功，旧 mm 释放 | 7 × 2 | 通过 |
-| `do_wait` 回收及退出码、重复等待、`do_wait(0)` 与 `do_wait(-1)`、`do_kill` 非法 PID 与 `initproc`、等待中被 kill、二次 kill、孤儿进程移交与回收、整轮空闲页数 | 15 | 通过 |
-| 合计 | 68 | 通过 |
+| ecall、ebreak、sret | 特权级切换 | 用户请求或内核 exec 进入 Trap，通过异常返回恢复执行 |
+| 系统调用分发表 | 内核服务接口 | 以调用号选择函数，通过寄存器传递参数和返回值 |
+| ELF、PT_LOAD、BSS | 可执行文件装载 | 建立段映射，复制文件数据并清零剩余内存 |
+| mm、VMA、Sv39 | 进程地址空间 | 记录合法地址范围并建立独立用户映射 |
+| fork、copy_thread | 进程创建 | 复制现场，父子分别返回子 PID 和 0 |
+| CLONE_VM、mm_count | 地址空间共享 | 共享整个 mm，最后一个使用者释放地址空间 |
+| PTE_COW、Page 引用 | 写时复制 | 延迟物理页复制，写缺页后恢复独占写权限 |
+| need_resched | 抢占式调度 | 时钟中断标记重新调度，返回用户态前选择进程 |
+| PROC_ZOMBIE、wait | 进程退出及回收 | 子进程记录退出码，父进程释放 PCB 和内核栈 |
+| PF_EXITING | 进程终止 | 标记退出请求，唤醒可中断等待的目标进程 |
+| copy_to_user | 用户地址访问 | 检查目标权限，解除 COW 再写入用户数据 |
 
-表11 内核态专项测试
+表12 操作系统原理知识点对照
 
-装载 testbss 的两组检查各运行两次：一次由测试直接创建的线程执行，一次在孤儿进程测试中由孙进程执行。
+## 七、实验总结
 
-**用户态测试 `b_cowlife`（21 项）：**
+### 实验小结
 
-| 测试内容 | 结果 |
-| --- | --- |
-| fork 后子进程读父进程数据，再写 `.data` 和 `.bss`，父进程数据不变 | 通过 |
-| `waitpid` 把退出码写入父进程栈上的变量，该栈页此时与子进程 COW 共享 | 通过 |
-| 重复等待已回收的子进程、状态指针未映射或指向内核地址时返回错误；被拒绝后子进程仍可回收 | 通过 |
-| 创建 5 个子进程，`waitpid(0)` 每次回收一个不同的子进程，第 6 次返回错误 | 通过 |
-| 中间进程先退出，孙进程移交 `initproc` 后仍能读写原 COW 页面 | 通过 |
-| 子进程在 `wait` 中被 kill，退出码为 `-E_KILLED`（-9） | 通过 |
-| 用户进程 `exec` 非 ELF 数据或内核地址时返回错误，原映像不变 | 通过 |
+在 Lab4 的内核线程基础上加入用户进程，需要把程序装载、异常入口、系统调用和进程生命周期连接起来。加载 ELF 后先建立用户地址空间，再填写入口和用户栈，通过 sret 进入用户态。用户程序发起系统调用后，内核保存现场、执行服务，再恢复到原程序继续运行。
 
-表12 用户态专项测试
-
-测试结束后输出 `init_main: free pages 31553 before user_main, 31553 after reaping.`，回收全部进程后空闲页数与创建 `user_main` 前相同。
-
----
-
-## 六、实验总结与收获
+进程退出后，地址空间、物理页和 PCB 分别按照引用关系回收。Fork 采用 COW 共享物理页，写入时再建立独立副本。运行 exit、hello 和官方评分程序，可以观察进程创建、执行、退出和回收的完整过程。
 
 ### 对操作系统的理解
 
-<!-- 待小组补充 -->
+用 GDB 单步调试时，我们主要查看了程序进入内核前后的栈指针和寄存器。用户程序触发 Trap 后，入口汇编切换到内核栈，将寄存器保存在 trapframe 中。处理结束后，内核恢复现场，通过 sret 返回用户态继续运行。
 
-### AI 协作开发的经验
+系统调用和 COW 缺页的返回位置有所不同。系统调用执行完后，程序继续执行下一条指令；COW 缺页则要先修复页面映射，再重新执行刚才没有完成的写入。进程退出时，还要按引用关系释放地址空间和物理页，最后由父进程回收 PCB 和内核栈。
 
-<!-- 待小组补充 -->
+### AI 工具使用体会
+
+1. 编写前先对照结构体、寄存器约定和函数声明，减少不同版本接口混用的问题。
+2. 三人分工时约定清楚 Trap、进程管理和内存管理的调用关系，再分别编写对应模块。
+3. 结合源码、QEMU 输出和 GDB 寄存器读数检查生成代码，再根据实际结果修改。

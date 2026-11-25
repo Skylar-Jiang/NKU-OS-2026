@@ -1,10 +1,376 @@
 # Lab5 提示词记录
 
-## 成员 A
+## 成员 A 2412096-王麒萱
 
-<!-- 待成员 A 补充 -->
+以下为原提示词文档中的五次任务记录。
 
-## 成员 B
+```text
+[PROMPT]
+任务：修改 kern/trap/trapentry.S，完成 Lab5 的 Trap 上下文保存、恢复及用户态与内核态切换机制。Lab3 主要处理内核态产生的中断和异常，Lab5 引入了用户进程，需要同时支持用户态和内核态产生的 Trap，并根据异常来源和返回目标完成栈切换及上下文恢复。
+具体要求如下：
+完善 Trap 入口的栈切换机制，正确处理 sscratch 和 sp。用户态发生异常后切换至当前进程的内核栈，内核态发生异常后继续使用当前内核栈。
+完善上下文保存机制，保存通用寄存器、原栈指针及相关 CSR，在内核栈上构造与 struct trapframe 一致的栈帧。
+完善 Trap 入口处理流程，将 trapframe 地址传递给 trap()，异常处理结束后进入上下文恢复流程。
+完善上下文恢复机制，根据保存的上下文恢复寄存器、栈指针及相关 CSR，正确处理返回用户态和返回内核态两种情况。
+完善 __trapret 返回流程，通过 sret 完成特权级切换和 PC 跳转，同时支持用户进程通过预先构造的 trapframe 首次进入用户态。
+检查上述实现与 Lab5 进程内核栈、上下文管理及异常处理机制是否兼容，为后续系统调用和用户程序执行提供基础。
+操作要求：必须在项目中修改实际文件。按照 Lab5 实验手册和课堂说明，检查已经迁移的代码，补全缺失功能，修正存在的问题。保留已有正确实现、官方注释及实验标记，不修改其他成员负责的代码。
+输出要求：直接进行文件操作，根据以下 RELY、GUARANTEE 和 SPECIFICATION 完成任务，给出实际修改内容及编译结果。
+[RELY]
+kern/trap/trap.h 中的 struct pushregs 和 struct trapframe。
+kern/trap/trapentry.S 中已有的寄存器保存、恢复及栈帧布局。
+kern/trap/trap.c 中的 trap() 函数。
+libs/riscv.h 中的 SSTATUS_SPP、SSTATUS_SPIE 等相关宏定义。
+kern/process/proc.c 中已有的进程内核栈和上下文管理机制。
+RISC-V 的 sscratch、sstatus、sepc、scause、stval 及 sret 指令。
+修改前核对工程中的实际定义，确保结构体字段、栈帧大小、寄存器偏移及函数接口一致。
+[GUARANTEE]
+必须检查并完善以下汇编宏及入口：
+SAVE_ALL
+RESTORE_ALL
+__alltraps
+__trapret
+允许根据需要修改模块内部的汇编指令和局部标签，不改变现有公开接口。
+[SPECIFICATION]
+SAVE_ALL
+Pre-Condition：
+处理器因中断或异常进入 Trap，硬件已经设置相关 CSR，异常可能来自用户态或内核态。
+Post-Condition：
+在正确的内核栈上建立完整的 trapframe，保存通用寄存器、原栈指针及异常相关 CSR，保证栈帧布局与 struct trapframe 一致。
+Case 1：
+异常来自用户态，切换至当前进程的内核栈，保存原用户栈指针及其他寄存器。
+Case 2：
+异常来自内核态，继续使用当前内核栈保存上下文，不进行错误的栈切换。
+Requirements：
+栈切换过程中不得丢失原有寄存器值，正确维护 sscratch，保证内核态再次进入 Trap 时能够正常处理。
+RESTORE_ALL
+Pre-Condition：
+当前内核栈中存在有效的 trapframe，其中保存了目标执行状态及返回地址。
+Post-Condition：
+正确恢复通用寄存器、栈指针及异常返回所需的 CSR，使处理器能够通过 sret 恢复执行。
+Case 1：
+返回用户态，恢复用户栈，并设置下次进入内核所需的 sscratch。
+Case 2：
+返回内核态，恢复原内核栈及寄存器状态，使 sscratch 符合内核态异常处理约定。
+Requirements：
+恢复过程中不得提前破坏栈帧地址，不遗漏寄存器，不错误恢复仅用于记录异常原因的 CSR，保留异常处理函数对 trapframe 所作的有效修改。
+__alltraps
+Pre-Condition：
+处理器已经跳转至 Trap 入口。
+Post-Condition：
+完成栈切换和上下文保存，将 trapframe 地址作为参数传递给 trap()，异常处理结束后进入统一的上下文恢复流程。
+Requirements：
+参数传递和栈对齐符合 RISC-V 调用约定，保证 trap() 使用正确的内核栈。
+__trapret
+Pre-Condition：
+当前内核栈中存在有效的异常返回上下文。
+Post-Condition：
+恢复上下文，通过 sret 跳转至目标地址并进入对应特权级。
+Case 1：
+普通 Trap 返回，恢复异常处理后的程序执行上下文。
+Case 2：
+用户进程首次执行，根据进程管理模块预先构造的 trapframe 恢复用户上下文并进入用户态。
+Requirements：
+特权级切换和 PC 跳转通过 sret 完成，保证用户态和内核态的返回路径均符合 RISC-V 特权级规范。
+完成后检查汇编代码及栈帧布局，重新编译相关目标文件。若整体编译失败是由于其他成员的功能尚未实现，记录具体原因即可，不修改其他成员的代码。
+本次只完成 Trap 上下文保存、恢复及特权级切换，不提前实现系统调用或 COW，不执行额外专项测试及 make grade，暂不 commit 或 push。
+2
+[PROMPT]
+任务：修改 kern/syscall/syscall.c 和 kern/trap/trap.c，完整实现 Lab5 基础功能模块一，使用户程序能够通过系统调用进入内核，执行相应的内核服务，并在系统调用结束后恢复执行。
+具体要求如下：
+检查用户态系统调用封装、系统调用号定义及参数传递方式，明确用户态与内核态之间的系统调用接口。
+完善 exception_handler 中与系统调用有关的异常处理逻辑，正确识别用户态 ecall，并处理异常返回地址，避免返回后重复执行同一条系统调用指令。
+按照实验手册和官方源码，检查内核态 ebreak 与 kernel_execve 的调用关系，完成所需的异常分发逻辑，保证后续第一个用户程序能够通过已有 Trap 机制进入用户态。
+实现 syscall()，从当前进程的 trapframe 中获取系统调用号和参数，根据系统调用号查找对应的处理函数，将执行结果写回 trapframe 中约定的返回值寄存器。
+完成 sys_exit、sys_fork、sys_wait、sys_exec、sys_yield、sys_kill、sys_getpid、sys_putc、sys_pgdir 九个系统调用封装函数，实现用户程序与内核进程管理、调度及输出功能之间的接口。
+正确处理无效系统调用号，避免分发表越界或调用空函数指针。
+操作要求：必须在项目中修改实际文件。严格按照 Lab5 实验手册、官方源码及课堂说明完成模块一，保留已有正确代码、官方注释及实验标记。不修改其他成员负责的进程管理和内存管理实现，不修改评分脚本及官方测试程序。
+输出要求：直接进行文件操作，按照以下 RELY、GUARANTEE 和 SPECIFICATION 完成任务，给出实际修改内容及编译验证结果。
+[RELY]
+kern/trap/trap.h 中的 struct pushregs 和 struct trapframe。
+kern/trap/trap.c 中的 exception_handler、trap_dispatch 和 trap。
+kern/trap/trapentry.S 中已经完成的上下文保存、恢复及异常返回机制。
+kern/syscall/syscall.c 中已有的系统调用分发表及相关定义。
+user/libs/syscall.c 中用户态系统调用的内联汇编、系统调用号、参数寄存器和返回值约定。
+libs/unistd.h 中的系统调用号定义。
+kern/process/proc.h 中的 struct proc_struct、current 及进程管理函数声明。
+kern/process/proc.c 中的 do_exit、do_fork、do_wait、do_execve、do_yield、do_kill 和 kernel_execve 相关接口。
+工程已有的字符输出、页表输出函数及 RISC-V 异常原因定义。
+修改前读取以上相关源码，核对实际宏定义、函数签名、参数类型和寄存器约定，不使用其他版本 uCore 的接口替换当前工程。
+[GUARANTEE]
+必须实现或修改以下主要接口：
+void syscall(void);
+static int sys_exit(uint64_t arg[]);
+static int sys_fork(uint64_t arg[]);
+static int sys_wait(uint64_t arg[]);
+static int sys_exec(uint64_t arg[]);
+static int sys_yield(uint64_t arg[]);
+static int sys_kill(uint64_t arg[]);
+static int sys_getpid(uint64_t arg[]);
+static int sys_putc(uint64_t arg[]);
+static int sys_pgdir(uint64_t arg[]);
+void exception_handler(struct trapframe *tf);
+上述签名需要与官方源码及现有声明核对，若存在差异，以当前工程实际定义为准。
+完善现有系统调用分发表。允许根据需要添加模块内部使用的静态辅助函数，不改变已有公开接口。
+[SPECIFICATION]
+exception_handler
+Pre-Condition：
+处理器因同步异常进入内核，Trap 入口已经完成上下文保存，传入的 trapframe 有效。
+Post-Condition：
+根据异常原因执行相应的处理逻辑，正确处理 Lab5 所需的系统调用异常，保留已有的其他异常处理功能。
+Case 1：
+用户态执行 ecall，正确更新异常返回地址，进入系统调用处理流程。系统调用正常结束后，从原系统调用指令的下一条指令继续执行。
+Case 2：
+内核态通过 ebreak 触发 kernel_execve 相关流程，按照官方源码约定识别并处理该调用，保证能够复用系统调用及异常返回机制。
+Case 3：
+其他中断和异常继续按照原有机制处理，不将普通非法指令、断点或访存异常错误识别为系统调用。
+Requirements：
+根据实际指令及官方调用约定处理异常返回地址，避免重复执行异常指令或跳过正常指令。保留 Lab3 已完成的异常处理逻辑，不提前实现 COW。
+syscall
+Pre-Condition：
+当前进程及其 trapframe 有效，系统调用号和参数已经由调用方按照约定存入寄存器。
+Post-Condition：
+正确获取系统调用号及参数，调用相应的系统调用处理函数，并将返回值写回约定的寄存器。
+Case 1：
+系统调用号有效，且分发表中存在对应处理函数，正确传递参数并保存执行结果。
+Case 2：
+系统调用号无效或未注册，按照官方源码规定进行错误处理，不访问越界位置或空函数指针。
+Requirements：
+系统调用号、参数及返回值的寄存器约定必须与用户态封装一致。正确处理 RV64 参数宽度，不能截断地址或指针。不得破坏其他需要保留的寄存器及异常上下文。
+sys_exit
+Pre-Condition：
+当前进程发起退出请求，参数中包含退出状态码。
+Post-Condition：
+正确提取退出状态码并调用内核进程退出接口。进程退出后的状态转换、资源释放和调度由底层进程管理函数负责。
+sys_fork
+Pre-Condition：
+当前进程及其 trapframe 有效，进程发起 Fork 请求。
+Post-Condition：
+调用内核进程复制接口，按照官方 Fork 语义传递当前进程上下文和相关参数，将执行结果返回给系统调用分发函数。
+Requirements：
+正确使用当前进程的 trapframe 和用户栈信息。子进程创建、地址空间复制和父子进程返回值处理由底层进程管理函数负责。
+sys_wait
+Pre-Condition：
+当前进程发起等待子进程的请求，参数中包含目标进程标识和退出状态保存地址。
+Post-Condition：
+正确提取并传递参数，调用内核等待接口，返回执行结果。
+Requirements：
+保留用户地址的完整宽度，不在系统调用封装层擅自访问未经检查的用户地址。
+sys_exec
+Pre-Condition：
+当前进程发起程序执行请求，相关参数已经按照工程约定传入。
+Post-Condition：
+正确提取程序名称、长度、二进制程序地址及大小等实际接口所需参数，调用内核程序装载接口，并返回执行结果。
+Requirements：
+参数类型和顺序必须与 do_execve 的实际声明以及 kernel_execve 的调用约定一致。ELF 加载、地址空间替换和用户态上下文构造由底层函数负责。
+sys_yield
+Pre-Condition：
+当前进程主动请求让出 CPU。
+Post-Condition：
+调用内核对应接口，使当前进程能够按照已有调度机制让出 CPU，并返回执行结果。
+sys_kill
+Pre-Condition：
+当前进程发起终止指定进程的请求，参数中包含目标进程 PID。
+Post-Condition：
+正确提取目标 PID，调用内核进程终止接口，并返回执行结果。
+sys_getpid
+Pre-Condition：
+当前进程有效。
+Post-Condition：
+返回当前进程的 PID，不修改进程状态及其他资源。
+sys_putc
+Pre-Condition：
+调用方传入需要输出的字符。
+Post-Condition：
+通过工程已有的字符输出接口完成输出，并按照系统调用约定返回执行结果。
+sys_pgdir
+Pre-Condition：
+当前进程发起页表信息输出请求，相关内存管理机制已经初始化。
+Post-Condition：
+调用工程已有的页表输出接口，按照官方要求完成页表信息输出，并返回执行结果，不修改现有页表映射。
+完成后检查九个系统调用函数是否全部实现，检查分发表及异常入口是否正确，重新编译 syscall.o 和 trap.o，并执行 make 检查整体编译结果。
+若其他成员尚未完成的函数导致编译或链接失败，记录具体文件、函数及错误原因，不越权修改，不添加临时替代实现。
+本次只完成基础功能模块一，不提前实现 COW、用户程序加载及底层进程管理功能，不执行额外专项测试及 make grade，暂不 commit 或 push。
+3
+[PROMPT]
+任务：修改 kern/trap/trap.c，完成 Lab5 COW Challenge 中写入页面异常的识别、分发及处理接口接入，使用户进程写入 COW 共享页面后能够通过异常处理机制恢复正常执行。
+具体要求如下：
+阅读实验手册中的 COW Challenge 要求，检查现有异常处理机制及成员 C 负责的 COW 内存管理接口，明确 Trap 层和内存管理层的职责。
+完善 exception_handler 中的 Store Page Fault 处理逻辑，识别用户进程写入受保护页面产生的异常，获取异常虚拟地址及当前进程的地址空间。
+根据与成员 C 约定的接口，将写入页面异常交给 COW 内存管理模块处理，区分合法的 COW 写入异常与普通非法访存异常。
+COW 异常处理成功后保留原异常指令地址，使处理器返回用户态后重新执行原写入指令。
+对于不属于 COW 的页面异常或处理失败的情况，按照实验手册及工程已有的异常处理机制进行处理，不能错误恢复执行或无限重复触发异常。
+保留此前完成的系统调用、断点、非法指令及其他中断异常处理逻辑。
+操作要求：必须在项目中修改实际文件。仅负责 Trap 层的异常识别和接口调用，不实现物理页复制、页表权限修改、引用计数维护及 TLB 刷新。保留官方源码结构、注释及实验标记，不修改其他成员负责的代码。
+输出要求：直接进行文件操作，根据以下 RELY、GUARANTEE 和 SPECIFICATION 完成任务，说明实际修改内容、COW 接口约定及编译结果。
+[RELY]
+kern/trap/trap.h 中的 struct trapframe。
+kern/trap/trap.c 中已有的 exception_handler、trap_dispatch 和 trap。
+kern/trap/trapentry.S 中已经完成的上下文保存、恢复及异常返回机制。
+libs/riscv.h 中与 Store Page Fault 及特权级判断相关的宏定义。
+kern/process/proc.h 中的 current、struct proc_struct 及进程地址空间相关字段。
+kern/mm/vmm.h、kern/mm/pmm.h 中已有的虚拟内存管理接口及成员 C 提供的 COW 异常处理接口。
+修改前核对工程中的实际定义。COW 接口名称、参数、返回值及错误处理方式必须与成员 C 的实现保持一致，不自行假定接口已经存在。
+[GUARANTEE]
+必须修改以下接口：
+exception_handler(struct trapframe *tf)
+完善其中与 Store Page Fault 有关的异常处理分支。
+允许根据需要添加 Trap 模块内部使用的 static 辅助函数，不改变已有公开接口。
+COW 内存管理接口由成员 C 提供。如果该接口尚未确定，先给出需要协商的接口及返回值约定，不自行实现底层功能或添加临时替代函数。
+[SPECIFICATION]
+exception_handler
+Pre-Condition：
+处理器因同步异常进入内核，Trap 入口已经保存完整上下文，传入的 trapframe 有效。
+Post-Condition：
+正确识别写入页面异常，将符合 COW 处理条件的异常交给内存管理模块处理，并根据处理结果决定是否恢复程序执行。其他异常继续按照已有机制处理。
+Case 1：
+用户进程写入 COW 共享页面，产生 Store Page Fault。获取异常虚拟地址及当前进程的地址空间，调用 COW 异常处理接口。处理成功后保留原 epc，通过已有异常返回机制恢复执行，使原写入指令重新执行。
+Case 2：
+用户进程写入普通只读页面、未映射页面或其他不符合 COW 条件的地址。不得将其作为合法 COW 写入处理，按照工程已有的非法访存处理机制执行。
+Case 3：
+当前进程不存在有效地址空间，或者 COW 处理过程中出现内存不足等错误。按照对应错误及进程状态进行异常处理，不得继续使用无效映射，也不得直接返回导致同一异常无限触发。
+Case 4：
+异常不属于需要处理的 COW 写入异常。保留现有异常处理逻辑，不影响系统调用、普通断点、非法指令及其他访存异常。
+Requirements：
+不能仅根据 Store Page Fault 就认定页面属于 COW，必须由相应内存管理机制确认页面状态。
+COW 处理成功后不得增加 epc，保证原写入指令能够重新执行。
+异常处理接口必须正确区分处理成功、非 COW 异常和处理失败等情况。
+不得擅自修改页表权限、物理页引用计数及内存管理策略。
+不得破坏此前完成的 Trap 上下文恢复机制和系统调用处理逻辑。
+完成后检查修改范围及异常分支，重新编译 trap.o。
+如果成员 C 的接口尚未提供，说明当前能够完成的部分、接口依赖及后续接入位置，不添加临时函数绕过编译，不越权修改内存管理代码。
+本次只完成 COW 异常处理接入，不执行额外专项测试及 make grade，暂不 commit 或 push。
+4
+[PROMPT]
+任务：修改 kern/trap/trap.c，接入成员 C 已完成的 COW 异常处理接口，补全 Store Page Fault 的处理流程，完成 Lab5 Challenge 中 Trap 层负责的功能。
+此前已经完成写入页面异常的识别、异常地址获取和失败处理逻辑，现在需要调用正式的 COW 内存管理接口，根据返回结果分别处理合法 COW 写入、非法访存及内存分配失败。
+对于合法的 COW 写入异常，完成页面修复后保留原 epc，通过已有 Trap 返回机制重新执行原写入指令。对于无法处理的异常，进入相应的错误处理路径，避免错误恢复执行或重复触发异常。
+操作要求：必须在项目中修改实际文件。保留此前已经完成的异常处理和系统调用逻辑，只补全 COW 接口调用及相关处理流程，不修改成员 C 已完成的内存管理代码。
+输出要求：根据以下 RELY、GUARANTEE 和 SPECIFICATION 完成任务，说明实际修改内容及编译结果。
+[RELY]
+kern/trap/trap.h 中的 struct trapframe，其中 epc 保存异常指令地址，tval 保存异常相关地址信息。
+kern/process/proc.h 中的 current、struct proc_struct 及 mm 字段。
+kern/trap/trap.c 中已经完成的 Store Page Fault 异常识别和失败处理逻辑。
+kern/mm/vmm.h 中声明、kern/mm/vmm.c 中实现的 COW 异常处理接口：
+int cow_handle_store_fault(struct mm_struct *mm, uintptr_t fault_addr);
+返回 0 表示合法 COW 写异常且页面修复成功。
+返回 -E_INVAL 表示不属于可处理的 COW 写异常，包括非法地址和真正的只读页面。
+返回 -E_NO_MEM 表示复制所需的物理页分配失败。
+页面状态判断、页面复制、权限修改、引用计数维护及 TLB 刷新均由该接口负责。
+工程已有的异常终止机制及错误码定义。
+[GUARANTEE]
+必须修改以下接口：
+void exception_handler(struct trapframe *tf);
+完成 Store Page Fault 分支中 cow_handle_store_fault 的调用、返回值判断及后续异常处理。
+函数签名以当前工程实际声明为准，不改变已有公开接口，不重复实现底层 COW 功能。
+[SPECIFICATION]
+exception_handler
+Pre-Condition：
+处理器因异常进入内核，Trap 入口已经保存完整上下文，传入的 trapframe 有效。COW 内存管理接口已经实现。
+Post-Condition：
+正确处理符合条件的 COW 写入异常，根据内存管理接口的返回结果恢复程序执行或进入错误处理流程，保证其他异常处理功能不受影响。
+Case 1：
+当前异常符合 COW 处理条件，当前进程具有有效的地址空间。将 current->mm 和 tf->tval 传入 cow_handle_store_fault。接口返回 0 后，结束当前异常处理，保持 epc 不变，使原写入指令能够重新执行。
+Case 2：
+接口返回 -E_INVAL，说明当前异常不属于可处理的 COW 写异常，按照已有非法访存异常处理机制执行，不允许将普通只读页面错误转换为可写页面。
+Case 3：
+接口返回 -E_NO_MEM 或其他错误，按照已有失败处理机制终止当前非法或无法继续执行的操作，避免返回后重复触发同一异常。
+Case 4：
+当前进程或地址空间无效，或者异常不符合 COW 处理条件，保留已有的异常处理逻辑，不调用不适用的 COW 接口。检查内核访问用户内存产生写异常的情况，确保处理方式与当前工程的内存访问机制一致。
+Requirements：
+COW 处理成功后不得修改 epc。
+不得仅根据 Store Page Fault 判断页面属于 COW，页面状态必须由内存管理接口确认。
+不得重复修改页表权限、物理页引用计数或执行 TLB 刷新。
+不得破坏已经完成的系统调用、Trap 上下文恢复及其他异常处理逻辑。
+完成后检查接口调用、返回值处理及异常返回路径，重新编译 trap.o，并执行 make 检查整体编译结果。
+若整体编译仍因成员 B 尚未完成的功能而失败，记录具体原因即可，不修改其他成员负责的代码。
+本次不重复执行成员 C 已完成的专项测试，不执行 make grade，暂不 commit 或 push。
+5
+[PROMPT]
+任务：修改 kern/trap/trap.c，修复三人代码整合后发现的时钟中断调度和用户态读页面异常处理问题，保证相关官方测试能够正常运行并结束。
+具体要求如下：
+完善 interrupt_handler 中 IRQ_S_TIMER 分支的处理逻辑，每经过 TICK_NUM 次时钟中断，将当前进程的 need_resched 设置为 1，通过 trap() 中已有的调度机制完成进程切换，解决 spin 和 waitkill 测试中的调度问题。
+完善 exception_handler 中 Load Page Fault 的处理逻辑。用户进程发生无法处理的读页面异常后，应调用已有的进程退出接口终止当前进程，避免返回用户态后反复执行同一条非法访存指令。
+检查 faultread 和 faultreadkernel 测试所触发的异常，保证非法地址读取和用户态访问内核地址的行为能够得到正确处理。
+区分用户态和内核态产生的读页面异常。用户态非法访存应终止对应进程，不影响其他进程运行；内核态异常按照工程已有的异常处理机制处理。
+保留此前完成的 Store Page Fault、COW、系统调用、断点及其他中断异常处理逻辑。
+操作要求：必须在项目中修改实际文件，仅修改 Trap 模块中与本次问题有关的代码。保留官方注释及实验标记，不修改其他成员负责的代码，不修改官方测试程序和评分脚本。
+输出要求：按照以下 RELY、GUARANTEE 和 SPECIFICATION 完成任务，说明两个问题产生的原因、实际修改内容及验证结果。
+[RELY]
+kern/trap/trap.c 中已有的 interrupt_handler、exception_handler、trap 和 TICK_NUM。
+kern/trap/trap.h 中的 struct trapframe。
+kern/driver/clock.h 中的相关声明：
+extern volatile size_t ticks;
+void clock_set_next_event(void);
+kern/process/proc.h 中的 current、struct proc_struct 及 need_resched 字段。
+kern/process/proc.c 中已经实现的进程退出接口：
+int do_exit(int error_code);
+kern/schedule/sched.h 中的调度接口：
+void schedule(void);
+trap() 中已有的 need_resched 判断及调度逻辑。
+libs/riscv.h 中的 IRQ_S_TIMER、读页面异常原因及 SSTATUS_SPP 等相关宏定义。
+工程已有的异常来源判断函数、非法访存错误码及 panic 处理机制。
+官方测试程序 spin、waitkill、faultread 和 faultreadkernel。
+修改前核对工程中的实际函数声明、宏定义及异常处理约定。
+[GUARANTEE]
+必须修改以下函数：
+interrupt_handler(struct trapframe *tf);
+exception_handler(struct trapframe *tf);
+完善 interrupt_handler 中的 IRQ_S_TIMER 分支。
+完善 exception_handler 中的 Load Page Fault 分支。
+检查 trap() 中已有的进程调度逻辑是否能够正确响应 need_resched，不重复实现调度机制。
+函数签名以当前工程实际声明为准，不改变已有公开接口。
+[SPECIFICATION]
+interrupt_handler
+Pre-Condition：
+处理器收到时钟中断，Trap 入口已经保存完整上下文，传入的 trapframe 有效。
+Post-Condition：
+完成下一次时钟事件设置和时钟计数，每经过 TICK_NUM 次时钟中断，根据当前进程状态设置重新调度标记。
+Case 1：
+ticks 达到 TICK_NUM 的整数倍，且 current 有效，将 current->need_resched 设置为 1，使已有的 Trap 返回流程能够进行进程调度。
+Case 2：
+ticks 尚未达到重新调度条件，正常完成时钟中断处理，不额外设置重新调度标记。
+Case 3：
+当前进程尚未初始化，只完成时钟事件设置及计数，不访问无效进程指针。
+Case 4：
+其他类型的中断继续按照已有机制处理。
+Requirements：
+保留现有时钟事件设置、ticks 计数和必要的输出逻辑。
+每经过 TICK_NUM 次时钟中断设置重新调度标记，不自行修改时钟频率和 TICK_NUM。
+时钟中断不得修改 epc。
+使用已有的 need_resched 和 schedule() 机制，不在时钟中断分支中直接调用调度器。
+保证持续占用 CPU 的用户进程能够正常让出 CPU。
+exception_handler
+Pre-Condition：
+处理器因同步异常进入内核，Trap 入口已经保存完整上下文，传入的 trapframe 有效。
+Post-Condition：
+正确处理无法恢复的读页面异常，终止发生非法访存的用户进程，避免反复触发同一异常，保留其他异常处理功能。
+Case 1：
+用户进程读取未映射地址，产生无法处理的 Load Page Fault。调用已有的 do_exit 接口终止当前进程，并使用工程已有的非法访存错误码。
+Case 2：
+用户进程读取无权访问的内核地址，产生 Load Page Fault。按照非法访存处理逻辑终止当前用户进程，不允许继续访问内核地址。
+Case 3：
+内核态产生 Load Page Fault，按照工程已有的内核异常处理机制处理，不将所有内核异常直接作为普通用户进程退出处理。
+Case 4：
+当前进程不存在或状态无效，按照工程已有的异常处理机制执行，避免访问无效进程指针。
+Case 5：
+其他异常继续按照此前的处理逻辑执行，不影响系统调用和 COW 写页面异常处理。
+Requirements：
+正确区分异常来源和异常类型。
+不得通过增加 epc 跳过非法访存指令来代替异常处理。
+不得在未修复页面异常的情况下直接返回，避免重复触发同一异常。
+用户进程非法访存不得导致整个内核 panic。
+不得破坏已完成的 COW 异常处理及正常系统调用功能。
+完成后重新编译 trap.o，并执行 make 检查整体编译结果。
+若 print_pgdir 尚未实现，记录链接失败原因，不添加空函数或临时占位实现。
+整体编译通过后，使用官方测试程序验证 spin、waitkill、faultread 和 faultreadkernel。
+检查 spin 和 waitkill 是否能够正常完成进程调度、终止及回收。
+检查 faultread 和 faultreadkernel 是否能够及时终止非法访存进程，不再反复触发同一异常。不能仅依据评分脚本未检测到 panic 就认定测试成功。
+记录实际运行输出、退出状态及测试结果。
+不增加无关测试，不修改评分脚本，暂不 commit 或 push。
+```
+
+## 成员 B 2413507-蒋林瀞
 
 ### 总体任务与约束
 
@@ -610,9 +976,9 @@ report/
 
 请直接执行上述任务，不要仅给出开发计划或示例代码。遇到一般技术问题时自主诊断并修复；对于真正依赖其他组员的事项，完成所有不受阻塞的工作并明确说明待集成验证项。
 
-## 成员 C
+## 成员 C 2411788-马传志
 
-以下为按四段式整理的实现与测试需求，不是逐字历史对话；只包含丙负责的部分。
+以下为仓库 lab5 分支 report/prompt.md 中的四段式整理记录，不是逐字历史对话。
 
 ### 用户进程复制
 
