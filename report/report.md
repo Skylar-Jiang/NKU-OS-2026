@@ -796,11 +796,24 @@ pc = 0x800020   sp = 0x80000000
 
 ### 5.1 内核运行结果
 
-<!-- 待小组补充 make qemu 截图 -->
+执行 `make qemu`，默认运行用户程序 exit：
+
+![make qemu 运行结果](images/make-qemu.png)
+
+图1 make qemu 运行结果
+
+- `kernel_execve: pid = 2, name = "exit".` 表示 `user_main` 开始装载 exit。
+- 父进程 fork 出 PID 3 的子进程，`waitpid 3 ok.` 和 `exit pass.` 表示等待和退出码传递正确。
+- `all user-mode processes have quit.` 表示 `init_main` 回收了全部子进程；空闲页数在创建 `user_main` 前后均为 31570。
+- 最后的 `initproc exit.` 是 `init_main` 返回后 `do_exit` 的 panic，与官方框架一致。
 
 ### 5.2 评分结果
 
-<!-- 待小组补充 make grade 截图 -->
+执行 `make grade`，13 个测试程序全部通过，总分 130/130：
+
+![make grade 评分结果](images/make-grade.png)
+
+图2 make grade 评分结果
 
 ### 5.3 成员 B 专项测试
 
@@ -837,12 +850,6 @@ pc = 0x800020   sp = 0x80000000
 表12 用户态专项测试
 
 测试结束后输出 `init_main: free pages 31553 before user_main, 31553 after reaping.`，回收全部进程后空闲页数与创建 `user_main` 前相同。
-
-<!-- 截图：images/b-01-member-b-kernel-tests.png -->
-
-<!-- 截图：images/b-02-member-b-user-tests.png -->
-
-<!-- 截图：images/b-03-gdb-first-sret.png -->
 
 ---
 

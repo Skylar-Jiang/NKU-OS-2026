@@ -35,7 +35,7 @@ EOF
 
 cd "$tmp"
 make build-b_cowlife > "$tmp.build" 2>&1 || { tail -20 "$tmp.build"; exit 1; }
-timeout ${LAB5_B_TIMEOUT:-60} make qemu > "$log" 2>&1 || true
+timeout ${LAB5_B_TIMEOUT:-60} make qemu < /dev/null > "$log" 2>&1 || true
 grep -a -E "^\[B\]|b_cowlife|all user-mode|init check memory|init_main: free|panic|assert" "$log" || true
 fails=$(grep -a -c -E "^\[B\] FAIL|b_cowlife FAIL" "$log" || true)
 if grep -a -q "b_cowlife pass." "$log" && grep -a -q "init check memory pass." "$log" && [ "$fails" = 0 ]; then
