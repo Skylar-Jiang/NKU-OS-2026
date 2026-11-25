@@ -203,6 +203,22 @@ out:
 }
 
 //lab5  请补充你在lab5中的代码
+int dup_mmap(struct mm_struct *to, struct mm_struct *from)
+{
+    assert(to != NULL && from != NULL && to != from);
+    list_entry_t *le = &from->mmap_list;
+    while ((le = list_next(le)) != &from->mmap_list) {
+        struct vma_struct *vma = le2vma(le, list_link);
+        struct vma_struct *copy = vma_create(vma->vm_start, vma->vm_end, vma->vm_flags);
+        if (copy == NULL) return -E_NO_MEM;
+        insert_vma_struct(to, copy);
+        int ret = copy_range(to->pgdir, from->pgdir, vma->vm_start,
+                             vma->vm_end, 0);
+        if (ret != 0) return ret;
+    }
+    return 0;
+}
+
 
 void exit_mmap(struct mm_struct *mm)
 {
