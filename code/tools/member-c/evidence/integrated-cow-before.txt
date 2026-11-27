@@ -1,0 +1,13 @@
+=== LAB5 INTEGRATED USER COW: 1 / BEFORE WRITE ===
+
+Real kernel + user/cowproof.c; no allocator or Trap stubs.
+Parent PID=2; Child PID=3
+Fault VA=0x801000; scause=15
+SPP=0 (0 confirms user-mode fault)
+Parent PA=0x804c0000; Child PA=0x804c0000
+Shared physical page=1; refs=2
+Parent: W=0 COW=1
+Child : W=0 COW=1
+Parent byte=0x44; Child byte=0x44
+
+GDB stopped before COW fault repair.

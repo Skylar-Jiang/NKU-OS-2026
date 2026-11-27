@@ -641,23 +641,25 @@ store_page_fault_abort(tf, ret);
 
 内核可以通过物理页的内核别名写入用户数据，因此不能只依赖用户页表的写保护。在 copy_to_user 中先逐页检查用户映射和写权限，遇到 COW 页调用 do_cow_fault。所有目标页均可写后，再按页内偏移分段复制数据。若跨页写入所需的分配失败，返回错误，保持用户缓冲区原数据。
 
-#### 4.6.5 三阶段 GDB 验证记录（2026-11-25）
+#### 4.6.5 整合版用户进程 COW 验证（2026-11-27）
 
-运行 `code/tools/member-c/tests/cow-proof.sh`，在真实写指令前、缺页修复后和写指令重试后读取页表、引用计数与物理页内容。原始记录是 `code/tools/member-c/evidence/cow-proof-before.txt`、`cow-proof-after.txt`、`cow-proof-isolation.txt`，完整会话另见 `cow-proof-session.log`。
+使用小组最终内核和新增的 `user/cowproof.c`，通过实际用户态 fork、写缺页、Trap 和 sret 验证 COW；没有替换物理页分配器、调度器或 Trap 入口。父进程 PID=2，子进程 PID=3。调试命令保存在 `code/tools/member-c/tests/integrated-cow.gdb`，运行脚本为同目录的 `integrated-cow.sh`，完整记录在 `code/tools/member-c/evidence/integrated-cow-gdb.log` 与 `integrated-cow-qemu.log`。
 
-测试范围为 C 内存模块隔离测试：生产 pmm.c/vmm.c，使用测试分配器、调度器和 S 态 Trap 入口；S 态向 U/COW 页面执行真实 sb 写指令。本记录不等于整合版 U 态父子进程全流程验证。原生截图服务本次未能启动，以下图片是原始 GDB 输出的排版导出，图内已明确标注“非桌面截图”。如果提交要求原生截图，应另行截取实际运行窗口。
+以下三张是原始 GDB 阶段日志在 Windows 记事本中的原生窗口截图，未重绘日志内容；它们是日志查看窗口截图，并非现场 GDB 终端窗口截图。
 
-![COW 写入前：共享物理页（GDB 日志导出图）](images/cow-proof-before.png)
+![写入前：用户态写缺页与共享页面](images/cow-native-before.png)
 
-写前双方 PA=0x81002000，W=0、COW=1，引用数为 2，内容均为 0x44。
+在 `cow_handle_store_fault` 入口暂停，`scause=15`、`SPP=0`，确认异常来自用户态写入。父子进程的 VA=0x801000 均映射到 PA=0x804c0000，W=0、COW=1，物理页引用数为 2，数据均为 0x44。
 
-![COW 修复后：复制物理页（GDB 日志导出图）](images/cow-proof-after.png)
+![修复后：子进程获得独立页面](images/cow-native-after.png)
 
-真实 store page fault 的 cause=15；子页 PA 变为 0x81007000，W=1、COW=0，各页引用为 1；EPC 不变。这一断点在原写指令重试前，因此双方数据暂时仍是 0x44。
+在正式 Trap 返回入口 `__trapret` 暂停，子页 PA 变为 0x804cf000，W=1、COW=0；父页保留原映射，两个物理页引用数均为 1。EPC 始终为 0x800582，原指令为 `sb a3,0(a4)`。此时尚未 sret 重试，因此两页仍为 0x44。
 
-![COW 重试后：父子数据隔离（GDB 日志导出图）](images/cow-proof-isolation.png)
+![重试后：父子数据隔离](images/cow-native-isolation.png)
 
-重试后父页仍为 0x44，子页为 0x55；实际写缺页次数为 1，数据隔离条件成立。
+在原用户写指令之后的 PC=0x800586 暂停。通过 QEMU monitor 的 `xp /1bx` 直接读取物理内存，父页为 0x44、子页为 0x55；子进程自身 VA=0x801000 的读数也为 0x55，确认实际完成写入且父数据保持不变。此处直接读物理页，避免用户态下 GDB 无法访问内核高位虚拟别名的问题。
+
+继续运行后，QEMU 输出 `cowproof: child data=0x55`、`cowproof: parent data=0x44 (unchanged)`、`cowproof pass.` 和 `init check memory pass.`。用户进程回收前后空闲页均为 31558，资源恢复。加入该用户测试后重新执行完整 `make grade`，结果为 130/130，见 `integrated-cow-regression-grade.log`。先前的隔离测试记录仍保存在 evidence 中，作为补充证据。
 
 ## 五、测试与调试
 

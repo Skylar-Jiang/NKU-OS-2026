@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-27",
+  "source_kernel": "lab5 44dbbc3 plus user/cowproof.c only",
+  "capture": "native Windows Notepad window displaying raw GDB stage logs; not a debugger terminal screenshot",
+  "image_processing": "none",
+  "actual_execution": "integrated user-mode fork/COW/Trap/sret; no stubs",
+  "images": [
+    {
+      "stage": "before",
+      "file": "report/images/cow-native-before.png",
+      "sha256": "1c8316afb1bf3940339fc94f27afc35dc71906367637f35255c02d9b8b52820e",
+      "source_text": "code/tools/member-c/evidence/integrated-cow-before.txt",
+      "source_sha256": "a7fc1c57bde698302aa22dbf2a1c9cfcae67e0aeac1cb6e538cc883b9c939c08"
+    },
+    {
+      "stage": "after",
+      "file": "report/images/cow-native-after.png",
+      "sha256": "ae8a9b0847e1b966d1204d81321e04db4fc1432fc8e5083369b43f8d1e9d7fe9",
+      "source_text": "code/tools/member-c/evidence/integrated-cow-after.txt",
+      "source_sha256": "f5ea7372d4f13404120eaf315edd0f20c70dd90c63d72b820998a940cee79d1f"
+    },
+    {
+      "stage": "isolation",
+      "file": "report/images/cow-native-isolation.png",
+      "sha256": "f15fc4637cc16700e3b654a9e0c883a7cfbbbed3c2b84f51e2a1ef3c0f2f3509",
+      "source_text": "code/tools/member-c/evidence/integrated-cow-isolation.txt",
+      "source_sha256": "1a8d25c08ba0c1ab1dcf54e449068bef3e459775e47fc2e159bdf675cd4b84fa"
+    }
+  ],
+  "regression": "make grade: 130/130"
+}

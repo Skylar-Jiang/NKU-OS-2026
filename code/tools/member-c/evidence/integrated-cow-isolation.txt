@@ -1,0 +1,14 @@
+=== LAB5 INTEGRATED USER COW: 3 / DATA ISOLATION ===
+
+User store has actually executed after sret.
+Parent PID=2; Child PID=3
+Parent PA=0x804c0000; Child PA=0x804cf000
+Parent physical byte (original 0x44):
+00000000804c0000: 0x44
+Child physical byte (written 0x55):
+00000000804cf000: 0x55
+Current child user VA value=0x55
+Current PC=0x800586 (original store has completed)
+
+Compare physical reads: parent 0x44; child 0x55.
+Actual user-mode fork / COW / Trap / sret path.

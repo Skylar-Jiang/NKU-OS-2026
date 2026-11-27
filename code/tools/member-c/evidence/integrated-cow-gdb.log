@@ -1,0 +1,53 @@
+0x0000000000001000 in ?? ()
+Breakpoint 1 at 0xffffffffc02043aa: file kern/mm/vmm.c, line 257.
+
+Breakpoint 1, cow_handle_store_fault (mm=0xffffffffc04b65a0, fault_addr=8392704) at kern/mm/vmm.c:257
+257	    return do_cow_fault(mm, fault_addr);
+[2J[H=== LAB5 INTEGRATED USER COW: 1 / BEFORE WRITE ===
+
+Real kernel + user/cowproof.c; no allocator or Trap stubs.
+Parent PID=2; Child PID=3
+Fault VA=0x801000; scause=15
+SPP=0 (0 confirms user-mode fault)
+Parent PA=0x804c0000; Child PA=0x804c0000
+Shared physical page=1; refs=2
+Parent: W=0 COW=1
+Child : W=0 COW=1
+Parent byte=0x44; Child byte=0x44
+
+GDB stopped before COW fault repair.
+Temporary breakpoint 2 at 0xffffffffc0200fe0: file kern/trap/trapentry.S, line 152.
+
+Temporary breakpoint 2, __trapret () at kern/trap/trapentry.S:152
+152	    RESTORE_ALL
+[2J[H=== LAB5 INTEGRATED USER COW: 2 / AFTER REPAIR ===
+
+Parent PID=2; Child PID=3
+Parent PA=0x804c0000; Child PA=0x804cf000
+Different physical pages=1
+Parent: W=0 COW=1 refs=1
+Child : W=1 COW=0 refs=1
+EPC before=0x800582; EPC after=0x800582
+EPC unchanged=1 (retry original store)
+   0x800582:	sb	a3,0(a4)
+Parent byte=0x44; Child byte=0x44
+
+GDB stopped before sret; original store has not retried yet.
+Temporary breakpoint 3 at 0x800586
+
+Temporary breakpoint 3, 0x0000000000800586 in ?? ()
+[2J[H=== LAB5 INTEGRATED USER COW: 3 / DATA ISOLATION ===
+
+User store has actually executed after sret.
+Parent PID=2; Child PID=3
+Parent PA=0x804c0000; Child PA=0x804cf000
+Parent physical byte (original 0x44):
+00000000804c0000: 0x44
+Child physical byte (written 0x55):
+00000000804cf000: 0x55
+Current child user VA value=0x55
+Current PC=0x800586 (original store has completed)
+
+Compare physical reads: parent 0x44; child 0x55.
+Actual user-mode fork / COW / Trap / sret path.
+[Inferior 1 (process 1) detached]
