@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-27",
+  "capture": "User manually captured live GDB terminal at each paused stage; original PNG bytes preserved",
+  "kernel": "integrated lab5; user/cowproof.c",
+  "image_processing": "none",
+  "program_result": "cowproof pass.; init check memory pass.; free pages before/after both 31558",
+  "images": [
+    {
+      "stage": "before",
+      "file": "report/images/cow-terminal-before.png",
+      "sha256": "76eb88071139ac5be7510bce336f29575cc53b502f5c2fed892f3beea42653f2"
+    },
+    {
+      "stage": "after",
+      "file": "report/images/cow-terminal-after.png",
+      "sha256": "e86b288319c572cc64d8f84c3643d8a7610292680ec6b57b648b0830d14c50cb"
+    },
+    {
+      "stage": "isolation",
+      "file": "report/images/cow-terminal-isolation.png",
+      "sha256": "3037fdda3936a188c139b5cda714a473bb5b24031aa2405478c2fd9f8d9ba255"
+    }
+  ]
+}

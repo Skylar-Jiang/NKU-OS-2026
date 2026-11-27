@@ -76,4 +76,4 @@ bash tools/member-c/tests/mutation.sh
 
 从 code/ 执行 `bash tools/member-c/tests/integrated-cow.sh`。脚本构建 user/cowproof.c 并在完整内核中运行，默认自动完成三阶段 GDB 观察（端口 12447），检查真实 U 态故障、共享、复制、EPC 不变和程序回收结果。需要逐阶段暂停时设置 `COW_NATIVE_PAUSE=1`，观察 build/native-cow/stageN.ready 后在同目录创建 stageN.next 继续；不要同时运行两个使用该目录和端口的会话。
 
-report/images/cow-native-*.png 是 Windows 记事本查看实测阶段日志时截取的原生窗口图，不是 GDB 终端窗口截图。报告已用它们替换旧排版图，并改为记录整合版测试。生产内存管理和 Trap 源码没有为演示插桩或改动。
+报告目前使用 report/images/cow-terminal-*.png：组员在现场 GDB 的三个暂停位置手动截取的真实终端窗口。旧 cow-native 图是此前的记事本日志截图，已不再用于报告。生产内存管理和 Trap 源码没有为演示插桩或改动。

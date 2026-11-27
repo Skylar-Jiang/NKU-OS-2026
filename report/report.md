@@ -645,17 +645,17 @@ store_page_fault_abort(tf, ret);
 
 使用小组最终内核和新增的 `user/cowproof.c`，通过实际用户态 fork、写缺页、Trap 和 sret 验证 COW；没有替换物理页分配器、调度器或 Trap 入口。父进程 PID=2，子进程 PID=3。调试命令保存在 `code/tools/member-c/tests/integrated-cow.gdb`，运行脚本为同目录的 `integrated-cow.sh`，完整记录在 `code/tools/member-c/evidence/integrated-cow-gdb.log` 与 `integrated-cow-qemu.log`。
 
-以下三张是原始 GDB 阶段日志在 Windows 记事本中的原生窗口截图，未重绘日志内容；它们是日志查看窗口截图，并非现场 GDB 终端窗口截图。
+以下三张由组员在本次现场 GDB 调试暂停时手动截取终端窗口，分别对应写缺页处理前、修复后返回用户态前、用户写指令重试后。图片为原始截图，未重绘或改写窗口内容。
 
-![写入前：用户态写缺页与共享页面](images/cow-native-before.png)
+![写入前：用户态写缺页与共享页面](images/cow-terminal-before.png)
 
 在 `cow_handle_store_fault` 入口暂停，`scause=15`、`SPP=0`，确认异常来自用户态写入。父子进程的 VA=0x801000 均映射到 PA=0x804c0000，W=0、COW=1，物理页引用数为 2，数据均为 0x44。
 
-![修复后：子进程获得独立页面](images/cow-native-after.png)
+![修复后：子进程获得独立页面](images/cow-terminal-after.png)
 
 在正式 Trap 返回入口 `__trapret` 暂停，子页 PA 变为 0x804cf000，W=1、COW=0；父页保留原映射，两个物理页引用数均为 1。EPC 始终为 0x800582，原指令为 `sb a3,0(a4)`。此时尚未 sret 重试，因此两页仍为 0x44。
 
-![重试后：父子数据隔离](images/cow-native-isolation.png)
+![重试后：父子数据隔离](images/cow-terminal-isolation.png)
 
 在原用户写指令之后的 PC=0x800586 暂停。通过 QEMU monitor 的 `xp /1bx` 直接读取物理内存，父页为 0x44、子页为 0x55；子进程自身 VA=0x801000 的读数也为 0x55，确认实际完成写入且父数据保持不变。此处直接读物理页，避免用户态下 GDB 无法访问内核高位虚拟别名的问题。
 
