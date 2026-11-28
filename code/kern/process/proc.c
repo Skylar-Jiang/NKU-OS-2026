@@ -1033,7 +1033,10 @@ void proc_init(void)
         panic("create init_main failed.\n");
     }
 
-    initproc = find_proc(pid);
+    if ((initproc = find_proc(pid)) == NULL)
+    {
+        panic("initproc pid %d not found.\n", pid);
+    }
     set_proc_name(initproc, "init");
 
     assert(idleproc != NULL && idleproc->pid == 0);
