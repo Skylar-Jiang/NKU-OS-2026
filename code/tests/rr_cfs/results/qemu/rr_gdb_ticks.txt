@@ -1,0 +1,6 @@
+0x0000000000001000 in ?? ()
+Breakpoint 1 at 0xffffffffc0205530: file kern/schedule/sched.c, line 39.
+Breakpoint 2 at 0xffffffffc020543e: file kern/schedule/default_sched.c, line 84.
+Breakpoint 3 at 0xffffffffc02049de: file kern/process/proc.c, line 730.
+GDB_TICKS ticks=201 sched_class_proc_tick=201 RR_proc_tick=201 idle_ticks=0
+[Inferior 1 (process 1) killed]

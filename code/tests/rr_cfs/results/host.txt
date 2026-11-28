@@ -1,0 +1,178 @@
+
+== RR: class and init ==
+[PASS] RR name | expected=RR_scheduler actual=RR_scheduler
+[PASS] RR five callbacks | expected=1 actual=1
+[PASS] RR1 zeroed rq: proc_num | expected=0 actual=0
+[PASS] RR1 zeroed rq: empty list | expected=1 actual=1
+[PASS] RR1 zeroed rq: max_time_slice = MAX_TIME_SLICE | expected=5 actual=5
+[PASS] RR1 zeroed rq: heap root NULL | expected=1 actual=1
+[PASS] RR1 pick on empty -> NULL | expected=0 actual=0
+[PASS] RR1 configured max_time_slice 3 kept | expected=3 actual=3
+[PASS] RR1 invalid max_time_slice -4 -> 5 | expected=5 actual=5
+
+== RR: single process ==
+[PASS] RR2 enqueue: proc_num | expected=1 actual=1
+[PASS] RR2 enqueue: proc->rq | expected=1 actual=1
+[PASS] RR2 enqueue: run_link linked | expected=0 actual=0
+[PASS] RR2 pick -> A | expected=65 actual=65
+[PASS] RR2 pick does not dequeue | expected=1 actual=1
+[PASS] RR2 dequeue: proc_num | expected=0 actual=0
+[PASS] RR2 dequeue: run_link self-linked | expected=1 actual=1
+[PASS] RR2 dequeue: rq kept as last queue | expected=1 actual=1
+[PASS] RR2 pick after dequeue -> NULL | expected=0 actual=0
+
+== RR: ordering and counts ==
+[PASS] RR3 FIFO order after A,B,C | expected=ABC actual=ABC
+[PASS] RR3 pick -> head A | expected=65 actual=65
+[PASS] RR4 proc_num == list length (3) | expected=3 actual=3
+[PASS] RR4 remove middle B | expected=AC actual=AC
+[PASS] RR4 proc_num == list length (2) | expected=2 actual=2
+[PASS] RR10 re-enqueued A goes to the tail | expected=CA actual=CA
+[PASS] RR10 B re-enqueued behind | expected=CAB actual=CAB
+[PASS] RR4 proc_num == list length (3 again) | expected=3 actual=3
+
+== RR: time slice on enqueue (max 5) ==
+[PASS] RR5 slice 0 refilled to 5 | expected=5 actual=5
+[PASS] RR6 valid remaining slice 3 kept | expected=3 actual=3
+[PASS] RR6 full slice 5 kept | expected=5 actual=5
+[PASS] RR6 valid remaining slice 1 kept | expected=1 actual=1
+[PASS] RR7 negative slice -2 -> 5 | expected=5 actual=5
+[PASS] RR7 oversized slice 9 -> 5 | expected=5 actual=5
+[PASS] RR7 slice 4 > configured max 2 -> 2 | expected=2 actual=2
+
+== RR: proc_tick ==
+[PASS] RR8 tick 3 -> 2 | expected=2 actual=2
+[PASS] RR8 tick 3 -> 2: need_resched stays 0 | expected=0 actual=0
+[PASS] RR8 existing need_resched not cleared | expected=1 actual=1
+[PASS] RR8 tick 1 -> 0 | expected=0 actual=0
+[PASS] RR8 tick 1 -> 0 sets need_resched | expected=1 actual=1
+[PASS] RR9 tick at 0 stays 0 (no negative) | expected=0 actual=0
+[PASS] RR9 tick at 0 sets need_resched again | expected=1 actual=1
+[PASS] RR9 corrupt slice -3 clamped to 0 | expected=0 actual=0
+[PASS] RR9 corrupt slice -3 sets need_resched | expected=1 actual=1
+[PASS] RR8 tick does not touch the queue | expected=1 actual=1
+
+== RR: rotation and max time slice ==
+[PASS] RR10 30-tick trace, max slice 5 | expected=AAAAABBBBBCCCCCAAAAABBBBBCCCCC actual=AAAAABBBBBCCCCCAAAAABBBBBCCCCC
+[PASS] RR12 switches in 30 ticks, max slice 5 | expected=6 actual=6
+    max_time_slice=5: ran A/B/C = 10/10/10 ticks, 6 switches
+[PASS] RR10 30-tick trace, max slice 2 | expected=AABBCCAABBCCAABBCCAABBCCAABBCC actual=AABBCCAABBCCAABBCCAABBCCAABBCC
+[PASS] RR12 switches in 30 ticks, max slice 2 | expected=15 actual=15
+    max_time_slice=2: ran A/B/C = 10/10/10 ticks, 15 switches
+[PASS] RR10 30-tick trace, max slice 1 | expected=ABCABCABCABCABCABCABCABCABCABC actual=ABCABCABCABCABCABCABCABCABCABC
+[PASS] RR12 switches in 30 ticks, max slice 1 | expected=30 actual=30
+    max_time_slice=1: ran A/B/C = 10/10/10 ticks, 30 switches
+
+== RR: misuse guards ==
+[PASS] RR11 double enqueue asserts | expected=2 actual=2
+[PASS] RR11 double dequeue asserts | expected=2 actual=2
+[PASS] RR11 wrong-queue dequeue asserts | expected=2 actual=2
+[PASS] RR11 legal enqueue/dequeue/enqueue ok | expected=0 actual=0
+
+== CFS: class, init, empty/single ==
+[PASS] CFS name | expected=CFS_scheduler actual=CFS_scheduler
+[PASS] CFS five callbacks | expected=1 actual=1
+[PASS] CFS1 init: proc_num | expected=0 actual=0
+[PASS] CFS1 init: empty list | expected=1 actual=1
+[PASS] CFS1 init: max_time_slice valid | expected=5 actual=5
+[PASS] CFS1 pick on empty -> NULL | expected=0 actual=0
+[PASS] CFS1 single: proc_num | expected=1 actual=1
+[PASS] CFS1 single: rq set | expected=1 actual=1
+[PASS] CFS1 single: placed flag set | expected=1 actual=1
+[PASS] CFS1 single: pick -> A | expected=65 actual=65
+[PASS] CFS1 single: pick does not dequeue | expected=1 actual=1
+[PASS] CFS1 single: dequeue -> 0 | expected=0 actual=0
+[PASS] CFS1 single: run_link self-linked | expected=1 actual=1
+[PASS] CFS1 uninitialized run queue is rejected | expected=2 actual=2
+
+== CFS: selection ==
+[PASS] CFS2 equal vruntime: earliest arrival A | expected=65 actual=65
+[PASS] CFS2 repeated pick is stable | expected=65 actual=65
+[PASS] CFS2 after A leaves: B | expected=66 actual=66
+[PASS] CFS3 min vruntime (A300,B100,C200) -> B | expected=66 actual=66
+[PASS] CFS3 history kept on enqueue (B = 100) | expected=100 actual=100
+[PASS] CFS3 list keeps arrival order | expected=ABC actual=ABC
+
+== CFS: vruntime accounting and numeric edges ==
+[PASS] CFS4 weight 1: +2^20 per tick | expected=1048576 actual=1048576
+[PASS] CFS4 weight 2: +2^19 per tick | expected=524288 actual=524288
+[PASS] CFS4 weight 4: +2^18 per tick | expected=262144 actual=262144
+[PASS] CFS10 weight 3: truncated 349525 | expected=349525 actual=349525
+[PASS] CFS10 priority 0 treated as weight 1 | expected=1048576 actual=1048576
+[PASS] CFS10 weight 1024: +1024 (never 0) | expected=1024 actual=1024
+[PASS] CFS10 priority 5000 clamped to 1024 | expected=1024 actual=1024
+[PASS] CFS10 priority UINT32_MAX clamped to 1024 | expected=1024 actual=1024
+[PASS] CFS4 one tick: cfs_sum_exec = 1 | expected=1 actual=1
+[PASS] CFS4 one tick: cfs_slice_exec = 1 | expected=1 actual=1
+[PASS] CFS10 cfs_slice_exec saturates at UINT32_MAX | expected=4294967295 actual=4294967295
+[PASS] CFS10 wrap-safe compare: UINT64_MAX-10 before 5 | expected=65 actual=65
+[PASS] CFS10 vruntime wrapped past 2^64 | expected=1 actual=1
+[PASS] CFS10 after wrap B (5) still before A | expected=66 actual=66
+[PASS] CFS11 priority 1->2: history not reset | expected=1 actual=1
+[PASS] CFS11 priority 1->2: next tick charged at weight 2 | expected=524288 actual=524288
+
+== CFS: preemption ==
+[PASS] CFS12 alone for 1000 ticks: need_resched never set | expected=0 actual=0
+[PASS] CFS11 equal weights: ideal slice 10*1/2 = 5 ticks | expected=5 actual=5
+[PASS] CFS11 A weight 4 vs 1: ideal slice 10*4/5 = 8 ticks | expected=8 actual=8
+[PASS] CFS11 A weight 1 vs 4: ideal 2 ticks | expected=2 actual=2
+[PASS] CFS11 lead but slice 1 < min granularity 2: no resched | expected=0 actual=0
+[PASS] CFS11 lead after 2 ticks: resched | expected=1 actual=1
+
+== CFS: long-run CPU shares ==
+    CFS5 equal weights 1:1:1 (3000 ticks, tolerance +/-0.010)
+      proc weight  ticks  theory  actual
+      A         1   1002  0.3333  0.3340
+[PASS] CFS5 equal weights 1:1:1: A share within tolerance | expected=1 actual=1
+      B         1    999  0.3333  0.3330
+[PASS] CFS5 equal weights 1:1:1: B share within tolerance | expected=1 actual=1
+      C         1    999  0.3333  0.3330
+[PASS] CFS5 equal weights 1:1:1: C share within tolerance | expected=1 actual=1
+      switches: 1000
+    CFS6 weights 1:2 (3000 ticks, tolerance +/-0.007)
+      proc weight  ticks  theory  actual
+      A         1   1002  0.3333  0.3340
+[PASS] CFS6 weights 1:2: A share within tolerance | expected=1 actual=1
+      B         2   1998  0.6667  0.6660
+[PASS] CFS6 weights 1:2: B share within tolerance | expected=1 actual=1
+      switches: 667
+    CFS6 weights 1:2:4 (7000 ticks, tolerance +/-0.004)
+      proc weight  ticks  theory  actual
+      A         1   1000  0.1429  0.1429
+[PASS] CFS6 weights 1:2:4: A share within tolerance | expected=1 actual=1
+      B         2   2000  0.2857  0.2857
+[PASS] CFS6 weights 1:2:4: B share within tolerance | expected=1 actual=1
+      C         4   4000  0.5714  0.5714
+[PASS] CFS6 weights 1:2:4: C share within tolerance | expected=1 actual=1
+      switches: 2800
+    CFS6 weights 1:8 (9000 ticks, tolerance +/-0.002)
+      proc weight  ticks  theory  actual
+      A         1   1000  0.1111  0.1111
+[PASS] CFS6 weights 1:8: A share within tolerance | expected=1 actual=1
+      B         8   8000  0.8889  0.8889
+[PASS] CFS6 weights 1:8: B share within tolerance | expected=1 actual=1
+      switches: 2000
+
+== CFS: new process and sleeper placement ==
+[PASS] CFS7 new proc not placed at 0 | expected=1 actual=1
+[PASS] CFS7 new proc placed at a baseline <= every live vruntime | expected=1 actual=1
+[PASS] CFS7 new proc within one latency of the others | expected=1 actual=1
+    C joined after 1000 ticks: 99 of next 300 ticks (fair 100)
+[PASS] CFS7 newcomer gets ~fair share (<= 100 + latency) | expected=1 actual=1
+[PASS] CFS7 newcomer is not starved (>= 100 - latency) | expected=1 actual=1
+[PASS] CFS8 sleeper vruntime raised on wake-up | expected=1 actual=1
+[PASS] CFS8 sleeper credit bounded by latency/2 | expected=1 actual=1
+    C woke after sleeping 3000 ticks: 34 of next 90 ticks, longest burst 9
+[PASS] CFS8 woken sleeper share bounded (<= 30 + 5 + latency) | expected=1 actual=1
+[PASS] CFS8 woken sleeper does not monopolize (burst <= 20) | expected=1 actual=1
+[PASS] CFS9 re-enqueue keeps vruntime | expected=1 actual=1
+[PASS] CFS9 re-enqueue keeps cfs_sum_exec (7) | expected=7 actual=7
+[PASS] CFS9 dequeue starts a new slice | expected=0 actual=0
+
+== CFS: misuse guards ==
+[PASS] CFS double enqueue asserts | expected=2 actual=2
+[PASS] CFS double dequeue asserts | expected=2 actual=2
+[PASS] CFS wrong-queue dequeue asserts | expected=2 actual=2
+[PASS] CFS legal enqueue/dequeue/enqueue ok | expected=0 actual=0
+SUMMARY: checks=121 passed=121 failed=0
+EXIT_STATUS=0

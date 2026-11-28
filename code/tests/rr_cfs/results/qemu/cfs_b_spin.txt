@@ -1,0 +1,75 @@
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+(THU.CST) os is loading ...
+
+Special kernel symbols:
+  entry  0xc020004a (virtual)
+  etext  0xc0205f7c (virtual)
+  edata  0xc02dbd40 (virtual)
+  end    0xc02e0260 (virtual)
+Kernel executable memory footprint: 897KB
+DTB Init
+HartID: 0
+DTB Address: 0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000008000000 (128 MB)
+  End:  0x0000000087ffffff
+DTB init completed
+memory management: default_pmm_manager
+physcial memory map:
+  memory: 0x0000000008000000, [0x0000000080000000, 0x0000000087ffffff].
+check_alloc_page() succeeded!
+check_pgdir() succeeded!
+check_boot_pgdir() succeeded!
+use SLOB allocator
+kmalloc_init() succeeded!
+check_vma_struct() succeeded!
+check_vmm() succeeded.
+sched class: CFS_scheduler
+b_kcheck: pre-Lab6 PCB fields ok
+b_kcheck: six Lab6 scheduling fields ok
+b_kcheck: CFS fields ok
+b_kcheck: idleproc pid 0, initproc pid 1, current idle
+++ setup timer interrupts
+kernel_execve: pid = 2, name = "b_spin".
+set priority to 8
+set priority to 1
+b_spin: equal child 0 prio 1 start 10 ms
+set priority to 1
+b_spin: equal child 1 prio 1 start 30 ms
+set priority to 1
+b_spin: equal child 2 prio 1 start 60 ms
+b_spin: equal acc(k) 1780 1798 1796 ratio_x100 100 101 100
+set priority to 1
+b_spin: weighted child 0 prio 1 start 10 ms
+set priority to 2
+b_spin: weighted child 1 prio 2 start 40 ms
+set priority to 4
+b_spin: weighted child 2 prio 4 start 90 ms
+b_spin: weighted acc(k) 792 1510 3030 ratio_x100 100 190 382
+b_spin: done
+all user-mode processes have quit.
+init check memory pass.
+kernel panic at kern/process/proc.c:736:
+    initproc exit.
+
