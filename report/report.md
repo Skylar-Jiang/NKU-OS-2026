@@ -151,7 +151,23 @@ SCHED 默认 stride。sched_select.h 把合法参数映射到各自 sched_class�
 4. **临时副本打包与 make clean 并发时 tar 报目录变化**：性能测试改为显式复制 Makefile、kern、libs、user、tools，不扫描正在生成和清理的根目录、obj、bin、tests。该问题没有用忽略 tar 错误掩盖。
 5. **同一目录切换策略可能复用旧 sched.o**：增加配置戳；五算法的不同启动标识和真实运行结果验证了切换有效。
 
-本次保留真实运行日志、CSV 与独立图表，图表明确标注测量单位；没有把图表伪装成原生终端截图。答辩时可按下面命令现场运行和手动截图。
+本次保留真实运行日志、CSV、独立统计图和以下现场终端截图。统计图明确标注测量单位，与原生窗口截图区分。
+
+### 7.1 现场终端截图（2026-11-28）
+
+以下三张是在本次验证窗口中手动截取的原图，没有重绘终端内容。
+
+![官方 Lab6 评分现场：60/60](images/lab6-terminal-grade.png)
+
+现场执行 `make grade SCHED=stride`，RR 和 Stride 检查均通过，最终 `Total Score: 60/60`。完整记录见 `code/tests/results/live-grade.txt`。
+
+![Stride 优先级现场运行](images/lab6-terminal-stride-priority.png)
+
+重新构建并在普通时钟模式下实际运行官方 `priority.c`。五个子进程权重为 1–5，结果为 `sched result: 1 2 3 4 5`，随后正常回收至 `init check memory pass.`。窗口显示的是本次 QEMU 标准输出的关键行，完整原始输出见 `code/tests/results/live-priority-final.txt`。
+
+![五算法原始数据校验及汇总现场](images/lab6-terminal-benchmark.png)
+
+现场运行 analyze.py，重新解析之前保存的 60 次真实 QEMU 启动、240 条工作进程及五次官方 priority 的记录，并通过全部不变量检查。这张截图展示的是现场校验与汇总，不宣称截图时重新启动了全部 60 次测试。表格保留 QEMU 虚拟时间、决策成本和 Jain 观察窗口说明，终端摘要见 `code/tests/results/live-benchmark-summary.txt`。
 
 ## 8. 复现与队友接入
 

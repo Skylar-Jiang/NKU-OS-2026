@@ -1,0 +1,2 @@
++ cc kern/process/proc.c
++ ld bin/kernel

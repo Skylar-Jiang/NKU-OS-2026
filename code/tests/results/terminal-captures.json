@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-28",
+  "capture": "User manually captured real verification terminal windows; original PNGs preserved",
+  "image_processing": "none",
+  "screenshots": [
+    {
+      "stage": "grade",
+      "file": "report/images/lab6-terminal-grade.png",
+      "sha256": "7099dde2b9139e528900c276a50cd12eef6115d69f326bec5f3cc50473ed5f1e"
+    },
+    {
+      "stage": "stride-priority",
+      "file": "report/images/lab6-terminal-stride-priority.png",
+      "sha256": "0b0711ae1a009a92a724cf0f18d0c99e5ed9e9d08d0791a6d778559cf0cd6741"
+    },
+    {
+      "stage": "benchmark",
+      "file": "report/images/lab6-terminal-benchmark.png",
+      "sha256": "0c2406d13b43e7d3dacedd8fc8933f640680a411622c8cea3b50574fda81cb51"
+    }
+  ],
+  "benchmark_note": "Live revalidation of saved raw QEMU observations; not a fresh rerun of all 60 boots"
+}
