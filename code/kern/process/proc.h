@@ -65,7 +65,14 @@ struct proc_struct
     skew_heap_entry_t lab6_run_pool;        // For lab6 only: the entry in the run pool
     uint32_t lab6_stride;                   // For lab6 only: the current stride of the process
     uint32_t lab6_priority;                 // For lab6 only: the priority of process, set by lab6_set_priority(uint32_t)
+    // Challenge 2 (CFS) only; appended so the fields above keep their layout.
+    uint64_t cfs_vruntime;                  // weighted virtual runtime (CFS_TICK_VRUNTIME per weight-1 tick)
+    uint64_t cfs_sum_exec;                  // total timer ticks actually run under CFS
+    uint32_t cfs_slice_exec;                // ticks run since the process was last picked
+    uint32_t cfs_flags;                     // CFS_F_PLACED: cfs_vruntime holds a valid history
 };
+
+#define CFS_F_PLACED 0x00000001
 
 #define PF_EXITING 0x00000001 // getting shutdown
 

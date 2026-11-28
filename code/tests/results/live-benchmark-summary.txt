@@ -1,0 +1,22 @@
+5 policies x 4 workloads x 3 runs = 60 real QEMU boots
+240 worker records; all logs rechecked by analyze.py.
+
+WEIGHTED WORKLOAD (weights 1:2:4:8), mean of 3 runs
+Policy   Wait(ms) Response(ms) Turnaround(ms) Jain   Decision(us)
+RR      1827.127       71.546       2443.386 0.654       15.291
+STRIDE  1309.143       71.546       1924.891 0.991       15.917
+FIFO     926.271      926.271       1542.303 0.250       11.375
+SJF      926.276      926.276       1542.311 0.250       11.500
+CFS     1250.197       44.035       1866.110 0.999       15.668
+
+MIXED CPU BURSTS + YIELD, mean ready waiting (ms)
+RR      429.544
+STRIDE  430.082
+FIFO    581.064
+SJF     312.026
+CFS     339.256
+
+Timing: QEMU -icount shift=3, virtual time; not host wall time.
+Decision cost includes observer; excludes full context switch.
+Jain: weighted CPU share in the first-completion window.
+Mixed workload uses yield; it is not real disk I/O.

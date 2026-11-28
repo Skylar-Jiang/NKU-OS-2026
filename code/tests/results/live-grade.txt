@@ -1,0 +1,7 @@
+lab6 injection complete
+priority:                (3.1s)
+  -check result:                               -RR Scheduler:                             OK
+  -Stride Scheduler:                         OK
+OK
+  -check output:                             OK
+Total Score: 60/60

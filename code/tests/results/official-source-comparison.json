@@ -1,0 +1,570 @@
+{
+  "source_zip_sha256": "c12e4a0fb1b81015706cb48f8a2d46cb01c89f8ef0abd0dcec2df0969580f54d",
+  "files": {
+    "CMakeLists.txt": {
+      "official_sha256": "b54eddba704c6752297bef2b8f8592997cad15f0c0b792120c90139f12a7bf24",
+      "local_sha256": "b54eddba704c6752297bef2b8f8592997cad15f0c0b792120c90139f12a7bf24",
+      "same_ignoring_crlf": true
+    },
+    "Makefile": {
+      "official_sha256": "b50b7857279b585df2cb2407556f59396d1ada4cb8d3daa854c52fad80f4b9fc",
+      "local_sha256": "143b54805064a23c4b4e679bcc8f010ddd3b8844ee2f85950f9ef48800121a7d",
+      "same_ignoring_crlf": false
+    },
+    "kern/debug/Makefile": {
+      "official_sha256": "e15668ca416c591d640b13eeaeacf15459c126cfa508a865e0cb8cc40347b8c2",
+      "local_sha256": "e15668ca416c591d640b13eeaeacf15459c126cfa508a865e0cb8cc40347b8c2",
+      "same_ignoring_crlf": true
+    },
+    "kern/debug/assert.h": {
+      "official_sha256": "e7d710ecef4024fb9c5851bf587eed83990d8b591c3ba4de0409680153e52062",
+      "local_sha256": "e7d710ecef4024fb9c5851bf587eed83990d8b591c3ba4de0409680153e52062",
+      "same_ignoring_crlf": true
+    },
+    "kern/debug/kdebug.c": {
+      "official_sha256": "4a877bed10bc853d990a26dd2e6f866479455bb7f01b78deb606608664ae0034",
+      "local_sha256": "4a877bed10bc853d990a26dd2e6f866479455bb7f01b78deb606608664ae0034",
+      "same_ignoring_crlf": true
+    },
+    "kern/debug/kdebug.h": {
+      "official_sha256": "0a8b94aebd0ad5613d66939539749b5128ae460860fd6dc26934f4da20e8aea7",
+      "local_sha256": "0a8b94aebd0ad5613d66939539749b5128ae460860fd6dc26934f4da20e8aea7",
+      "same_ignoring_crlf": true
+    },
+    "kern/debug/kmonitor.c": {
+      "official_sha256": "1e113de84a31123b6bd7d8be540cd3f833581fe6c970a7cb4db024e1f3501361",
+      "local_sha256": "1e113de84a31123b6bd7d8be540cd3f833581fe6c970a7cb4db024e1f3501361",
+      "same_ignoring_crlf": true
+    },
+    "kern/debug/kmonitor.h": {
+      "official_sha256": "b279bf8fdc0e67871932b5bea2f3c21613c580269d6ff2246dafd117f2916208",
+      "local_sha256": "b279bf8fdc0e67871932b5bea2f3c21613c580269d6ff2246dafd117f2916208",
+      "same_ignoring_crlf": true
+    },
+    "kern/debug/panic.c": {
+      "official_sha256": "5187da41498cbd9582fafdd1ce6b52dc1db99a912109437c9fa8451c666d0304",
+      "local_sha256": "5187da41498cbd9582fafdd1ce6b52dc1db99a912109437c9fa8451c666d0304",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/clock.c": {
+      "official_sha256": "5a15152e6abf8d9ceb9b512dc440f6eeee37855d8402c087396ae3bc6a285581",
+      "local_sha256": "5a15152e6abf8d9ceb9b512dc440f6eeee37855d8402c087396ae3bc6a285581",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/clock.h": {
+      "official_sha256": "31af7008999b4a938f29150a1097ef0e347b716d09dd20f89bf080413d51d7ee",
+      "local_sha256": "31af7008999b4a938f29150a1097ef0e347b716d09dd20f89bf080413d51d7ee",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/console.c": {
+      "official_sha256": "fde1e21f57c65ecd5f31713608fa27731500231c01bdb94d10409afd943c5c38",
+      "local_sha256": "fde1e21f57c65ecd5f31713608fa27731500231c01bdb94d10409afd943c5c38",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/console.h": {
+      "official_sha256": "0d1b4c3cec6e990ea5c85e7ad0db73f1bb8c1f3dea723baa1475fd5e145c284b",
+      "local_sha256": "0d1b4c3cec6e990ea5c85e7ad0db73f1bb8c1f3dea723baa1475fd5e145c284b",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/dtb.c": {
+      "official_sha256": "0e2bb4f1683b79291abf4db996aa8259f78ed614077c6019387609b4f54bd52a",
+      "local_sha256": "0e2bb4f1683b79291abf4db996aa8259f78ed614077c6019387609b4f54bd52a",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/dtb.h": {
+      "official_sha256": "e9f1784e4934e2969964156203700fd119acc6e2f7a71d4e3c18d473fe5d51dd",
+      "local_sha256": "e9f1784e4934e2969964156203700fd119acc6e2f7a71d4e3c18d473fe5d51dd",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/intr.c": {
+      "official_sha256": "f9319a63bdc6fc89bf908bb0547055f742e04b8b584e197f67d73d26916d379a",
+      "local_sha256": "f9319a63bdc6fc89bf908bb0547055f742e04b8b584e197f67d73d26916d379a",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/intr.h": {
+      "official_sha256": "1284e10d0f23d42d88f4314e40cd630a73aadec46407ce179b7e1b253f962083",
+      "local_sha256": "1284e10d0f23d42d88f4314e40cd630a73aadec46407ce179b7e1b253f962083",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/kbdreg.h": {
+      "official_sha256": "36391fe4414ab73ba31550824667afd66467a9ba9cbffe09d32ff8fdbaf809a0",
+      "local_sha256": "36391fe4414ab73ba31550824667afd66467a9ba9cbffe09d32ff8fdbaf809a0",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/picirq.c": {
+      "official_sha256": "811e06df8fa8fb707dcef6a8232c04c872df17c55fe8205748216742750a5fe3",
+      "local_sha256": "811e06df8fa8fb707dcef6a8232c04c872df17c55fe8205748216742750a5fe3",
+      "same_ignoring_crlf": true
+    },
+    "kern/driver/picirq.h": {
+      "official_sha256": "0ac1711cfde712d10081b8157a5d7a2f7959a915ee33a9903fbdcfb03aef73f4",
+      "local_sha256": "0ac1711cfde712d10081b8157a5d7a2f7959a915ee33a9903fbdcfb03aef73f4",
+      "same_ignoring_crlf": true
+    },
+    "kern/init/entry.S": {
+      "official_sha256": "8e1697cdacab2ed694e62163a4a348aa5c2fe19f73817840f0a8d120e4bc53b2",
+      "local_sha256": "8e1697cdacab2ed694e62163a4a348aa5c2fe19f73817840f0a8d120e4bc53b2",
+      "same_ignoring_crlf": true
+    },
+    "kern/init/init.c": {
+      "official_sha256": "3664ec9c8254be325bc9972b556d0114ac81f536d22c451d71a47afeb3721dde",
+      "local_sha256": "3664ec9c8254be325bc9972b556d0114ac81f536d22c451d71a47afeb3721dde",
+      "same_ignoring_crlf": true
+    },
+    "kern/libs/readline.c": {
+      "official_sha256": "bcfaa72c02f5f131f0e24d6516b12e6190d79468d384d9f7f03b71df75b08dd3",
+      "local_sha256": "bcfaa72c02f5f131f0e24d6516b12e6190d79468d384d9f7f03b71df75b08dd3",
+      "same_ignoring_crlf": true
+    },
+    "kern/libs/stdio.c": {
+      "official_sha256": "7236f93e8ecb66b5ea7ebdeb0e0678233572e53696add2819335f0713280aae7",
+      "local_sha256": "7236f93e8ecb66b5ea7ebdeb0e0678233572e53696add2819335f0713280aae7",
+      "same_ignoring_crlf": true
+    },
+    "kern/mm/default_pmm.c": {
+      "official_sha256": "b7fb941890df1f9c881d56d40e5a68ecd0043d7fa67d1825e41c78459f37da74",
+      "local_sha256": "3c0513427cba6d49a9bf7f616a396cc5da35c01992219b06cdda801c2e44c098",
+      "same_ignoring_crlf": false
+    },
+    "kern/mm/default_pmm.h": {
+      "official_sha256": "e811b6a142e73cf3cde0c9bffb06ff47980b822653a34ec038f94eeac95c10ea",
+      "local_sha256": "e811b6a142e73cf3cde0c9bffb06ff47980b822653a34ec038f94eeac95c10ea",
+      "same_ignoring_crlf": true
+    },
+    "kern/mm/kmalloc.c": {
+      "official_sha256": "bbed6804045cd1ce4bb18c1ba6de6aaa8cc94f2f02e594529e6d27b0eb107f5c",
+      "local_sha256": "bbed6804045cd1ce4bb18c1ba6de6aaa8cc94f2f02e594529e6d27b0eb107f5c",
+      "same_ignoring_crlf": true
+    },
+    "kern/mm/kmalloc.h": {
+      "official_sha256": "a7686714c244ff5900783fac12f858684274af74962148fe5d49f32e9225dd02",
+      "local_sha256": "a7686714c244ff5900783fac12f858684274af74962148fe5d49f32e9225dd02",
+      "same_ignoring_crlf": true
+    },
+    "kern/mm/memlayout.h": {
+      "official_sha256": "1f0f70e0ea47af09fabd9a1d8944799b01051f68c3600156d9e4350d02a0d45c",
+      "local_sha256": "1f0f70e0ea47af09fabd9a1d8944799b01051f68c3600156d9e4350d02a0d45c",
+      "same_ignoring_crlf": true
+    },
+    "kern/mm/mmu.h": {
+      "official_sha256": "1f9d478198a5501fb0c8d6496726b8254b52b6d30bd8b303bb48660782ed4247",
+      "local_sha256": "1f9d478198a5501fb0c8d6496726b8254b52b6d30bd8b303bb48660782ed4247",
+      "same_ignoring_crlf": true
+    },
+    "kern/mm/pmm.c": {
+      "official_sha256": "24d6470780b7a84990ee04d0de9590d760dcb10b7e6f567101225e22806a0528",
+      "local_sha256": "b9501984834806b2c005d5ce7381249d8d07b9223e88ae4c3a607b3508793e85",
+      "same_ignoring_crlf": false
+    },
+    "kern/mm/pmm.h": {
+      "official_sha256": "d4ae01bdaeb559b52e07ce53995e12bc0b22f726f63da463f2209c9603a1319a",
+      "local_sha256": "d4ae01bdaeb559b52e07ce53995e12bc0b22f726f63da463f2209c9603a1319a",
+      "same_ignoring_crlf": true
+    },
+    "kern/mm/vmm.c": {
+      "official_sha256": "7b1837c168b05c81b89387d00bd3db8eb83a2458e675ba7369f5ba9e642768ee",
+      "local_sha256": "ea56202a18345446de0673a75f8039aa6a4ec9a8d8cd6ed030ca2707392bb9cd",
+      "same_ignoring_crlf": false
+    },
+    "kern/mm/vmm.h": {
+      "official_sha256": "adc2c3b7695c41574c0f6d3c4b14ac48d75092321537c43ad081ebe4f7664f87",
+      "local_sha256": "adc2c3b7695c41574c0f6d3c4b14ac48d75092321537c43ad081ebe4f7664f87",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/entry.S": {
+      "official_sha256": "953cb8177ee9503c3c27a77998c3bb8adf986472b78f050eab1ae76cb6eb3430",
+      "local_sha256": "953cb8177ee9503c3c27a77998c3bb8adf986472b78f050eab1ae76cb6eb3430",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/proc.c": {
+      "official_sha256": "f9d0dec705db587ca67d0cbdf65c27cf4e03c6958ef5a72d451ee880e8b881e4",
+      "local_sha256": "91d5ade43b0946f3941e02e1db817d4351b369cb8897a79ab53f3ddc2c063d62",
+      "same_ignoring_crlf": false
+    },
+    "kern/process/proc.h": {
+      "official_sha256": "197c911bcc57e7fc0cdae7b38c1efc15da441111eac469dbada6948cdb775e41",
+      "local_sha256": "3615604718ab6bee1990ddb51b2f42581be025aff2dfc86691bfa77e6a7fc603",
+      "same_ignoring_crlf": false
+    },
+    "kern/process/switch.S": {
+      "official_sha256": "d13a4aad49785f01a5140a696ecedc307832bc3cd78305f50d74c3a7b3aed5fa",
+      "local_sha256": "b8d1ca9e67332c456bade40e297988be7e5171ac1d4abe3a4c204fde67da62ab",
+      "same_ignoring_crlf": false
+    },
+    "kern/process/tools/boot.ld": {
+      "official_sha256": "d42ba7abd94e9bd67879fe6d25165a39b829594d9fe74cadedce359bf4fe2474",
+      "local_sha256": "d42ba7abd94e9bd67879fe6d25165a39b829594d9fe74cadedce359bf4fe2474",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/tools/function.mk": {
+      "official_sha256": "9ad77549eddd0e758d25c6ae79ad70aec6a374526548eee0bbbb2f4586bdf8c6",
+      "local_sha256": "9ad77549eddd0e758d25c6ae79ad70aec6a374526548eee0bbbb2f4586bdf8c6",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/tools/gdbinit": {
+      "official_sha256": "a0825abc90b386b28e27268558f5be6c66ec8c35a54ab83b538ad0cb7154262e",
+      "local_sha256": "a0825abc90b386b28e27268558f5be6c66ec8c35a54ab83b538ad0cb7154262e",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/tools/grade.sh": {
+      "official_sha256": "891a6ecef67f6d38c3d78411cb8a0fd4ca78d6a97e0987ac5d994660875c7bae",
+      "local_sha256": "891a6ecef67f6d38c3d78411cb8a0fd4ca78d6a97e0987ac5d994660875c7bae",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/tools/inject.py": {
+      "official_sha256": "5d0b80ded3fbe59264e9fd55747f376da4ab4a621c250409ac2c677e82395db0",
+      "local_sha256": "5d0b80ded3fbe59264e9fd55747f376da4ab4a621c250409ac2c677e82395db0",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/tools/kernel.ld": {
+      "official_sha256": "28269eb67ed1fd58b333e5f56d5de927b86903b3364f549f097b780710cac6c8",
+      "local_sha256": "28269eb67ed1fd58b333e5f56d5de927b86903b3364f549f097b780710cac6c8",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/tools/sign.c": {
+      "official_sha256": "e0224260adec04f09820909279c9c60299220778f27355113cab862f0a370544",
+      "local_sha256": "e0224260adec04f09820909279c9c60299220778f27355113cab862f0a370544",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/tools/test_lab6.c": {
+      "official_sha256": "c50cca13940c80ef9d8c09c122da395a317d4d39d7fff526f4468eafb341a19f",
+      "local_sha256": "c50cca13940c80ef9d8c09c122da395a317d4d39d7fff526f4468eafb341a19f",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/tools/test_lab6.h": {
+      "official_sha256": "ac61bb8f97b638b9fdc7c183b21f0f2dc7186d18272d998ac512e36729367c8c",
+      "local_sha256": "ac61bb8f97b638b9fdc7c183b21f0f2dc7186d18272d998ac512e36729367c8c",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/tools/user.ld": {
+      "official_sha256": "246a8109687dd4e4f0bafb1015443b97d44e771a7203903f92aff95dc59e9ef3",
+      "local_sha256": "246a8109687dd4e4f0bafb1015443b97d44e771a7203903f92aff95dc59e9ef3",
+      "same_ignoring_crlf": true
+    },
+    "kern/process/tools/vector.c": {
+      "official_sha256": "0dca823bd9922bfb98b64dce4b6f157ec881b62c545f152c0e5ec1dbd86e26dc",
+      "local_sha256": "0dca823bd9922bfb98b64dce4b6f157ec881b62c545f152c0e5ec1dbd86e26dc",
+      "same_ignoring_crlf": true
+    },
+    "kern/schedule/default_sched.c": {
+      "official_sha256": "ab5fa160ad24911ab60a96f1f20c1f60bc204fb1eb98256ffa06fb9c77c34887",
+      "local_sha256": "28058006a418dfb33bcd6fa0391e72711dc7ca8bd5b4600e8e16020aa1e857b9",
+      "same_ignoring_crlf": false
+    },
+    "kern/schedule/default_sched.h": {
+      "official_sha256": "7f3b413f3dceaa5dc46a5c7717b18fb3e45570bfa81643e4d7ceb26fe7c9c39f",
+      "local_sha256": "2b47ed8d60c41ac3c1adbe55b1b2bfc27063a4e6139beb8b5da1dd68f02f3b5f",
+      "same_ignoring_crlf": false
+    },
+    "kern/schedule/default_sched_stride.c": {
+      "official_sha256": "2508d19565504b310f3d1a77543c236ea69d0673f0539e96e37f2f740a37f8e3",
+      "local_sha256": "9dea158666d4b2a44e49b2fd59e1ada6e9c2ff18c23f1183216e45d857740cd9",
+      "same_ignoring_crlf": false
+    },
+    "kern/schedule/sched.c": {
+      "official_sha256": "db3b17f98f7129ff3cda458f7a6157169fdae0bd2886d9b3b0a1b70d1e741ac4",
+      "local_sha256": "fa6c1ba06d5e2a4e8e328f37373a5f36287514bde4c9c4515d84fbf908dbf7d5",
+      "same_ignoring_crlf": false
+    },
+    "kern/schedule/sched.h": {
+      "official_sha256": "37cb59f7e683c0c60353410630e8e41be6826bb021d0644a068d9e2b61f3ab24",
+      "local_sha256": "b42d3b09ec5144e52e31bbd4adfab2d1b67c31154170aca3fb28031fa804b1f1",
+      "same_ignoring_crlf": false
+    },
+    "kern/sync/sync.h": {
+      "official_sha256": "f2362cddab526a657d6bb021b133f35e801403e414184498d0aa7ec2dcc35fb6",
+      "local_sha256": "f2362cddab526a657d6bb021b133f35e801403e414184498d0aa7ec2dcc35fb6",
+      "same_ignoring_crlf": true
+    },
+    "kern/syscall/syscall.c": {
+      "official_sha256": "f9e9f02a027a40833a838d3ef64466ea8e22f8668ac15b406431e70c4859936f",
+      "local_sha256": "d93a6f49dfea3dd47858d73ad558b317972caa8e7adf3c929d0af339c72956f8",
+      "same_ignoring_crlf": false
+    },
+    "kern/syscall/syscall.h": {
+      "official_sha256": "0434ca25aa19b983ff633e93fb8168b04a32d4704f3cb56890571a26534b2c2a",
+      "local_sha256": "0434ca25aa19b983ff633e93fb8168b04a32d4704f3cb56890571a26534b2c2a",
+      "same_ignoring_crlf": true
+    },
+    "kern/trap/trap.c": {
+      "official_sha256": "7a3c243b9a08452781fe32a820129cd50be31dcfb8192ffde059ae8e2a651699",
+      "local_sha256": "f8260b7e90019db36917783ec54a1a91a424ad23e3a97bd00aa7ab91bb8398d9",
+      "same_ignoring_crlf": false
+    },
+    "kern/trap/trap.h": {
+      "official_sha256": "c7f89185f88eca22392407846977457c18b7b872fe5c6e99dc53cee9d14adbea",
+      "local_sha256": "c7f89185f88eca22392407846977457c18b7b872fe5c6e99dc53cee9d14adbea",
+      "same_ignoring_crlf": true
+    },
+    "kern/trap/trapentry.S": {
+      "official_sha256": "b6a8a044b82de69808ed76389ddea83ce6ed159f7f9e1fefb4f46e950d8a55d9",
+      "local_sha256": "9f9006c72aba6afb1f8ef3115f2130b1cc360fd7c2c1ccd229efb8c064bf5a35",
+      "same_ignoring_crlf": false
+    },
+    "libs/atomic.h": {
+      "official_sha256": "c12d8e35e5c8366f32712363d5bb601728f421918da64cec8b46cb75c94384dc",
+      "local_sha256": "c12d8e35e5c8366f32712363d5bb601728f421918da64cec8b46cb75c94384dc",
+      "same_ignoring_crlf": true
+    },
+    "libs/defs.h": {
+      "official_sha256": "21d655810e9cd6c8bc749f07bf6cf92b887219d24b2394665a1a99c9e1fcfb8c",
+      "local_sha256": "21d655810e9cd6c8bc749f07bf6cf92b887219d24b2394665a1a99c9e1fcfb8c",
+      "same_ignoring_crlf": true
+    },
+    "libs/elf.h": {
+      "official_sha256": "6a462d564eb987d37cba9aa0adf536d47d11a13c632141ccb912cf2a3a0a33c6",
+      "local_sha256": "6a462d564eb987d37cba9aa0adf536d47d11a13c632141ccb912cf2a3a0a33c6",
+      "same_ignoring_crlf": true
+    },
+    "libs/error.h": {
+      "official_sha256": "c73d2bae7dc3e6c2eb341aafe6dd0780de34eaa54dd8ed3dd10dfa31963448c3",
+      "local_sha256": "c73d2bae7dc3e6c2eb341aafe6dd0780de34eaa54dd8ed3dd10dfa31963448c3",
+      "same_ignoring_crlf": true
+    },
+    "libs/hash.c": {
+      "official_sha256": "47141ee1a1a05df3232cf584dcf79a5a710d2c1da52a762db5bc1d31a3797e82",
+      "local_sha256": "47141ee1a1a05df3232cf584dcf79a5a710d2c1da52a762db5bc1d31a3797e82",
+      "same_ignoring_crlf": true
+    },
+    "libs/list.h": {
+      "official_sha256": "c9abf4ab67008f6b4c81a8a585b066e5420b7dc044ef57353fc2cb7c2180d049",
+      "local_sha256": "c9abf4ab67008f6b4c81a8a585b066e5420b7dc044ef57353fc2cb7c2180d049",
+      "same_ignoring_crlf": true
+    },
+    "libs/printfmt.c": {
+      "official_sha256": "ce27519fad9f81072b0db9b87a64a236bd02ec0e943ef6bf445ba90212392f99",
+      "local_sha256": "ce27519fad9f81072b0db9b87a64a236bd02ec0e943ef6bf445ba90212392f99",
+      "same_ignoring_crlf": true
+    },
+    "libs/rand.c": {
+      "official_sha256": "5bff1909b6037bc101ab83ca62efda384a6bfec07d15bda3fa3b38d18b396f10",
+      "local_sha256": "5bff1909b6037bc101ab83ca62efda384a6bfec07d15bda3fa3b38d18b396f10",
+      "same_ignoring_crlf": true
+    },
+    "libs/riscv.h": {
+      "official_sha256": "171427354a9f5abd2d2c1f55082be3a0e065bbc4ec4aa531623bed4b6e076b5e",
+      "local_sha256": "171427354a9f5abd2d2c1f55082be3a0e065bbc4ec4aa531623bed4b6e076b5e",
+      "same_ignoring_crlf": true
+    },
+    "libs/sbi.h": {
+      "official_sha256": "d454c5adb1745a69b18b2ba90ed7478c21c1c8440b0c5dfd61834761e5dd0f77",
+      "local_sha256": "d454c5adb1745a69b18b2ba90ed7478c21c1c8440b0c5dfd61834761e5dd0f77",
+      "same_ignoring_crlf": true
+    },
+    "libs/skew_heap.h": {
+      "official_sha256": "9c90b67950740dd4dd951a3897a4da18a49b9c9334195f782df2b585ff24603f",
+      "local_sha256": "9c90b67950740dd4dd951a3897a4da18a49b9c9334195f782df2b585ff24603f",
+      "same_ignoring_crlf": true
+    },
+    "libs/stdarg.h": {
+      "official_sha256": "25768e5826aeeab95413549f90b91c4e3108d40459a0647699686e773337db36",
+      "local_sha256": "25768e5826aeeab95413549f90b91c4e3108d40459a0647699686e773337db36",
+      "same_ignoring_crlf": true
+    },
+    "libs/stdio.h": {
+      "official_sha256": "99294dc42fb021bc2f828c22895ee7a28301a8fa22f8ca17c3937ed57fd1b050",
+      "local_sha256": "99294dc42fb021bc2f828c22895ee7a28301a8fa22f8ca17c3937ed57fd1b050",
+      "same_ignoring_crlf": true
+    },
+    "libs/stdlib.h": {
+      "official_sha256": "3ac5dc860333a53980c49760c507afe002bff4b95b83347ea42dc999810bd789",
+      "local_sha256": "3ac5dc860333a53980c49760c507afe002bff4b95b83347ea42dc999810bd789",
+      "same_ignoring_crlf": true
+    },
+    "libs/string.c": {
+      "official_sha256": "7870cfea55cd38606311ecfb74da1a0dc33d1a925e1b415efe8d84df89778c89",
+      "local_sha256": "7870cfea55cd38606311ecfb74da1a0dc33d1a925e1b415efe8d84df89778c89",
+      "same_ignoring_crlf": true
+    },
+    "libs/string.h": {
+      "official_sha256": "9bdfa46f85b9a53eb918b99de4a8d0f9b1b77408489d5970b2ae69d234474968",
+      "local_sha256": "9bdfa46f85b9a53eb918b99de4a8d0f9b1b77408489d5970b2ae69d234474968",
+      "same_ignoring_crlf": true
+    },
+    "libs/unistd.h": {
+      "official_sha256": "1decc5bd8d10e033b25018bfe4f4d279af1f5608e02d19dce4f50ac301519f12",
+      "local_sha256": "1decc5bd8d10e033b25018bfe4f4d279af1f5608e02d19dce4f50ac301519f12",
+      "same_ignoring_crlf": true
+    },
+    "tools/boot.ld": {
+      "official_sha256": "d42ba7abd94e9bd67879fe6d25165a39b829594d9fe74cadedce359bf4fe2474",
+      "local_sha256": "d42ba7abd94e9bd67879fe6d25165a39b829594d9fe74cadedce359bf4fe2474",
+      "same_ignoring_crlf": true
+    },
+    "tools/function.mk": {
+      "official_sha256": "9ad77549eddd0e758d25c6ae79ad70aec6a374526548eee0bbbb2f4586bdf8c6",
+      "local_sha256": "9ad77549eddd0e758d25c6ae79ad70aec6a374526548eee0bbbb2f4586bdf8c6",
+      "same_ignoring_crlf": true
+    },
+    "tools/gdbinit": {
+      "official_sha256": "a0825abc90b386b28e27268558f5be6c66ec8c35a54ab83b538ad0cb7154262e",
+      "local_sha256": "a0825abc90b386b28e27268558f5be6c66ec8c35a54ab83b538ad0cb7154262e",
+      "same_ignoring_crlf": true
+    },
+    "tools/grade.sh": {
+      "official_sha256": "ea448a9182f486c5e0abe0ad714cb74ed8f5419a77026cdf7222f56653e83f16",
+      "local_sha256": "ea448a9182f486c5e0abe0ad714cb74ed8f5419a77026cdf7222f56653e83f16",
+      "same_ignoring_crlf": true
+    },
+    "tools/inject.py": {
+      "official_sha256": "5d0b80ded3fbe59264e9fd55747f376da4ab4a621c250409ac2c677e82395db0",
+      "local_sha256": "5d0b80ded3fbe59264e9fd55747f376da4ab4a621c250409ac2c677e82395db0",
+      "same_ignoring_crlf": true
+    },
+    "tools/kernel.ld": {
+      "official_sha256": "28269eb67ed1fd58b333e5f56d5de927b86903b3364f549f097b780710cac6c8",
+      "local_sha256": "28269eb67ed1fd58b333e5f56d5de927b86903b3364f549f097b780710cac6c8",
+      "same_ignoring_crlf": true
+    },
+    "tools/sign.c": {
+      "official_sha256": "e0224260adec04f09820909279c9c60299220778f27355113cab862f0a370544",
+      "local_sha256": "e0224260adec04f09820909279c9c60299220778f27355113cab862f0a370544",
+      "same_ignoring_crlf": true
+    },
+    "tools/test_lab6.c": {
+      "official_sha256": "70d3d95d3c5444d57f600e52f4c777d20c91b1224e2c97fc913a026ae36d2e45",
+      "local_sha256": "70d3d95d3c5444d57f600e52f4c777d20c91b1224e2c97fc913a026ae36d2e45",
+      "same_ignoring_crlf": true
+    },
+    "tools/test_lab6.h": {
+      "official_sha256": "ac61bb8f97b638b9fdc7c183b21f0f2dc7186d18272d998ac512e36729367c8c",
+      "local_sha256": "ac61bb8f97b638b9fdc7c183b21f0f2dc7186d18272d998ac512e36729367c8c",
+      "same_ignoring_crlf": true
+    },
+    "tools/user.ld": {
+      "official_sha256": "246a8109687dd4e4f0bafb1015443b97d44e771a7203903f92aff95dc59e9ef3",
+      "local_sha256": "246a8109687dd4e4f0bafb1015443b97d44e771a7203903f92aff95dc59e9ef3",
+      "same_ignoring_crlf": true
+    },
+    "tools/vector.c": {
+      "official_sha256": "0dca823bd9922bfb98b64dce4b6f157ec881b62c545f152c0e5ec1dbd86e26dc",
+      "local_sha256": "0dca823bd9922bfb98b64dce4b6f157ec881b62c545f152c0e5ec1dbd86e26dc",
+      "same_ignoring_crlf": true
+    },
+    "user/badarg.c": {
+      "official_sha256": "cf709d554aaecd51ae3f9ae0eb9ebb2d0f89c7025ff75d2d392651cc45252349",
+      "local_sha256": "cf709d554aaecd51ae3f9ae0eb9ebb2d0f89c7025ff75d2d392651cc45252349",
+      "same_ignoring_crlf": true
+    },
+    "user/badsegment.c": {
+      "official_sha256": "60c28645aff825ae2346582365cb18c78d65a4310b0820d7c3592f58a0fa6ce4",
+      "local_sha256": "60c28645aff825ae2346582365cb18c78d65a4310b0820d7c3592f58a0fa6ce4",
+      "same_ignoring_crlf": true
+    },
+    "user/divzero.c": {
+      "official_sha256": "fb2c3a5a9e065288f8880c55e2cb4a13f7b132127ad112cf4e2b5692a44513a4",
+      "local_sha256": "fb2c3a5a9e065288f8880c55e2cb4a13f7b132127ad112cf4e2b5692a44513a4",
+      "same_ignoring_crlf": true
+    },
+    "user/exit.c": {
+      "official_sha256": "28c9ba9dd92d60475ff21e3e364054b7adaa3df75738a7a10d5158e65a6619d2",
+      "local_sha256": "28c9ba9dd92d60475ff21e3e364054b7adaa3df75738a7a10d5158e65a6619d2",
+      "same_ignoring_crlf": true
+    },
+    "user/faultread.c": {
+      "official_sha256": "eea91ffd40b8a0973e63f13e97761881c5f4fb5af6b956c9e464dc3ce9e27b2d",
+      "local_sha256": "eea91ffd40b8a0973e63f13e97761881c5f4fb5af6b956c9e464dc3ce9e27b2d",
+      "same_ignoring_crlf": true
+    },
+    "user/faultreadkernel.c": {
+      "official_sha256": "74a0d2d884ec594515bc06111e5696668f1e64f72f373b904fc32c98a5aa9794",
+      "local_sha256": "74a0d2d884ec594515bc06111e5696668f1e64f72f373b904fc32c98a5aa9794",
+      "same_ignoring_crlf": true
+    },
+    "user/forktest.c": {
+      "official_sha256": "c6a3e179f6e540d871c4918f50df7eef7068a6c337550fc947d9f19b9db56fd6",
+      "local_sha256": "c6a3e179f6e540d871c4918f50df7eef7068a6c337550fc947d9f19b9db56fd6",
+      "same_ignoring_crlf": true
+    },
+    "user/forktree.c": {
+      "official_sha256": "333c216baab96efe906ddbf4b4ba10c398a45a28cd27d6358031c1e0804e2a01",
+      "local_sha256": "333c216baab96efe906ddbf4b4ba10c398a45a28cd27d6358031c1e0804e2a01",
+      "same_ignoring_crlf": true
+    },
+    "user/hello.c": {
+      "official_sha256": "0c6cc7d63fa1078166d18944a8ea26942e2e9819a02135367e6707387ccccdef",
+      "local_sha256": "0c6cc7d63fa1078166d18944a8ea26942e2e9819a02135367e6707387ccccdef",
+      "same_ignoring_crlf": true
+    },
+    "user/libs/initcode.S": {
+      "official_sha256": "490209fd7b01c4b8fc8f4c76708a5a7e1cb7b14cef11ee68776e46ba9a7724d7",
+      "local_sha256": "490209fd7b01c4b8fc8f4c76708a5a7e1cb7b14cef11ee68776e46ba9a7724d7",
+      "same_ignoring_crlf": true
+    },
+    "user/libs/panic.c": {
+      "official_sha256": "9746cfbf48a856ba00335441f8b8ead01406e78f4a1c102d9ebca8520bcf6182",
+      "local_sha256": "9746cfbf48a856ba00335441f8b8ead01406e78f4a1c102d9ebca8520bcf6182",
+      "same_ignoring_crlf": true
+    },
+    "user/libs/stdio.c": {
+      "official_sha256": "3f6cf460e048ac1ed554d7eb0d7bf1292374056edb67777e0d554aff5c8fb358",
+      "local_sha256": "3f6cf460e048ac1ed554d7eb0d7bf1292374056edb67777e0d554aff5c8fb358",
+      "same_ignoring_crlf": true
+    },
+    "user/libs/syscall.c": {
+      "official_sha256": "fda5405ab16fb44df0fed78c0062d026a76520d19bb32395d48095b88bcb3402",
+      "local_sha256": "fda5405ab16fb44df0fed78c0062d026a76520d19bb32395d48095b88bcb3402",
+      "same_ignoring_crlf": true
+    },
+    "user/libs/syscall.h": {
+      "official_sha256": "a45970524d4a81c16213c42b7720f88fb2b02ebeff97b4361b1c80fda5ea3396",
+      "local_sha256": "a45970524d4a81c16213c42b7720f88fb2b02ebeff97b4361b1c80fda5ea3396",
+      "same_ignoring_crlf": true
+    },
+    "user/libs/ulib.c": {
+      "official_sha256": "c991fe59d3aceaa204d9b0551f07a05ae44e19da3fa7064c5501ab9e1684f81e",
+      "local_sha256": "c991fe59d3aceaa204d9b0551f07a05ae44e19da3fa7064c5501ab9e1684f81e",
+      "same_ignoring_crlf": true
+    },
+    "user/libs/ulib.h": {
+      "official_sha256": "b208e2a9470391fdff5af7cbfedc1120097cb629dc84c5677a908ea21f293d66",
+      "local_sha256": "b208e2a9470391fdff5af7cbfedc1120097cb629dc84c5677a908ea21f293d66",
+      "same_ignoring_crlf": true
+    },
+    "user/libs/umain.c": {
+      "official_sha256": "a9341909f73e3db4208478bb5bb3e4ee5b8fe3c2db994114baf32682325d607c",
+      "local_sha256": "a9341909f73e3db4208478bb5bb3e4ee5b8fe3c2db994114baf32682325d607c",
+      "same_ignoring_crlf": true
+    },
+    "user/matrix.c": {
+      "official_sha256": "76b495f936fe9e4572220ac72f8a36954f5bc59d8472df3ca8e6bb8145baf657",
+      "local_sha256": "76b495f936fe9e4572220ac72f8a36954f5bc59d8472df3ca8e6bb8145baf657",
+      "same_ignoring_crlf": true
+    },
+    "user/pgdir.c": {
+      "official_sha256": "7fffb42058a72b158db0e518f8cc40cbe5277a007cbd31e5b3942c84872772f0",
+      "local_sha256": "7fffb42058a72b158db0e518f8cc40cbe5277a007cbd31e5b3942c84872772f0",
+      "same_ignoring_crlf": true
+    },
+    "user/priority.c": {
+      "official_sha256": "4e5c63daa246425ea8b0d5758a69234ae820f4427d454f49ccbf8d98c15dc599",
+      "local_sha256": "4e5c63daa246425ea8b0d5758a69234ae820f4427d454f49ccbf8d98c15dc599",
+      "same_ignoring_crlf": true
+    },
+    "user/softint.c": {
+      "official_sha256": "c9b7fa4758f905541db4439de01a0d0987201133215a8741ef99545a6e060b99",
+      "local_sha256": "c9b7fa4758f905541db4439de01a0d0987201133215a8741ef99545a6e060b99",
+      "same_ignoring_crlf": true
+    },
+    "user/spin.c": {
+      "official_sha256": "ad9efcebbc45839283227597e2f87b25cade034fa840fee17bf6796e935338d1",
+      "local_sha256": "ad9efcebbc45839283227597e2f87b25cade034fa840fee17bf6796e935338d1",
+      "same_ignoring_crlf": true
+    },
+    "user/testbss.c": {
+      "official_sha256": "0c297762198f1450ee38a4a4907c127c50d4074285f6b1280345f60947207785",
+      "local_sha256": "0c297762198f1450ee38a4a4907c127c50d4074285f6b1280345f60947207785",
+      "same_ignoring_crlf": true
+    },
+    "user/waitkill.c": {
+      "official_sha256": "42c3b409a5e1fcca988fc345c8896c1fa321342447607e65ae42cd7a16ac46d9",
+      "local_sha256": "42c3b409a5e1fcca988fc345c8896c1fa321342447607e65ae42cd7a16ac46d9",
+      "same_ignoring_crlf": true
+    },
+    "user/yield.c": {
+      "official_sha256": "29b9dd6349845b9e50280b3932f6c4f30cd266c37fdc0a5d3016cfe40f026bde",
+      "local_sha256": "29b9dd6349845b9e50280b3932f6c4f30cd266c37fdc0a5d3016cfe40f026bde",
+      "same_ignoring_crlf": true
+    }
+  }
+}

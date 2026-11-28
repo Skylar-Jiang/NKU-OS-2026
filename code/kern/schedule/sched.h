@@ -44,6 +44,9 @@ struct run_queue
     int max_time_slice;
     // For lab6 only
     skew_heap_entry_t *lab6_run_pool;
+    uint32_t stride_floor; // 2411788: per-queue Stride virtual-time baseline
+    struct proc_struct *stride_running;
+    uint32_t stride_charge;
 };
 
 void sched_init(void);

@@ -1,0 +1,104 @@
+QEMU: QEMU emulator version 4.1.1
+== rr: building temporary copy in <mktemp dir>
+overlay: temporary schedule()/print_pgdir() shims applied
+[PASS] rr: sched class is RR_scheduler
+[PASS] rr priority: PCB pre-Lab6 fields
+[PASS] rr priority: PCB six Lab6 fields
+[PASS] rr priority: PCB CFS fields
+[PASS] rr priority: all user processes quit
+[PASS] rr priority: init check memory pass
+[PASS] rr priority: only the final initproc-exit panic
+[PASS] rr priority: no user panic
+[PASS] rr priority: no Lab3 '100 ticks'/EOT
+[PASS] rr priority: 'kernel_execve: pid = 2, name = "priority".'
+[PASS] rr priority: 'main: fork ok,now need to wait pids.'
+[PASS] rr priority: 'set priority to 5'
+[PASS] rr priority: 'set priority to 1'
+[PASS] rr priority: 'main: wait pids over'
+    accs: 628000 684000 648000 644000 660000  | sched result: 1 1 1 1 1
+[PASS] rr priority: child prio 1 acc ratio 100% ~ 100%
+[PASS] rr priority: child prio 2 acc ratio 108% ~ 100%
+[PASS] rr priority: child prio 3 acc ratio 103% ~ 100%
+[PASS] rr priority: child prio 4 acc ratio 102% ~ 100%
+[PASS] rr priority: child prio 5 acc ratio 105% ~ 100%
+[PASS] rr b_proc: PCB pre-Lab6 fields
+[PASS] rr b_proc: PCB six Lab6 fields
+[PASS] rr b_proc: PCB CFS fields
+[PASS] rr b_proc: all user processes quit
+[PASS] rr b_proc: init check memory pass
+[PASS] rr b_proc: only the final initproc-exit panic
+[PASS] rr b_proc: no user panic
+[PASS] rr b_proc: no Lab3 '100 ticks'/EOT
+[PASS] rr b_proc: all checks passed
+    b_proc: 21 checks ok
+[PASS] rr b_spin: PCB pre-Lab6 fields
+[PASS] rr b_spin: PCB six Lab6 fields
+[PASS] rr b_spin: PCB CFS fields
+[PASS] rr b_spin: all user processes quit
+[PASS] rr b_spin: init check memory pass
+[PASS] rr b_spin: only the final initproc-exit panic
+[PASS] rr b_spin: no user panic
+[PASS] rr b_spin: no Lab3 '100 ticks'/EOT
+[PASS] rr b_spin: done
+[PASS] rr b_spin: non-yielding children all start < 1500 ms (timer preemption)
+    b_spin: equal acc(k) 1730 1700 1668 ratio_x100 100 98 96
+    b_spin: weighted acc(k) 1686 1712 1706 ratio_x100 100 101 101
+[PASS] rr b_spin equal: ratio 98% ~ 100%
+[PASS] rr b_spin equal: ratio 96% ~ 100%
+[PASS] rr b_spin weighted 1:2:4 ignored by RR: 101% ~ 100%
+[PASS] rr b_spin weighted 1:2:4 ignored by RR: 101% ~ 100%
+    GDB_TICKS ticks=201 sched_class_proc_tick=201 RR_proc_tick=201 idle_ticks=0
+[PASS] rr gdb: one sched_class_proc_tick per timer tick (201 == 201)
+[PASS] rr gdb: class tick for every non-idle tick (201 + 0 == 201)
+== cfs: building temporary copy in <mktemp dir>
+overlay: temporary schedule()/print_pgdir() shims applied
+[PASS] cfs: sched class is CFS_scheduler
+[PASS] cfs priority: PCB pre-Lab6 fields
+[PASS] cfs priority: PCB six Lab6 fields
+[PASS] cfs priority: PCB CFS fields
+[PASS] cfs priority: all user processes quit
+[PASS] cfs priority: init check memory pass
+[PASS] cfs priority: only the final initproc-exit panic
+[PASS] cfs priority: no user panic
+[PASS] cfs priority: no Lab3 '100 ticks'/EOT
+[PASS] cfs priority: 'kernel_execve: pid = 2, name = "priority".'
+[PASS] cfs priority: 'main: fork ok,now need to wait pids.'
+[PASS] cfs priority: 'set priority to 5'
+[PASS] cfs priority: 'set priority to 1'
+[PASS] cfs priority: 'main: wait pids over'
+    accs: 240000 452000 700000 928000 1168000  | sched result: 1 2 3 4 5
+[PASS] cfs priority: child prio 1 acc ratio 100% ~ 100%
+[PASS] cfs priority: child prio 2 acc ratio 188% ~ 200%
+[PASS] cfs priority: child prio 3 acc ratio 291% ~ 300%
+[PASS] cfs priority: child prio 4 acc ratio 386% ~ 400%
+[PASS] cfs priority: child prio 5 acc ratio 486% ~ 500%
+[PASS] cfs b_proc: PCB pre-Lab6 fields
+[PASS] cfs b_proc: PCB six Lab6 fields
+[PASS] cfs b_proc: PCB CFS fields
+[PASS] cfs b_proc: all user processes quit
+[PASS] cfs b_proc: init check memory pass
+[PASS] cfs b_proc: only the final initproc-exit panic
+[PASS] cfs b_proc: no user panic
+[PASS] cfs b_proc: no Lab3 '100 ticks'/EOT
+[PASS] cfs b_proc: all checks passed
+    b_proc: 21 checks ok
+[PASS] cfs b_spin: PCB pre-Lab6 fields
+[PASS] cfs b_spin: PCB six Lab6 fields
+[PASS] cfs b_spin: PCB CFS fields
+[PASS] cfs b_spin: all user processes quit
+[PASS] cfs b_spin: init check memory pass
+[PASS] cfs b_spin: only the final initproc-exit panic
+[PASS] cfs b_spin: no user panic
+[PASS] cfs b_spin: no Lab3 '100 ticks'/EOT
+[PASS] cfs b_spin: done
+[PASS] cfs b_spin: non-yielding children all start < 1500 ms (timer preemption)
+    b_spin: equal acc(k) 1780 1798 1796 ratio_x100 100 101 100
+    b_spin: weighted acc(k) 792 1510 3030 ratio_x100 100 190 382
+[PASS] cfs b_spin equal: ratio 101% ~ 100%
+[PASS] cfs b_spin equal: ratio 100% ~ 100%
+[PASS] cfs b_spin weighted 1:2:4: 190% ~ 200%
+[PASS] cfs b_spin weighted 1:2:4: 382% ~ 400%
+    GDB_TICKS ticks=201 sched_class_proc_tick=201 CFS_proc_tick=201 idle_ticks=0
+[PASS] cfs gdb: one sched_class_proc_tick per timer tick (201 == 201)
+[PASS] cfs gdb: class tick for every non-idle tick (201 + 0 == 201)
+QEMU SUMMARY: failed=0

@@ -1,0 +1,29 @@
+[PASS] empty returns NULL | expected=1 actual=1
+[PASS] default quantum | expected=5 actual=5
+[PASS] negative quantum refilled | expected=5 actual=5
+[PASS] queue assignment | expected=1 actual=1
+[PASS] last remove empties heap | expected=1 actual=1
+[PASS] partial quantum preserved | expected=2 actual=2
+[PASS] tick expires | expected=0 actual=0
+[PASS] tick requests reschedule | expected=1 actual=1
+[PASS] tick never goes negative | expected=0 actual=0
+[PASS] minimum pass selected | expected=2 actual=2
+[PASS] charge is one BIG_STRIDE at weight1 | expected=1048586 actual=1048586
+[PASS] heap links after root removal | expected=1 actual=1
+[PASS] arbitrary node removal | expected=1 actual=1
+[PASS] all removed count zero | expected=0 actual=0
+[PASS] wrap ordering selects older pass | expected=1 actual=1
+[PASS] pass addition wraps intentionally | expected=1048560 actual=1048560
+[PASS] zero priority uses weight1 | expected=1048576 actual=1048576
+[PASS] huge priority still advances | expected=1 actual=1
+[PASS] sleeper stale credit clamped | expected=1000 actual=1000
+[PASS] new task starts at current floor | expected=1000 actual=1000
+[FAIL] priority set in first quantum reconciles charge | expected=209715 actual=1048576
+[PASS] 7000 dispatches preserve heap and count | expected=1 actual=1
+[PASS] weighted share within two quanta | expected=1 actual=1
+[PASS] weighted share within two quanta | expected=1 actual=1
+[PASS] weighted share within two quanta | expected=1 actual=1
+[PASS] duplicate enqueue assertion | expected=2 actual=2
+[PASS] nonmember dequeue assertion | expected=2 actual=2
+SUMMARY: checks=27 passed=26 failed=1
+EXPECTED_MUTANT_DETECTED: first-quantum priority charge regression; production source unchanged
