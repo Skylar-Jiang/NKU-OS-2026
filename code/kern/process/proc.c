@@ -118,6 +118,12 @@ alloc_proc(void)
     proc->lab6_stride = 0;
     // Smallest valid priority; 0 would divide by zero in Stride/CFS.
     proc->lab6_priority = 1;
+    // CFS (Challenge 2): no vruntime history yet; the first CFS enqueue
+    // places the process at the queue's min_vruntime.
+    proc->cfs_vruntime = 0;
+    proc->cfs_sum_exec = 0;
+    proc->cfs_slice_exec = 0;
+    proc->cfs_flags = 0;
     return proc;
 }
 
