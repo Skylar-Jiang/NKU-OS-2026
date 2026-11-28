@@ -33,10 +33,21 @@ HOSTCFLAGS	:= -Wall -O2
 GDB		:= $(GCCPREFIX)gdb
 
 CC		:= $(GCCPREFIX)gcc
+# LAB6 2411788: rebuild sched.o when the boot-time policy changes.
+SCHED ?= stride
+BENCH ?= 0
+SCHED_ID_rr := 1
+SCHED_ID_stride := 2
+SCHED_ID_fifo := 3
+SCHED_ID_sjf := 4
+SCHED_ID_cfs := 5
+ifeq ($(SCHED_ID_$(SCHED)),)
+$(error SCHED must be rr, stride, fifo, sjf or cfs)
+endif
 CFLAGS  := -mcmodel=medany -O2 -std=gnu99 -Wno-unused
 CFLAGS	+= -fno-builtin -Wall -nostdinc $(DEFS)
 CFLAGS	+= -fno-stack-protector -ffunction-sections -fdata-sections
-CFLAGS	+= -g
+CFLAGS	+= -g -DLAB6_SCHED=$(SCHED_ID_$(SCHED)) -DLAB6_BENCH=$(BENCH)
 CTYPE	:= c S
 
 LD      := $(GCCPREFIX)ld
@@ -299,3 +310,10 @@ tags:
 	$(V)find . -type f -name "*.[chS]" >cscope.files
 	$(V)cscope -bq 
 	$(V)ctags -L cscope.files
+
+# FORCE checks the configuration without causing needless recompilation.
+.PHONY: sched-config-force
+$(OBJDIR)/sched-config: sched-config-force
+	@mkdir -p $(OBJDIR)
+	@echo '$(SCHED) $(BENCH) $(DEFS)' | cmp -s - $@ || echo '$(SCHED) $(BENCH) $(DEFS)' > $@
+$(OBJDIR)/kern/schedule/sched.o: $(OBJDIR)/sched-config
