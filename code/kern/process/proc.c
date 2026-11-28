@@ -82,7 +82,7 @@ void kernel_thread_entry(void);
 void forkrets(struct trapframe *tf);
 void switch_to(struct context *from, struct context *to);
 
-//lab6 function1-1 YOUR CODE update alloc_proc
+//lab6 function1-1 2413507 update alloc_proc
 
 // alloc_proc - alloc a proc_struct and initialize every field to a known state
 static struct proc_struct *
@@ -107,6 +107,17 @@ alloc_proc(void)
     proc->exit_code = 0;
     proc->wait_state = 0;
     proc->cptr = proc->yptr = proc->optr = NULL;
+    // Lab6 scheduling fields. The process is not on any run queue yet:
+    // wakeup_proc() enqueues it once do_fork() has finished building it.
+    proc->rq = NULL;
+    list_init(&(proc->run_link));
+    // 0 means "no slice left": RR refills it on the first enqueue, and SJF
+    // uses time_slice/lab6_stride == 0 as "no history yet".
+    proc->time_slice = 0;
+    skew_heap_init(&(proc->lab6_run_pool));
+    proc->lab6_stride = 0;
+    // Smallest valid priority; 0 would divide by zero in Stride/CFS.
+    proc->lab6_priority = 1;
     return proc;
 }
 

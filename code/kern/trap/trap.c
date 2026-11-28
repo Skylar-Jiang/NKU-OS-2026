@@ -95,7 +95,7 @@ void print_regs(struct pushregs *gpr)
 
 extern struct mm_struct *check_mm_struct;
 
-//lab6 function1-2 YOUR CODE update interrupt_handler
+//lab6 function1-2 2413507 update interrupt_handler
 
 static const char *const irq_level[] = {"User", "Supervisor", "Hypervisor", "Machine"};
 static const char *const irq_type[] = {"software", "timer", "external"};
@@ -115,6 +115,14 @@ void interrupt_handler(struct trapframe *tf)
         // interrupted instruction, so epc is left unchanged.
         clock_set_next_event();
         ticks++;
+        // Hand every tick to the active scheduling class. The class updates
+        // time_slice/need_resched (idleproc is handled by the framework);
+        // the switch itself happens later in trap() or cpu_idle(), never
+        // inside this interrupt branch. No Lab3 "100 ticks"/shutdown logic.
+        if (current != NULL)
+        {
+            sched_class_proc_tick(current);
+        }
         break;
     default:
         print_trapframe(tf);
