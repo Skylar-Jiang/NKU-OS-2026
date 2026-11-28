@@ -1,0 +1,78 @@
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+(THU.CST) os is loading ...
+
+Special kernel symbols:
+  entry  0xc020004a (virtual)
+  etext  0xc02060a4 (virtual)
+  edata  0xc02cdbd0 (virtual)
+  end    0xc03520e8 (virtual)
+Kernel executable memory footprint: 1353KB
+DTB Init
+HartID: 0
+DTB Address: 0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000008000000 (128 MB)
+  End:  0x0000000087ffffff
+DTB init completed
+memory management: default_pmm_manager
+physcial memory map:
+  memory: 0x0000000008000000, [0x0000000080000000, 0x0000000087ffffff].
+check_alloc_page() succeeded!
+check_pgdir() succeeded!
+check_boot_pgdir() succeeded!
+use SLOB allocator
+kmalloc_init() succeeded!
+check_vma_struct() succeeded!
+check_vmm() succeeded.
+sched class: FIFO
+++ setup timer interrupts
+kernel_execve: pid = 2, name = "schedbench".
+BENCH_BEGIN case=0
+set priority to 1
+BJOB case=0 idx=0 pid=3 weight=1 units=8
+BJOB_DONE idx=0 pid=3
+KSHARE pid=3 weight=1 run=1543317 ticks=16
+KSHARE pid=4 weight=1 run=0 ticks=0
+KSHARE pid=5 weight=1 run=0 ticks=0
+KSHARE pid=6 weight=1 run=0 ticks=0
+KSTAT pid=3 parent=2 arrival=303154 first=349842 end=1893159 run=1543317 wait=46688 dispatches=1 ticks=16 decisions=4 decision_time=436 switches=4
+set priority to 1
+BJOB case=0 idx=1 pid=4 weight=1 units=8
+BJOB_DONE idx=1 pid=4
+KSTAT pid=4 parent=2 arrival=318666 first=1893201 end=3445932 run=1552731 wait=1574535 dispatches=1 ticks=15 decisions=5 decision_time=555 switches=5
+set priority to 1
+BJOB case=0 idx=2 pid=5 weight=1 units=8
+BJOB_DONE idx=2 pid=5
+KSTAT pid=5 parent=2 arrival=334179 first=3445974 end=4994059 run=1548085 wait=3111795 dispatches=1 ticks=16 decisions=6 decision_time=673 switches=6
+set priority to 1
+BJOB case=0 idx=3 pid=6 weight=1 units=8
+BJOB_DONE idx=3 pid=6
+KSTAT pid=6 parent=2 arrival=349691 first=4994101 end=6542101 run=1548000 wait=4644410 dispatches=1 ticks=15 decisions=7 decision_time=792 switches=7
+schedbench pass. case=0
+KSTAT pid=2 parent=1 arrival=273167 first=273295 end=6550431 run=84794 wait=4649191 dispatches=2 ticks=0 decisions=8 decision_time=910 switches=8
+all user-mode processes have quit.
+init check memory pass.
+kernel panic at kern/process/proc.c:736:
+    initproc exit.
+

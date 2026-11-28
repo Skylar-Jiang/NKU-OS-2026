@@ -1,0 +1,197 @@
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+(THU.CST) os is loading ...
+
+Special kernel symbols:
+  entry  0xc020004a (virtual)
+  etext  0xc0205f4a (virtual)
+  edata  0xc02dbdb0 (virtual)
+  end    0xc02e0298 (virtual)
+Kernel executable memory footprint: 897KB
+DTB Init
+HartID: 0
+DTB Address: 0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000008000000 (128 MB)
+  End:  0x0000000087ffffff
+DTB init completed
+memory management: default_pmm_manager
+physcial memory map:
+  memory: 0x0000000008000000, [0x0000000080000000, 0x0000000087ffffff].
+check_alloc_page() succeeded!
+check_pgdir() succeeded!
+check_boot_pgdir() succeeded!
+use SLOB allocator
+kmalloc_init() succeeded!
+check_vma_struct() succeeded!
+check_vmm() succeeded.
+sched class: RR_scheduler
+b_kcheck: pre-Lab6 PCB fields ok
+b_kcheck: six Lab6 scheduling fields ok
+b_kcheck: CFS fields ok
+b_kcheck: idleproc pid 0, initproc pid 1, current idle
+++ setup timer interrupts
+kernel_execve: pid = 2, name = "b_proc".
+b_proc: start pid 2
+b_proc: ok first user process is pid 2
+b_proc: ok gettime advances with timer ticks
+b_proc: ok wait without children -> -E_BAD_PROC
+b_proc: ok waitpid of unknown pid -> -E_BAD_PROC
+b_proc: ok kill of unknown pid -> -E_INVAL
+b_proc: ok fork returns child pid > parent
+b_proc: ok waitpid(child) returns 0
+b_proc: ok exit code delivered (0x33)
+b_proc: ok child write stays private (no COW leak)
+b_proc: ok reaped child cannot be waited again
+b_proc: ok wait with kernel status pointer -> -E_INVAL
+b_proc: ok child survives bad wait and is reaped later
+b_proc: ok kill running CPU-bound child -> 0
+b_proc: ok second kill -> -E_KILLED
+b_proc: ok killed child reaped with -E_KILLED
+trapframe at 0xffffffffc04f4ee0
+  zero     0x00000000
+  ra       0x00800614
+  sp       0x7fffffa0
+  gp       0x00000000
+  tp       0x00000000
+  t0       0x00000000
+  t1       0x7fffff88
+  t2       0x00000000
+  s0       0x7fffffcc
+  s1       0x00800586
+  a0       0x00000000
+  a1       0x7fffffcc
+  a2       0x00000073
+  a3       0x008003c4
+  a4       0x7fffff90
+  a5       0x0000002e
+  a6       0x00000009
+  a7       0x00000000
+  s2       0x00001000
+  s3       0x00000000
+  s4       0x00000000
+  s5       0x00000000
+  s6       0x00000000
+  s7       0x00000000
+  s8       0x00000000
+  s9       0x00000000
+  s10      0x00000000
+  s11      0x00000000
+  t3       0x00801008
+  t4       0x00000000
+  t5       0x00000000
+  t6       0x00000000
+  status   0x00046020
+  epc      0x00800586
+  tval 0x00000000
+  cause    0x0000000d
+Load page fault: address=0x0000000000000000, epc=0x0000000000800586, error=-6
+b_proc: ok user read of NULL kills only the child
+trapframe at 0xffffffffc04f4ee0
+  zero     0x00000000
+  ra       0x00800614
+  sp       0x7fffffa0
+  gp       0x00000000
+  tp       0x00000000
+  t0       0x00000000
+  t1       0x7fffff88
+  t2       0x00000000
+  s0       0x7fffffcc
+  s1       0x0080058c
+  a0       0x00000000
+  a1       0x7fffffcc
+  a2       0x00000073
+  a3       0x008003c4
+  a4       0x00000001
+  a5       0xc0200000
+  a6       0x00000009
+  a7       0x00000000
+  s2       0x00001000
+  s3       0x00000000
+  s4       0x00000000
+  s5       0x00000000
+  s6       0x00000000
+  s7       0x00000000
+  s8       0x00000000
+  s9       0x00000000
+  s10      0x00000000
+  s11      0x00000000
+  t3       0x00801008
+  t4       0x00000000
+  t5       0x00000000
+  t6       0x00000000
+  status   0x00046020
+  epc      0x00800592
+  tval 0xc0200000
+  cause    0x0000000f
+Store page fault: address=0xffffffffc0200000, epc=0x0000000000800592, error=-6
+b_proc: ok user write to kernel memory kills only the child
+trapframe at 0xffffffffc04f4ee0
+  zero     0x00000000
+  ra       0x00800614
+  sp       0x7fffffa0
+  gp       0x00000000
+  tp       0x00000000
+  t0       0x00000000
+  t1       0x7fffff88
+  t2       0x00000000
+  s0       0x7fffffcc
+  s1       0x00800596
+  a0       0x00000000
+  a1       0x7fffffcc
+  a2       0x00000073
+  a3       0x008003c4
+  a4       0x00000001
+  a5       0x008005b2
+  a6       0x00000009
+  a7       0x00000000
+  s2       0x00001000
+  s3       0x00000000
+  s4       0x00000000
+  s5       0x00000000
+  s6       0x00000000
+  s7       0x00000000
+  s8       0x00000000
+  s9       0x00000000
+  s10      0x00000000
+  s11      0x00000000
+  t3       0x00801008
+  t4       0x00000000
+  t5       0x00000000
+  t6       0x00000000
+  status   0x00046020
+  epc      0x008005a4
+  tval 0x008005b2
+  cause    0x0000000f
+Store page fault: address=0x00000000008005b2, epc=0x00000000008005a4, error=-6
+b_proc: ok user write to read-only text kills only the child
+b_proc: ok explicit exit(0x5a) code
+b_proc: ok 32 fork/exit/wait cycles
+set priority to 3
+b_proc: ok setpriority and yield return to the caller
+b_proc: all checks passed
+all user-mode processes have quit.
+init check memory pass.
+kernel panic at kern/process/proc.c:736:
+    initproc exit.
+

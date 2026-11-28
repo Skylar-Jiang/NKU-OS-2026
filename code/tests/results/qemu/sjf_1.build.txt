@@ -1,0 +1,4 @@
++ cc kern/process/proc.c
++ cc kern/schedule/sched.c
++ cc user/schedbench.c
++ ld bin/kernel

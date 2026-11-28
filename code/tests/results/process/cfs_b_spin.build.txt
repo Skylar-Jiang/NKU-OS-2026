@@ -1,0 +1,3 @@
++ cc kern/process/proc.c
++ cc kern/schedule/sched.c
++ ld bin/kernel

@@ -53,4 +53,3 @@ void print_pgdir(void)
     }
     print_sv39_table((const pte_t *)KADDR(root_pa), 2, 0);
 }
-
